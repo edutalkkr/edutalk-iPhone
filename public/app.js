@@ -2221,6 +2221,15 @@
     window.addEventListener('resize',()=>closeDropdown());
     // 전송 버튼을 누르는 순간 입력창 포커스가 빠지면 키보드가 흔들리므로 미리 막는다 (클릭은 정상 동작)
     document.addEventListener('pointerdown',e=>{ try{ if(e.target && e.target.closest && e.target.closest('.composer .send')) e.preventDefault(); }catch(err){} },true);
+    // 사진이 늦게 불러와져도 맨 아래에 고정되게 (이미지 로드 시점에 아래로 맞춤)
+    document.addEventListener('load',e=>{
+      try{
+        const t=e.target;
+        if(t && t.tagName==='IMG' && t.closest && t.closest('#messages') && state.atBottom){
+          const h=$('#messages'); if(h) h.scrollTop=h.scrollHeight-h.clientHeight;
+        }
+      }catch(err){}
+    },true);
     // 오프라인 감지 (연결이 끊기면 전송 버튼을 흐리게 하고, 돌아오면 알림)
     try{
       const updateOnlineUI=(announce)=>{
@@ -3006,7 +3015,8 @@
           const known=state.knownRoomIds.has(r.id);
           const old=previous.get(r.id)||0, fresh=docTs(r.lastCreatedAt);
           // 이미 알고 있던 방이면 lastCreatedAt이 0이었더라도(첫 메시지) 알림을 준다
-          const isNewMsg = fresh>0 && fresh!==old && (known||old>0);
+          // 삭제 후 요약이 갱신되면 lastCreatedAt이 과거로 돌아갈 수 있다 → 과거 시간은 새 메시지가 아니다
+          const isNewMsg = fresh>0 && fresh>old && (known||old>0);
           if(isNewMsg && r.lastSenderId && r.lastSenderId!==uid() && !summaryBlocked(r)){
             if(r.id!==state.room?.id && !isRoomMuted(r.id)) showNewMessageBanner(r.id,r,{senderName:r.lastSenderName||'사용자',text:r.lastText||''});
             notifyMessage(r.id,r,{senderId:r.lastSenderId,senderName:r.lastSenderName||'사용자',text:r.lastText||'',createdAt:r.lastCreatedAt});
@@ -5916,6 +5926,7 @@
       <div class="admin-card" style="margin-top:14px"><h3>전체 타임아웃</h3><p class="desc">정한 시간 동안 모든 학생이 메시지를 보낼 수 없어요. 채팅창에 남은 시간이 표시돼요.</p>
         ${allTo?`<div class="form-error" style="margin:0 0 10px">지금 전체 타임아웃 중이에요 · 남은 시간 ${esc(fmtDurationLeft(c.timeoutAllUntil))}${c.timeoutAllReason?` · 사유: ${esc(c.timeoutAllReason)}`:''}</div>`:''}
         <div class="field"><label>기간</label><div class="custom-select"><button type="button" class="select-button" data-select-open="allTimeout"><span data-selected="allTimeout" data-value="600">10분</span><span>⌄</span></button></div></div>
+        <div class="field" id="allTimeoutCustomWrap" style="display:none"><label>직접 입력 (분)</label><input id="allTimeoutCustom" class="input" type="number" min="1" max="43200" inputmode="numeric" placeholder="예: 2"></div>
         <div class="field"><label>사유 (선택)</label><input id="allTimeoutReason" class="input" maxlength="80" placeholder="예: 수업 시간에는 조용히 해 주세요."></div>
         <div class="modal-actions" style="margin-top:6px">${allTo?`<button type="button" class="cancel" data-action="timeout-all-clear">타임아웃 풀기</button>`:''}<button type="button" class="confirm" style="flex:1" data-action="timeout-all">전체 타임아웃 주기</button></div>
       </div>
@@ -5931,15 +5942,15 @@
           <div class="word-preview">${(c.flagWords||[]).map(w=>`<span class="word-chip block">${esc(w)}</span>`).join('')||'<span class="mini muted">아직 없어요.</span>'}</div>
           <p class="desc" style="margin:7px 0 0;font-size:12px">이 말이 들어오면 보내되, 자동으로 경고를 남기고 <b>신고 관리</b>에 감지 기록이 쌓여요.</p></div>
         <div class="field"><label>경고 한도</label><input id="warnLimitInput" class="input" type="number" min="1" max="10" value="${warnLimit()}"><p class="desc" style="margin:7px 0 0;font-size:12px">경고가 이 횟수만큼 쌓이면 아래 시간 동안 타임아웃돼요. (경고는 0으로 초기화돼요)</p></div>
-        <div class="field"><label>경고 누적 타임아웃 시간</label><div class="custom-select"><button type="button" class="select-button" data-select-open="warnTimeout"><span data-selected="warnTimeout" data-value="${warnTimeoutMin()*60}">${esc(fmtMinLabel(warnTimeoutMin()))}</span><span>⌄</span></button></div><p class="desc" style="margin:7px 0 0;font-size:12px">한도까지 쌓인 학생은 이 시간 동안 메시지를 보낼 수 없어요. (이용 정지와는 달라요)</p></div>
+        <div class="field"><label>경고 누적 타임아웃 시간</label><div class="custom-select"><button type="button" class="select-button" data-select-open="warnTimeout"><span data-selected="warnTimeout" data-value="${warnTimeoutMin()*60}">${esc(fmtMinLabel(warnTimeoutMin()))}</span><span>⌄</span></button></div><div class="field" id="warnTimeoutCustomWrap" style="display:none;margin-top:8px"><label>직접 입력 (분)</label><input id="warnTimeoutCustom" class="input" type="number" min="1" max="1440" inputmode="numeric" placeholder="예: 2"></div><p class="desc" style="margin:7px 0 0;font-size:12px">한도까지 쌓인 학생은 이 시간 동안 메시지를 보낼 수 없어요. (이용 정지와는 달라요)</p></div>
         <div class="modal-actions" style="margin-top:6px"><button type="button" class="confirm" style="flex:1" data-action="save-chat-words">금지어 저장</button></div>
       </div>
       <div class="admin-card" style="margin-top:14px"><h3>모두에게 상단 고정</h3><p class="desc">고정한 채팅방은 모든 사용자의 목록 맨 위에 나타나요. (사용자가 직접 고정한 방보다 더 위)</p><div id="pinRoomList" class="list"><div class="empty-side">불러오는 중이에요.</div></div></div>
       <p class="desc" style="margin-top:14px">학생 한 명만 멈추려면 <b>사용자</b> 탭에서 그 학생을 찾아 <b>타임아웃</b>을 눌러 주세요.</p>`;
     const sel=$('[data-select-open="allTimeout"]');
-    if(sel) wireDropdown(sel,[{value:60,label:'1분'},{value:300,label:'5분'},{value:600,label:'10분'},{value:1800,label:'30분'},{value:3600,label:'1시간'},{value:10800,label:'3시간'},{value:86400,label:'하루'},{value:604800,label:'일주일'}],(v,l)=>{sel.querySelector('[data-selected]').textContent=l;sel.querySelector('[data-selected]').dataset.value=String(v);});
+    if(sel) wireDropdown(sel,[{value:60,label:'1분'},{value:300,label:'5분'},{value:600,label:'10분'},{value:1800,label:'30분'},{value:3600,label:'1시간'},{value:10800,label:'3시간'},{value:86400,label:'하루'},{value:604800,label:'일주일'},{value:'custom',label:'직접 입력…'}],(v,l)=>{sel.querySelector('[data-selected]').textContent=l;sel.querySelector('[data-selected]').dataset.value=String(v);const w=$('#allTimeoutCustomWrap');if(w)w.style.display=(v==='custom')?'':'none';});
     const wsel=$('[data-select-open="warnTimeout"]');
-    if(wsel) wireDropdown(wsel,WARN_TIMEOUT_OPTIONS,(v,l)=>{wsel.querySelector('[data-selected]').textContent=l;wsel.querySelector('[data-selected]').dataset.value=String(v);});
+    if(wsel) wireDropdown(wsel,[...WARN_TIMEOUT_OPTIONS,{value:'custom',label:'직접 입력…'}],(v,l)=>{wsel.querySelector('[data-selected]').textContent=l;wsel.querySelector('[data-selected]').dataset.value=String(v);const w=$('#warnTimeoutCustomWrap');if(w)w.style.display=(v==='custom')?'':'none';});
     renderAdminPinRooms();
   }
   async function renderAdminPinRooms(){
@@ -5969,7 +5980,12 @@
     const parse=id=>String($('#'+id)?.value||'').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,200);
     const blockWords=parse('blockWords'), allowWords=parse('allowWords'), warnWords=parse('warnWords'), flagWords=parse('flagWords');
     const lim=Math.min(10,Math.max(1,Number($('#warnLimitInput')?.value)||3));
-    const toMin=Math.min(1440,Math.max(5,Math.round((Number($('[data-selected="warnTimeout"]')?.dataset.value)||1800)/60)));
+    const warnSelVal=$('[data-selected="warnTimeout"]')?.dataset.value;
+    const warnCustomMin=Math.round(Number($('#warnTimeoutCustom')?.value)||0);
+    if(warnSelVal==='custom'&&!(warnCustomMin>0)) return toast('경고 타임아웃 직접 입력 칸에 분을 적어 주세요.');
+    const toMin=warnSelVal==='custom'
+      ? Math.min(1440,Math.max(1,warnCustomMin))
+      : Math.min(1440,Math.max(1,Math.round((Number(warnSelVal||1800))/60)));
     try{ await db.collection('chatSettings').doc('main').set({blockWords,allowWords,warnWords,flagWords,warnLimit:lim,warnTimeoutMin:toMin,updatedAt:ts()},{merge:true}); }
     catch(e){ console.error(e); return toast(errText(e)); }
     toast('금지어를 저장했어요.');
@@ -5978,7 +5994,11 @@
   async function applyTimeoutAll(){
     if(!isAdmin()) return;
     const sel=$('[data-selected="allTimeout"]');
-    const min=Math.max(1,Math.round(Number(sel?.dataset.value||600)/60));
+    const customMin=Math.round(Number($('#allTimeoutCustom')?.value)||0);
+    if(sel?.dataset.value==='custom'&&!(customMin>0)) return toast('직접 입력 칸에 분을 적어 주세요.');
+    const min=(sel?.dataset.value==='custom')
+      ? Math.min(43200,Math.max(1,customMin))
+      : Math.max(1,Math.round(Number(sel?.dataset.value||600)/60));
     const reason=($('#allTimeoutReason')?.value||'').trim();
     const until=Date.now()+min*60000;
     try{ await db.collection('chatSettings').doc('main').set({timeoutAllUntil:until,timeoutAllReason:reason,updatedAt:ts()},{merge:true}); }
@@ -5998,17 +6018,23 @@
     if(targetUid===uid()) return toast('자기 자신에게는 줄 수 없어요.');
     openModal(`<h2>채팅 타임아웃</h2><p class="desc">${esc(targetName||'사용자')}님이 정한 시간 동안 메시지를 보낼 수 없어요. (이용 정지와는 달라요)</p>
       <div class="field"><label>기간</label><div class="custom-select"><button type="button" class="select-button" data-select-open="toDuration"><span data-selected="toDuration" data-value="1800">30분</span><span>⌄</span></button></div></div>
+      <div class="field" id="toDurationCustomWrap" style="display:none"><label>직접 입력 (분)</label><input id="toDurationCustom" class="input" type="number" min="1" max="10080" inputmode="numeric" placeholder="예: 2"></div>
       <div class="field"><label>사유 (선택)</label><input id="toReason" class="input" maxlength="80" placeholder="예: 같은 말을 반복해서 도배했어요."></div>
       <label class="choice" style="margin-bottom:4px"><input type="checkbox" id="toPermanent"> 내가 풀어 줄 때까지 계속</label>
       <div class="modal-actions"><button class="cancel" data-close-modal>취소</button><button class="confirm" data-action="timeout-apply" data-uid="${esc(targetUid)}" data-name="${esc(targetName||'')}">타임아웃 주기</button></div>
       <button type="button" class="soft-btn" style="width:100%;margin-top:8px" data-action="timeout-clear" data-uid="${esc(targetUid)}" data-name="${esc(targetName||'')}">타임아웃 풀기</button>`);
     const sel=$('[data-select-open="toDuration"]');
-    if(sel) wireDropdown(sel,[{value:300,label:'5분'},{value:600,label:'10분'},{value:1800,label:'30분'},{value:3600,label:'1시간'},{value:10800,label:'3시간'},{value:86400,label:'하루'},{value:604800,label:'일주일'}],(v,l)=>{sel.querySelector('[data-selected]').textContent=l;sel.querySelector('[data-selected]').dataset.value=String(v);});
+    if(sel) wireDropdown(sel,[{value:60,label:'1분'},{value:300,label:'5분'},{value:1800,label:'30분'},{value:3600,label:'1시간'},{value:10800,label:'3시간'},{value:86400,label:'하루'},{value:604800,label:'일주일'},{value:'custom',label:'직접 입력…'}],(v,l)=>{sel.querySelector('[data-selected]').textContent=l;sel.querySelector('[data-selected]').dataset.value=String(v);const w=$('#toDurationCustomWrap');if(w)w.style.display=(v==='custom')?'':'none';});
   }
   async function applyTimeout(targetUid,targetName){
     if(!isAdmin()||!targetUid) return;
     const perm=!!$('#toPermanent')?.checked;
-    const ms=Math.max(60,Number($('[data-selected="toDuration"]')?.dataset.value||1800))*1000;
+    const toSelVal=$('[data-selected="toDuration"]')?.dataset.value;
+    const toCustomMin=Math.round(Number($('#toDurationCustom')?.value)||0);
+    if(toSelVal==='custom'&&!(toCustomMin>0)) return toast('직접 입력 칸에 분을 적어 주세요.');
+    const ms=toSelVal==='custom'
+      ? Math.min(10080*60000,Math.max(60000,toCustomMin*60000))
+      : Math.max(60000,Number(toSelVal||1800))*1000;
     const reason=($('#toReason')?.value||'').trim();
     const data={reason,permanent:perm,until:perm?null:(Date.now()+ms),by:uid(),byName:state.profile?.displayName||'',updatedAt:ts()};
     try{ await db.collection('chatTimeouts').doc(targetUid).set(data,{merge:true}); }
