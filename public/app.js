@@ -3307,8 +3307,9 @@
     const req=(state.friendRequests||[]).find(r=>r.id===id);
     if(!req){ dismissStickyNotice(`fr_${id}`); return toast('이미 처리된 요청이에요.'); }
     try{
-      await db.collection('friendships').doc(pairId(uid(),req.from)).set({members:[uid(),req.from].sort(),createdAt:ts()},{merge:true});
+      // 수락을 먼저 기록한 뒤 친구를 만든다 (수락 기록이 있어야 규칙을 통과한다)
       await db.collection('friendRequests').doc(id).update({status:'accepted',handledAt:ts()});
+      await db.collection('friendships').doc(pairId(uid(),req.from)).set({members:[uid(),req.from].sort(),requestId:id,createdAt:ts()},{merge:true});
     }catch(e){ console.error(e); return toast(errText(e)); }
     dismissStickyNotice(`fr_${id}`);
     toast(`${req.fromName||'친구'}님과 친구가 됐어요.`);
@@ -3492,6 +3493,7 @@
     const focus=(state.reportFocus&&state.reportFocus.roomId===id)?state.reportFocus:null;
     state.reportFocus=null; state.reportTargetId=focus?focus.msgId:null;
     const gb=$('#globalBanner'); if(gb){gb.classList.remove('show');clearTimeout(state.banner.timer);} hideInRoomPill(); renderRooms();
+    ensureJoinCodeMapping(room);
     await markRead(id);
     if(token!==roomOpenToken) return;
     clearRoomListener();
@@ -4818,6 +4820,10 @@
     try{ ref=await db.collection('channels').add(data); }
     catch(e){ console.error(e); return toast(errText(e)); }
     const roomId=ref.id;
+    // 참가 코드는 코드표에도 따로 둔다 (방 문서를 열지 않고 코드로 찾을 수 있게)
+    if(shared && data.joinPolicy==='open' && data.joinCode){
+      db.collection('joinCodes').doc(data.joinCode).set({roomId,createdBy:uid(),createdAt:ts()}).catch(e=>console.warn('joinCodes',e));
+    }
     state.rooms=[{id:roomId,...data},...state.rooms];
     closeAllModals();
     renderRooms();
@@ -4900,6 +4906,7 @@
   function openRoomManage(id){
     const r=state.rooms.find(x=>x.id===id)||state.room||((state.allRooms||[]).find(x=>x.id===id));
     if(!r) return;
+    ensureJoinCodeMapping(r);
     const isOwner=r.createdBy===uid();
     const canEdit=isOwner||isAdmin();
     const isMember=(r.memberIds||[]).includes(uid());
@@ -4978,8 +4985,20 @@
   function openJoinByCodeModal(){
     openModal(`<h2>참가 코드로 들어가기</h2><p class="desc">공유 채팅방의 <b>참가 코드</b>를 입력하면 들어갈 수 있어요. 방장이 정한 방식에 따라 바로 들어가거나, 방장의 수락을 기다려요.</p>
       <div class="field"><label>참가 코드</label><div class="row"><input id="joinCodeInput" class="input code-input" maxlength="8" spellcheck="false" autocomplete="off" placeholder="예: K7M3QP"><button type="button" class="soft-btn" style="flex:0 0 78px" data-action="join-by-code">확인</button></div><p id="joinCodeMsg" class="reset-msg"></p></div>
-      <div class="modal-actions"><button class="cancel" data-close-modal>닫기</button></div>`);
+      <div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button></div>`);
     setTimeout(()=>$('#joinCodeInput')?.focus(),60);
+  }
+  // 방에 적힌 코드를 코드표에 옮겨 둔다 (방 문서를 읽지 않고도 코드로 찾을 수 있게, 세션당 1회)
+  const joinCodeBackfilled=new Set();
+  async function ensureJoinCodeMapping(r){
+    try{
+      if(!r || !r.id || !r.joinCode || r.joinPolicy!=='open') return;
+      if(joinCodeBackfilled.has(r.id)) return;
+      joinCodeBackfilled.add(r.id);
+      const code=String(r.joinCode).toUpperCase();
+      const m=await db.collection('joinCodes').doc(code).get();
+      if(!m.exists) await db.collection('joinCodes').doc(code).set({roomId:r.id,createdBy:r.createdBy||uid(),createdAt:ts()});
+    }catch(e){ /* 다음 기회에 다시 시도한다 */ try{ joinCodeBackfilled.delete(r.id); }catch(_){} }
   }
   async function joinByRoomCode(raw){
     const msg=$('#joinCodeMsg');
@@ -4987,11 +5006,22 @@
     const code=normalizeCode(raw);
     if(code.length<4) return say('참가 코드를 정확히 입력해 주세요.','warn');
     say('코드를 확인하고 있어요…');
-    let snap=null;
-    try{ snap=await db.collection('channels').where('joinCode','==',code).limit(1).get(); }
-    catch(e){ console.error(e); return say('코드를 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요.','warn'); }
-    if(!snap || snap.empty) return say('그 코드의 채팅방을 찾지 못했어요.','warn');
-    const ch=snap.docs[0]; const r={id:ch.id,...ch.data()};
+    let r=null;
+    // 1) 코드표에서 방을 찾는다 (방 문서를 열지 않고 코드만으로 확인)
+    try{
+      const m=await db.collection('joinCodes').doc(code).get();
+      if(m.exists && m.data().roomId){
+        try{ const s=await db.collection('channels').doc(m.data().roomId).get(); if(s.exists) r={id:s.id,...s.data()}; }catch(e){}
+      }
+    }catch(e){ console.error('joinCodes',e); }
+    // 2) 예전 방 호환: 코드로 직접 찾는다
+    if(!r){
+      let snap=null;
+      try{ snap=await db.collection('channels').where('joinCode','==',code).limit(1).get(); }
+      catch(e){ console.error(e); return say('코드를 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요.','warn'); }
+      if(!snap || snap.empty) return say('그 코드의 채팅방을 찾지 못했어요.','warn');
+      const ch=snap.docs[0]; r={id:ch.id,...ch.data()};
+    }
     if(r.deleted) return say('지워진 채팅방이에요.','warn');
     if((r.memberIds||[]).includes(uid())){ closeAllModals(); return openRoom(r.id); }
     if(r.joinPolicy==='open'){
@@ -6206,10 +6236,12 @@
         <div class="meta mod-quote">${esc(x.text||'')}</div>
         <div class="meta">사유: ${esc(x.reason||'적지 않음')}</div>
         <div class="admin-meta"><span class="admin-chip warn">걸린 말 ${esc(x.word||'')}</span><span class="admin-chip">${esc(fmtDateTime(x.createdAt))}</span></div>
-        <div class="admin-btns">
+        ${(!isAdmin()||x.roomOwnerId===uid())
+          ? `<div class="admin-btns">
           <button type="button" class="soft-btn" data-action="mod-approve" data-id="${esc(x.id)}">복구(승인)</button>
           <button type="button" class="soft-btn" data-action="mod-reject" data-id="${esc(x.id)}">거부</button>
-        </div>
+        </div>`
+          : `<div class="meta" style="margin-top:8px">복구·거부는 담당 선생님이 처리해요. (개인 대화는 관리자도 볼 수 없어요)</div>`}
       </div></div>`).join('')||'<div class="empty-side">새로 들어온 이의 신청이 없어요.</div>';
   }
   async function resolveModAppeal(appealId,approve){

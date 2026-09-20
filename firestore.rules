@@ -38,8 +38,10 @@ service cloud.firestore {
     }
 
     // 사용자 고유 초대 코드 (코드 -> 사용자). 남의 코드를 덮어쓸 수 없다.
+    // 코드는 정확히 알 때만 한 건씩 조회할 수 있다 (목록 긁기 불가).
     match /userCodes/{code} {
-      allow read: if signedIn();
+      allow get: if signedIn();
+      allow list: if false;
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
       allow update, delete: if isAdmin();
     }
@@ -68,9 +70,22 @@ service cloud.firestore {
     }
 
     // 친구 (두 사람이 함께 들어 있는 문서)
+    // 수락된 친구 요청이 있어야만 만든다 (일방적 등록 불가).
+    // 문서 번호는 구성원 두 명을 '_'로 붙인 형태여야 한다.
     match /friendships/{pairId} {
       allow read: if signedIn() && request.auth.uid in resource.data.members;
-      allow create: if signedIn() && request.auth.uid in request.resource.data.members;
+      allow create: if signedIn()
+        && request.resource.data.members.size() == 2
+        && request.auth.uid in request.resource.data.members
+        && request.resource.data.requestId is string
+        && exists(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId))
+        && get(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.get('status','') == 'accepted'
+        && get(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.get('from','') in request.resource.data.members
+        && get(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.get('to','') in request.resource.data.members
+        && request.resource.data.members.hasAll([get(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.get('from',''), get(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.get('to','')])
+        && pairId.split('_').size() == 2
+        && pairId.split('_').hasAll(request.resource.data.members)
+        && request.resource.data.members.hasAll(pairId.split('_'));
       allow delete: if signedIn() && request.auth.uid in resource.data.members;
     }
 
@@ -143,6 +158,7 @@ service cloud.firestore {
       }
       // 대화 내용은 오직 '그 방에 들어 있는 사람'만 볼 수 있다.
       // 관리자·교사라도 남의 1:1/그룹 대화는 열람할 수 없다 (신고된 건만 reports 스냅샷으로 확인).
+      // 참가 코드는 별도 코드표(joinCodes)로 확인하므로, 방 문서는 관계자만 읽을 수 있다.
       function canReadRoom() {
         return signedIn() && (
           resource.data.get('deleted', false) == false &&
@@ -154,13 +170,7 @@ service cloud.firestore {
               schoolOk(resource.data) &&
               (
                 resource.data.get('createdBy', '') == request.auth.uid ||
-                resource.data.get('visibility', '') == 'all' ||
-                // 참가 코드로 들어올 수 있는 공유 채팅방은 정보를 볼 수 있다 (코드 확인용)
-                (
-                  resource.data.get('visibility', '') == 'members' &&
-                  resource.data.get('joinCode', '') != '' &&
-                  resource.data.get('joinPolicy', '') in ['open','approve']
-                )
+                resource.data.get('visibility', '') == 'all'
               )
             )
           )
@@ -398,6 +408,22 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
+    // 참가 코드표 (코드 -> 채팅방). 문서 번호 자체가 코드라서 코드를 알아야만 한 건씩 조회된다.
+    // (목록 긁기로 코드를 모으는 것을 막기 위해 개별 조회만 허용)
+    match /joinCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.roomId is string
+        && request.resource.data.roomId.size() > 0
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if signedIn() && (
+        isAdmin()
+        || resource.data.createdBy == request.auth.uid
+        || get(/databases/$(database)/documents/channels/$(resource.data.roomId)).data.createdBy == request.auth.uid
+      );
+    }
+
     match /roomInvites/{inviteId} {
       function roomOf() { return get(/databases/$(database)/documents/channels/$(request.resource.data.roomId)).data; }
       // 초대 문서 번호는 반드시 '방번호_대상사용자' 여야 한다.
@@ -517,13 +543,11 @@ service cloud.firestore {
     }
 
     // 자동 검열로 보내지 못한 메시지 (이의 신청·복구용)
-    // 보낸 사람 본인과 그 채팅방을 만든 사람(담당 교사)이 볼 수 있다.
-    // 관리자는 '이의 신청이 들어온 건'에 한해 복구 처리를 위해 열람할 수 있다.
+    // 보낸 사람 본인과 그 채팅방을 만든 사람(담당 교사)만 볼 수 있다. 관리자도 개인 대화는 볼 수 없다.
     match /moderationBlocks/{blockId} {
       allow read: if signedIn() && (
         resource.data.get('senderId', '') == request.auth.uid
         || resource.data.get('roomOwnerId', '') == request.auth.uid
-        || isAdmin()
       );
       allow create: if signedIn()
         && request.resource.data.senderId == request.auth.uid
