@@ -2390,7 +2390,7 @@
       if(a==='invite-by-uid')return inviteByUid(el.dataset.roomId,el.dataset.uid,el.dataset.name);
       if(a==='open-admin-room'){exitAdmin();return openRoom(rid());}
       if(a==='block')return toggleBlock(u()?.dataset.uid,u()?.dataset.name); if(a==='report-user')return openReport(u()?.dataset.uid,u()?.dataset.name);
-      if(a==='report-message')return openReport(el.dataset.senderId,el.dataset.senderName,el.dataset.msg,el.dataset.roomId); if(a==='delete-message')return deleteMessage(el.dataset.msg); if(a==='reply-message')return setReply(el.dataset.msg);
+      if(a==='report-message')return openReport(el.dataset.senderId,el.dataset.senderName,el.dataset.msg,el.dataset.roomId); if(a==='delete-message')return deleteMessage(el.dataset.msg); if(a==='reply-message')return setReply(el.dataset.msg); if(a==='copy-message')return copyMessageText(el.dataset.msg);
       if(a==='open-report')return openReportDetail(el.dataset.id);
       if(a==='warn-by-report')return warnByReport(el.dataset.id,el.dataset.uid,el.dataset.name);
       if(a==='suspend-by-report')return suspendByReport(el.dataset.id,el.dataset.uid,el.dataset.name);
@@ -4008,6 +4008,7 @@
     const mine=m.senderId===uid();
     const senderName=esc((state.profileCache.get(m.senderId)||{}).displayName||m.senderName||'사용자');
     const items=[];
+    items.push(`<button type="button" data-action="copy-message" data-msg="${esc(m.id)}">복사</button>`);
     items.push(`<button type="button" data-action="reply-message" data-msg="${esc(m.id)}">답장</button>`);
     if(!m.noReactions) items.push(`<button type="button" data-action="react-pick" data-msg="${esc(m.id)}">감정 아이콘</button>`);
     items.push(`<button type="button" data-action="pick-chat" data-msg="${esc(m.id)}">채팅 선택</button>`);
@@ -4534,6 +4535,13 @@
   }
 
   function setReply(id){const m=state.messages.find(x=>x.id===id);if(!m)return;state.replyText=m.text||'';const ta=$('#composerText');if(ta){ta.placeholder=`“${(m.text||'').slice(0,28)}”에 답장해 보세요.`;ta.focus();}toast('답장을 준비했어요.');}
+  function copyMessageText(id){
+    const m=state.messages.find(x=>x.id===id); if(!m) return;
+    const text=String(m.text||'');
+    if(!text) return toast('복사할 글자가 없어요.');
+    closeFloatMenu();
+    return copyText(text,'복사했어요');
+  }
   async function deleteMessage(id){
     const m=state.messages.find(x=>x.id===id); if(!m) return;
     const roomId=state.room?.id; if(!roomId) return;
