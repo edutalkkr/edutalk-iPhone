@@ -738,6 +738,14 @@
       el.className='presence-dot inline '+(s||'hidden');
       el.title=s?presenceLabel(s):'숨김 중'; el.setAttribute('aria-label',s?presenceLabel(s):'숨김 중');
     });
+    // 참여자 패널의 상태도 프로필 캐시 기준으로 함께 갱신한다 (다시 그리지 않음)
+    const memIds=new Set();
+    $$('[data-mem-text]').forEach(el=>{ if(el.dataset.memText) memIds.add(el.dataset.memText); });
+    memIds.forEach(mid=>{
+      const s=presenceStateOf(state.profileCache.get(mid));
+      $$(`[data-mem-text="${mid}"]`).forEach(el=>{ el.textContent=s?presenceLabel(s):''; });
+      $$(`[data-mem-dot="${mid}"]`).forEach(el=>{ el.className='presence-dot inline '+(s||'hidden'); });
+    });
   }
   // 프로필에서 상태를 바꾸면 설정·서버·화면에 즉시 반영한다
   async function setPresenceMode(mode){
@@ -1113,7 +1121,29 @@
   }
   let roomLoadTimer = null;
   let roomUnsub = null;
-  function clearRoomListener() { if (roomUnsub) { roomUnsub(); roomUnsub = null; } clearTypingListener(); clearReadsListener(); }
+  function clearRoomListener() { if (roomUnsub) { roomUnsub(); roomUnsub = null; } clearTypingListener(); clearReadsListener(); clearRoomDocListener(); }
+  // 보고 있는 방의 정보(참여자·이름·설명)가 바뀌면 헤더 숫자만 살려서 반영한다
+  // (전체 다시 그리기는 입력 초안을 날리므로 하지 않는다)
+  let roomDocUnsub=null;
+  function clearRoomDocListener(){ if(roomDocUnsub){ try{roomDocUnsub();}catch(e){} roomDocUnsub=null; } }
+  function attachRoomDocListener(id){
+    clearRoomDocListener();
+    try{
+      roomDocUnsub=db.collection('channels').doc(id).onSnapshot(s=>{
+        if(!s.exists || state.room?.id!==id) return;
+        const data={id,...s.data()};
+        const prevIds=new Set(state.room?.memberIds||[]), nextIds=new Set(data.memberIds||[]);
+        const membersChanged=[...prevIds,...nextIds].some(x=>!prevIds.has(x)||!nextIds.has(x));
+        const myChanged=prevIds.has(uid())!==nextIds.has(uid());
+        state.rooms=(state.rooms||[]).map(r=>r.id===id?{...r,...data}:r);
+        state.room={...(state.room||{}),...data};
+        renderRooms();
+        const c=document.querySelector('#chat .chat-head .hb-count'); if(c) c.textContent=String((data.memberIds||[]).length);
+        if(myChanged) refreshComposer();
+        if(membersChanged){ ensureCurrentProfiles(); if(state.memberPanel) renderMemberPanel(); }
+      },e=>console.error('room doc',e?.code||e));
+    }catch(e){}
+  }
   let inviteUnsub = null;
   function clearInviteListener() { if (inviteUnsub) { try { inviteUnsub(); } catch {} inviteUnsub = null; } }
   let sentInviteUnsub = null;
@@ -3501,6 +3531,7 @@
     startLockTick();
     state.seenMsgIds=new Set();
     state.bubbleAnims=new Map();
+    attachRoomDocListener(id);
     attachMessageListener(id,token,{initial:true});
     attachTypingListener(id);
     attachReadsListener(id);
@@ -3521,7 +3552,7 @@
       // 이전 메시지 더 보기로 넓히는 중에는 알림·읽음 처리를 건너뛴다 (옛날 메시지가 새 알림이 되지 않게)
       if(!first && !state.msgPaging && state.messages.length>oldCount){
         const latest=state.messages[state.messages.length-1];
-        if(latest && latest.senderId!==uid() && !isBlockedMessage(latest)) notifyMessage(id,room,latest);
+        if(latest && !latest.system && latest.senderId!==uid() && !isBlockedMessage(latest)) notifyMessage(id,room,latest);
       }
       // 보고 있는 동안 새 메시지가 오면 읽음 위치를 갱신한다 (읽음 표시 · 안읽음 배지)
       if(!first && !state.msgPaging && state.messages.length>oldCount && !document.hidden && state.atBottom){
@@ -3727,7 +3758,7 @@
     state.searchQuery=q||'';
     const needle=String(q||'').trim().toLowerCase();
     if(!needle){ state.searchHits=[]; state.searchIndex=-1; clearSearchHighlight(); updateSearchCount(); return; }
-    state.searchHits=state.messages.filter(m=>!m.deleted && !isHiddenMsg(m.id) && !isBlockedMessage(m) && String(m.text||'').toLowerCase().includes(needle)).map(m=>m.id);
+    state.searchHits=state.messages.filter(m=>!m.deleted && !m.system && !isHiddenMsg(m.id) && !isBlockedMessage(m) && String(m.text||'').toLowerCase().includes(needle)).map(m=>m.id);
     state.searchIndex=state.searchHits.length-1; // 가장 최근 메시지부터 보여준다
     applySearchHighlight();
     updateSearchCount();
@@ -3806,7 +3837,7 @@
       const nm=acct.displayName||p.displayName||'사용자';
       const st=presenceStateOf(p);
       const owner=id===r.createdBy;
-      return `<div class="list-item tappable" data-action="user-profile" data-uid="${esc(id)}" data-name="${esc(nm)}"><div>${avatarHtml(p,'',true)}</div><div class="grow"><div class="title">${esc(nm)}${id===uid()?' (나)':''}${owner?' <span class="admin-chip">방장</span>':''}</div><div class="meta">${gradeClassPrefix({grade:acct.grade||p.grade,classNum:acct.classNum||p.classNum})}${roleLabel(role)}${st?` · ${presenceLabel(st)}`:''}</div></div></div>`;
+      return `<div class="list-item tappable" data-action="user-profile" data-uid="${esc(id)}" data-name="${esc(nm)}"><div>${avatarHtml(p,'',true)}</div><div class="grow"><div class="title">${esc(nm)}${id===uid()?' (나)':''}${owner?' <span class="admin-chip">방장</span>':''}</div><div class="meta">${gradeClassPrefix({grade:acct.grade||p.grade,classNum:acct.classNum||p.classNum})}${roleLabel(role)} <span class="presence-dot inline ${st||'hidden'}" data-mem-dot="${esc(id)}" aria-hidden="true"></span><span class="presence-text" data-mem-text="${esc(id)}">${st?esc(presenceLabel(st)):''}</span></div></div></div>`;
     }).join('')||'<div class="empty-side">표시할 참여자가 없어요.</div>')
       +(hidden&&!staffView?`<div class="empty-side">관리자 ${hidden}명은 목록에 표시되지 않아요.</div>`:'');
   }
@@ -4079,7 +4110,7 @@
   // ---------- 메시지 공감 (이모지) ----------
   const REACTIONS=['👍','❤️','😄','⭐','🎉','😢'];
   function reactionsHtml(m){
-    if(m.noReactions) return '';
+    if(m.noReactions||m.system) return '';
     const rx=m.reactions||{};
     const keys=Object.keys(rx).filter(k=>Array.isArray(rx[k])&&rx[k].length);
     const chips=keys.map(k=>{
@@ -4129,7 +4160,7 @@
     setTimeout(()=>{ document.addEventListener('pointerdown',off,true); window.addEventListener('wheel',off,{passive:true}); },0);
   }
   function openMsgMenu(msgId,x,y){
-    const m=state.messages.find(v=>v.id===msgId); if(!m) return;
+    const m=state.messages.find(v=>v.id===msgId); if(!m||m.system) return;
     const mine=m.senderId===uid();
     const senderName=esc((state.profileCache.get(m.senderId)||{}).displayName||m.senderName||'사용자');
     const items=[];
@@ -4247,9 +4278,9 @@
       if(isHiddenMsg(m.id))continue;
       visible.push(m);
     }
-    // 가장 아래(최근) 메시지 1개에만 읽음 표시
+    // 가장 아래(최근) 메시지 1개에만 읽음 표시 (시스템 알림은 제외)
     let latestVisibleId='';
-    for(const m of visible){ if(!m.deleted) latestVisibleId=m.id; }
+    for(const m of visible){ if(!m.deleted&&!m.system) latestVisibleId=m.id; }
     const msgTs=(m)=>docTs(m.createdAt)||0;
     // 검열 카드는 입력창 위에 고정하지 않고, 막힌 시점 자리에 끼워 넣는다
     // (서버 시각 전에는 맨 아래, 새 채팅이 오면 위로 올라간다)
@@ -4273,6 +4304,10 @@
       const d=dateText(m.createdAt); if(d&&d!==lastDate){lastDate=d;html+=`<div class="day-sep"><span>${esc(d)}</span></div>`;}
       const dividerHere=state.unreadMarkerId===m.id;
       if(dividerHere) html+=`<div class="read-divider"><span>여기까지 읽었어요</span></div>`;
+      if(m.system==='join'||m.system==='leave'){
+        html+=`<div class="message-row center"><div class="message-content"><div class="deleted-pill">${esc(m.targetName||m.senderName||'사용자')}님이 이 채팅방에 ${m.system==='join'?'참여했어요':'나갔어요'}.</div></div></div>`;
+        continue;
+      }
       if(m.deleted){
         // 지워진 메시지의 원문은 아무도 화면에서 볼 수 없다.
         // 신고가 접수된 경우에만 신고 관리 패널의 스냅샷으로 최소 열람한다.
@@ -4290,8 +4325,8 @@
       const pd=pm?dateText(pm.createdAt):'', nd=nm?dateText(nm.createdAt):'';
       const diffPrev=(pm&&(ts&&msgTs(pm)))?(ts-msgTs(pm)):0;
       const diffNext=(nm&&(ts&&msgTs(nm)))?(msgTs(nm)-ts):0;
-      const samePrev=!!(pm&&!pm.deleted&&pm.senderId===m.senderId&&diffPrev<60000&&state.unreadMarkerId!==pm.id&&(!pd||!md||pd===md));
-      const sameNext=!!(nm&&!nm.deleted&&nm.senderId===m.senderId&&diffNext<60000&&!dividerHere&&(!nd||!md||nd===md));
+      const samePrev=!!(pm&&!pm.deleted&&!pm.system&&pm.senderId===m.senderId&&diffPrev<60000&&state.unreadMarkerId!==pm.id&&(!pd||!md||pd===md));
+      const sameNext=!!(nm&&!nm.deleted&&!nm.system&&nm.senderId===m.senderId&&diffNext<60000&&!dividerHere&&(!nd||!md||nd===md));
       const groupFirst=!samePrev, groupLast=!sameNext;
       const avBtn=`<button type="button" class="avatar-btn" data-action="user-profile" data-uid="${m.senderId}" data-name="${senderName}" aria-label="프로필 보기">${avatarHtml(profile,'',true)}</button>`;
       const receipt=(m.id===latestVisibleId)?(mine?readReceiptHtml(m):readReceiptOthersHtml(m)):'';
@@ -4357,7 +4392,7 @@
     // 이전 메시지 더 보기로 넓히는 중에는 옛날 메시지가 새 알림이 되지 않게 막는다
     if(!initial && !wasBottom && newIds.length && !state.msgPaging){
       const newSet=new Set(newIds);
-      const latest=[...visible].reverse().find(m=>!m.deleted&&newSet.has(m.id)&&m.senderId!==uid());
+      const latest=[...visible].reverse().find(m=>!m.deleted&&!m.system&&newSet.has(m.id)&&m.senderId!==uid());
       if(latest) showInRoomPill(latest);
     } else if(wasBottom||initial){ hideInRoomPill(); }
     updateOldChatBar();
@@ -4398,7 +4433,7 @@
     state.profileListeningKey=key;
     state.profileUnsubs.forEach(fn=>{try{fn();}catch{}});state.profileUnsubs=[];
     ids.slice(0,80).forEach(id=>{
-      const unsub=db.collection('publicProfiles').doc(id).onSnapshot(s=>{if(s.exists){state.profileCache.set(id,s.data());scheduleProfileRerender();}},e=>{console.warn('profile listen',id,e?.code||e);});
+      const unsub=db.collection('publicProfiles').doc(id).onSnapshot(s=>{if(s.exists){state.profileCache.set(id,s.data());scheduleProfileRerender();tickPresence();}},e=>{console.warn('profile listen',id,e?.code||e);});
       state.profileUnsubs.push(unsub);
     });
     // 구독 인원이 많아 잘린 사람들도 이름·사진이 보이도록 한 번에 받아 둔다
@@ -4677,6 +4712,17 @@
   }
 
   function setReply(id){const m=state.messages.find(x=>x.id===id);if(!m)return;state.replyText=m.text||'';const ta=$('#composerText');if(ta){ta.placeholder=`“${(m.text||'').slice(0,28)}”에 답장해 보세요.`;ta.focus();}toast('답장을 준비했어요.');}
+  // 입장·퇴장 알림 (삭제된 메시지처럼 가운데 알약으로, 모두에게 남는다)
+  async function postSystemMessage(roomId,kind,targetName){
+    if(!roomId||!targetName) return;
+    try{
+      await db.collection('channels').doc(roomId).collection('messages').add({
+        system:kind,targetName:String(targetName).slice(0,20),text:'',
+        senderId:uid(),senderName:state.profile?.displayName||'사용자',
+        createdAt:ts(),deleted:false
+      });
+    }catch(e){ console.warn('system msg',e); }
+  }
   function copyMessageText(id){
     const m=state.messages.find(x=>x.id===id); if(!m) return;
     const text=String(m.text||'');
@@ -4892,6 +4938,7 @@
     confirmModal('이 채팅방에서 나갈까요?',
       owner?'내가 만든 방이에요. 나가도 방은 남고, 다시 들어올 수 있어요.':'다시 초대받으면 들어올 수 있어요.',
       async()=>{
+        await postSystemMessage(id,'leave',state.profile?.displayName||'사용자');
         try{ await db.collection('channels').doc(id).update({memberIds:firebase.firestore.FieldValue.arrayRemove(uid()),updatedAt:ts()}); }
         catch(e){ console.error(e); return toast(errText(e)); }
         state.rooms=state.rooms.filter(x=>x.id!==id);
@@ -4904,6 +4951,7 @@
   async function leaveManyRooms(list){
     const rooms=(list||[]).filter(r=>r&&(r.memberIds||[]).includes(uid()));
     if(!rooms.length) return toast('나갈 채팅방을 먼저 골라 주세요.');
+    for(const r of rooms){ await postSystemMessage(r.id,'leave',state.profile?.displayName||'사용자'); }
     try{
       const batch=db.batch();
       rooms.forEach(r=>batch.update(db.collection('channels').doc(r.id),{memberIds:firebase.firestore.FieldValue.arrayRemove(uid()),updatedAt:ts()}));
@@ -5053,6 +5101,7 @@
       state.rooms=[r,...state.rooms];
       closeAllModals();
       toast('채팅방에 들어왔어요.');
+      postSystemMessage(r.id,'join',state.profile?.displayName||'사용자');
       return openRoom(r.id);
     }
     try{
@@ -5076,6 +5125,7 @@
         await db.collection('channels').doc(q.roomId).update({memberIds:firebase.firestore.FieldValue.arrayUnion(q.uid),updatedAt:ts()});
         const inviteId=`${q.roomId}_${q.uid}`;
         await db.collection('roomInvites').doc(inviteId).set({roomId:q.roomId,roomName:q.roomName||'',targetUid:q.uid,targetName:q.name||'',inviterId:uid(),inviterName:state.profile?.displayName||'',status:'pending',createdAt:ts(),updatedAt:ts()},{merge:true});
+        postSystemMessage(q.roomId,'join',q.name||'사용자');
       }
     }catch(e){ console.error(e); return toast(errText(e)); }
     toast(ok?'참가 요청을 수락했어요.':'참가 요청을 거절했어요.');
@@ -5146,6 +5196,7 @@
     catch(e){ console.error(e); return toast(errText(e)); }
     closeAllModals();
     toast('관리자로 참가했어요.');
+    postSystemMessage(id,'join',state.profile?.displayName||'사용자');
     renderRooms();
     openRoom(id);
   }
@@ -5249,6 +5300,7 @@
       step='초대 상태 변경';
       await ref.update({status:'accepted',handledAt:ts()});
       renderRooms();
+      if(!already) postSystemMessage(roomId,'join',state.profile?.displayName||'사용자');
       toast(already?'이미 이 채팅방에 들어가 있어요.':'채팅방에 들어갔어요.');
     }catch(e){
       console.error(`invite accept [${step}]`,e);
@@ -5396,6 +5448,16 @@
       return;
     }
     if(go){ go.disabled=true; go.textContent='처리 중…'; }
+    // 탈퇴하면 모든 채팅방에서 자동으로 나온다 (유령 멤버 방지)
+    try{
+      const s=await db.collection('channels').where('memberIds','array-contains',u).limit(400).get();
+      const targets=s.docs.filter(d=>!d.data().deleted);
+      for(let i=0;i<targets.length;i+=400){
+        const b=db.batch();
+        targets.slice(i,i+400).forEach(d=>b.update(d.ref,{memberIds:firebase.firestore.FieldValue.arrayRemove(u),updatedAt:ts()}));
+        await b.commit();
+      }
+    }catch(e){ console.warn('deleteAccount leave',e); }
     try{
       // 남에게 보이는 정보부터 지운다
       await db.collection('publicProfiles').doc(u).delete().catch(()=>{});
