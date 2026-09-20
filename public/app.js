@@ -1030,7 +1030,7 @@
     };
     try{ await db.collection('moderationBlocks').add(body); }
     catch(e){ console.error('modblock',e); }
-    toast(`‘${word}’ 은(는) 보낼 수 없는 말이에요. 아래 카드에서 이의 신청을 할 수 있어요.`);
+    toast(`‘${word}’ 은(는) 보낼 수 없는 말이에요. 대화 목록의 카드에서 이의 신청을 할 수 있어요.`);
   }
   function openModAppeal(blockId){
     const b=(state.modBlocks||[]).find(x=>x.id===blockId); if(!b) return;
@@ -1057,23 +1057,20 @@
     toast('이의 신청을 보냈어요. 선생님이 확인하면 복구돼요.');
   }
   // 지금 보고 있는 채팅방에서 내가 검열로 막힌 메시지를 카드로 보여준다 (나만 보임)
-  function modBlocksHtml(){
-    const list=(state.modBlocks||[]).filter(b=>b.roomId===(state.room?.id||''));
-    if(!list.length) return '';
-    return list.map(b=>{
-      const a=appealOf(b.id);
-      const foot=!a
-        ? `<button type="button" class="soft-btn mod-appeal-btn" data-action="mod-appeal" data-block="${esc(b.id)}">이의 신청</button>`
-        : a.status==='open' ? `<div class="mod-state">이의 신청을 보냈어요 · 확인 중</div>`
-        : a.status==='approved' ? `<div class="mod-state ok">이의 신청이 받아들여져 복구됐어요.</div>`
-        : `<div class="mod-state">이의 신청이 받아들여지지 않았어요.</div>`;
-      return `<div class="message-row center" data-block-id="${esc(b.id)}"><div class="message-content"><div class="mod-card">
-        <div class="mod-head">🚫 검열로 보내지 못한 메시지</div>
-        <div class="mod-text">${esc(b.text)}</div>
-        <div class="mod-meta">걸린 말: <b>${esc(b.word)}</b> · ${esc(timeText(b.createdAt))}</div>
-        ${foot}
-      </div></div></div>`;
-    }).join('');
+  // 카드 한 장을 그린다 (목록에서는 보낸 시점 자리에 끼워진다)
+  function modBlockHtml(b){
+    const a=appealOf(b.id);
+    const foot=!a
+      ? `<button type="button" class="soft-btn mod-appeal-btn" data-action="mod-appeal" data-block="${esc(b.id)}">이의 신청</button>`
+      : a.status==='open' ? `<div class="mod-state">이의 신청을 보냈어요 · 확인 중</div>`
+      : a.status==='approved' ? `<div class="mod-state ok">이의 신청이 받아들여져 복구됐어요.</div>`
+      : `<div class="mod-state">이의 신청이 받아들여지지 않았어요.</div>`;
+    return `<div class="message-row center" data-block-id="${esc(b.id)}"><div class="message-content"><div class="mod-card">
+      <div class="mod-head">🚫 검열로 보내지 못한 메시지</div>
+      <div class="mod-text">${esc(b.text)}</div>
+      <div class="mod-meta">걸린 말: <b>${esc(b.word)}</b> · ${esc(timeText(b.createdAt))}</div>
+      ${foot}
+    </div></div></div>`;
   }
   function attachModerationListeners(){
     if(modBlocksUnsub) return;
@@ -2284,11 +2281,14 @@
     // 전송 버튼을 누르는 순간 입력창 포커스가 빠지면 키보드가 흔들리므로 미리 막는다 (클릭은 정상 동작)
     document.addEventListener('pointerdown',e=>{ try{ if(e.target && e.target.closest && e.target.closest('.composer .send')) e.preventDefault(); }catch(err){} },true);
     // 사진이 늦게 불러와져도 맨 아래에 고정되게 (이미지 로드 시점에 아래로 맞춤)
+    // 진행 중인 스크롤을 취소하고 새 끝점으로 부드럽게 다시 간다 (낡은 목표지점 방지)
     document.addEventListener('load',e=>{
       try{
         const t=e.target;
         if(t && t.tagName==='IMG' && t.closest && t.closest('#messages') && state.atBottom){
-          const h=$('#messages'); if(h) h.scrollTop=h.scrollHeight-h.clientHeight;
+          const h=$('#messages'); if(!h) return;
+          cancelMsgScroll();
+          scrollMessagesToBottom(h,true);
         }
       }catch(err){}
     },true);
@@ -4251,8 +4251,23 @@
     let latestVisibleId='';
     for(const m of visible){ if(!m.deleted) latestVisibleId=m.id; }
     const msgTs=(m)=>docTs(m.createdAt)||0;
-    for(let i=0;i<visible.length;i++){
-      const m=visible[i];
+    // 검열 카드는 입력창 위에 고정하지 않고, 막힌 시점 자리에 끼워 넣는다
+    // (서버 시각 전에는 맨 아래, 새 채팅이 오면 위로 올라간다)
+    const blockCards=(state.modBlocks||[])
+      .filter(b=>b.roomId===(state.room?.id||''))
+      .map(b=>({b,t:docTs(b.createdAt)||Infinity}))
+      .sort((x,y)=>x.t-y.t);
+    const flow=[]; let bi=0;
+    for(const m of visible){
+      const mt=msgTs(m);
+      while(bi<blockCards.length && blockCards[bi].t<=mt){ flow.push({block:blockCards[bi].b}); bi++; }
+      flow.push({msg:m});
+    }
+    while(bi<blockCards.length){ flow.push({block:blockCards[bi].b}); bi++; }
+    for(let i=0;i<flow.length;i++){
+      const it=flow[i];
+      if(it.block){ html+=modBlockHtml(it.block); continue; }
+      const m=it.msg;
       if(!isInitial && (!seen.has(m.id) || anims.has(m.id))) newIds.push(m.id);
       seen.add(m.id);
       const d=dateText(m.createdAt); if(d&&d!==lastDate){lastDate=d;html+=`<div class="day-sep"><span>${esc(d)}</span></div>`;}
@@ -4268,7 +4283,7 @@
       const mine=m.senderId===uid(); const reply=m.replyToText?`<div style="font-size:11px;color:${mine?'rgba(255,255,255,.75)':'var(--muted)'};margin-bottom:6px;border-left:2px solid currentColor;padding-left:8px">${esc(String(m.replyToText).slice(0,90))}</div>`:'';
       const senderName=esc(profile.displayName||m.senderName||'사용자');
       const t=esc(timeText(m.createdAt));
-      const pm=i>0?visible[i-1]:null, nm=(i<visible.length-1)?visible[i+1]:null;
+      const pm=(i>0&&flow[i-1].msg)?flow[i-1].msg:null, nm=(i<flow.length-1&&flow[i+1].msg)?flow[i+1].msg:null;
       const ts=msgTs(m);
       // 전송 직후(서버 시간 미확정)에도 묶음이 깜빡이지 않게: 시간·날짜가 비어 있으면 같은 것으로 취급
       const md=dateText(m.createdAt);
@@ -4283,8 +4298,6 @@
       html+=`<div class="message-row ${mine?'mine':''}${groupFirst?'':' grouped'}${m.id===state.reportTargetId?' report-target':''}" data-msg-id="${esc(m.id)}">${state.selectMode?(canPickMsg(m)?`<button type="button" class="msg-pick ${selSet().has(m.id)?'on':''}" data-action="pick-msg" data-msg="${esc(m.id)}" aria-label="선택">✓</button>`:'<span class="msg-pick blank"></span>'):''}<div class="msg-side">${!mine?(groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'):''}</div><div class="message-content">${groupFirst?`<div class="message-author"><button type="button" class="author-btn" data-action="user-profile" data-uid="${m.senderId}" data-name="${senderName}">${senderName}</button> · ${roleLabel(profile.role||m.senderRole)} · ${t}${m.id===state.reportTargetId?' <span class="report-badge">신고된 메시지</span>':''}</div>`:''}${reply}<div class="bubble" data-time="${t}">${bubbleInner(m)}</div>${groupLast?'':`<div class="bubble-time">${t}</div>`}${reactionsHtml(m)}${groupLast?`<div class="msg-time">${t}</div>`:''}${receipt}</div>${mine?`<div class="msg-side">${groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'}</div>`:''}</div>`;
     }
     const pendingId=state.pendingHighlight; state.pendingHighlight=null;
-    // 검열로 막힌 내 메시지는 목록 맨 아래에 카드로 남는다 (보낸 사람에게만 보임)
-    html+=modBlocksHtml();
     // 더 옛날 메시지가 있으면 맨 위에 '이전 메시지 더 보기'를 둔다
     const showLoadMore=!state.msgExhausted && (state.messages||[]).length>=(state.msgLimit||MSG_PAGE) && (state.messages||[]).length>0;
     if(showLoadMore) html=`<div class="load-more-wrap"><button type="button" class="load-more" data-action="load-more-msgs"${state.msgLoading?' disabled':''}>${state.msgLoading?'불러오는 중…':'이전 메시지 더 보기'}</button></div>`+html;
@@ -4316,12 +4329,12 @@
       state.scrollToMarker=false;
       requestAnimationFrame(()=>{
         const el=host.querySelector('.read-divider');
-        if(el) el.scrollIntoView({block:'start'});
+        if(el) el.scrollIntoView({block:'start',behavior:prefersReducedMotion()?'auto':'smooth'});
         else scrollMessagesToBottom(host,true);
       });
     } else if(pendingId){
       const row=host.querySelector(`[data-msg-id="${esc(pendingId)}"]`);
-      if(row){ row.classList.add('flash'); requestAnimationFrame(()=>row.scrollIntoView({block:'center'})); }
+      if(row){ row.classList.add('flash'); requestAnimationFrame(()=>row.scrollIntoView({block:'center',behavior:prefersReducedMotion()?'auto':'smooth'})); }
       else toast('해당 메시지를 찾지 못했어요. 최근 메시지만 불러와요.');
     } else if(initial){
       cancelMsgScroll(); host.scrollTop=host.scrollHeight; state.atBottom=true;
@@ -4450,7 +4463,7 @@
         const ta2=$('#composerText');
         if(ta2){ try{ ta2.focus({preventScroll:true}); }catch(fe){ try{ ta2.focus(); }catch(_){} } }
         const host2=$('#messages');
-        if(host2 && state.atBottom) host2.scrollTop=host2.scrollHeight-host2.clientHeight;
+        if(host2 && state.atBottom) scrollMessagesToBottom(host2,true);
       });
     }catch(e){console.error(e);try{const sb=form?.querySelector?form.querySelector('.send'):document.querySelector('#composerForm .send'); if(sb){sb.disabled=false;sb.classList.remove('sending');}}catch(_){}toast(errText(e));return;}
     if(!isStaff() && text){
@@ -4679,7 +4692,8 @@
       return confirmModal('이 메시지를 지울까요?','모두의 화면에서 사라져요. 30일 뒤 완전히 파기돼요.',async()=>{
         try{ await db.collection('channels').doc(roomId).collection('messages').doc(id).update(softDeletePatch()); await refreshLastTextAfterDelete(roomId,id); }
         catch(e){ console.error(e); return toast(errText(e)); }
-        renderMessages(true);
+        // 위 채팅이 아래로 미끄러지듯 내려오게 부드럽게 다시 그린다
+        renderMessages(false);
         toast('메시지를 지웠어요.');
       });
     }
@@ -4691,7 +4705,7 @@
       async()=>{
         try{ await hideMessages([m]); }
         catch(e){ console.error(e); return toast(errText(e)); }
-        renderMessages(true);
+        renderMessages(false);
         toast('메시지를 지웠어요.');
       });
   }
