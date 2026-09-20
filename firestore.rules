@@ -1,0 +1,543 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userDoc(uid) { return get(/databases/$(database)/documents/users/$(uid)).data; }
+    function role() { return signedIn() ? userDoc(request.auth.uid).role : null; }
+    // 내 실제 역할 (users 문서 기준). publicProfiles 에 자기 역할을 그대로 쓰도록 허용할 때 쓴다.
+    function myRole() { return signedIn() && ('role' in userDoc(request.auth.uid)) ? userDoc(request.auth.uid).role : 'student'; }
+    function isAdmin() { return signedIn() && role() == 'admin'; }
+    function isTeacher() { return signedIn() && role() == 'teacher'; }
+    function isTeacherOrAdmin() { return signedIn() && (role() == 'teacher' || role() == 'admin'); }
+    function self(uid) { return signedIn() && request.auth.uid == uid; }
+    function mySchool() {
+      return signedIn() && ('schoolId' in userDoc(request.auth.uid)) ? userDoc(request.auth.uid).schoolId : '';
+    }
+    function sameSchool(d) { return ('schoolId' in d) && d.schoolId == mySchool() && mySchool() != ''; }
+    // 학교 정보가 아직 없는(마이그레이션 전) 문서는 막지 않고 통과시킨다
+    function schoolOk(d) { return !('schoolId' in d) || sameSchool(d); }
+    // 이 방의 멤버인가 (다른 학교 사람이라도 멤버면 허용한다)
+    function amMember(d) { return ('memberIds' in d) && request.auth.uid in d.memberIds; }
+    function schoolDoc(schoolId) { return get(/databases/$(database)/documents/schools/$(schoolId)).data; }
+    function schoolCodeDoc(schoolId) { return get(/databases/$(database)/documents/schoolCodes/$(schoolId)).data; }
+    // 상대가 나를 차단했는지 (차단한 사람에게는 친구 요청을 보낼 수 없다)
+    function blockedByTarget(targetUid) {
+      return exists(/databases/$(database)/documents/users/$(targetUid))
+        && ('blockedUsers' in userDoc(targetUid))
+        && userDoc(targetUid).blockedUsers.hasAny([request.auth.uid]);
+    }
+
+    // 학교 목록은 가입 전에도 검색할 수 있어야 하므로 공개 읽기 (학교 이름/지역/학년 정보만)
+    match /schools/{schoolId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    // 가입 코드는 관리자만 볼 수 있고, 가입 시에는 규칙에서만 검증한다
+    match /schoolCodes/{schoolId} {
+      allow read, write: if isAdmin();
+    }
+
+    // 사용자 고유 초대 코드 (코드 -> 사용자). 남의 코드를 덮어쓸 수 없다.
+    match /userCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // 차단 관계 (상대가 나를 차단했는지 서로 확인할 수 있게 한다)
+    match /blocks/{pairId} {
+      allow read: if signedIn() && (resource.data.by == request.auth.uid || resource.data.target == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.by == request.auth.uid;
+      allow update: if signedIn() && resource.data.by == request.auth.uid && request.resource.data.by == request.auth.uid;
+      allow delete: if signedIn() && resource.data.by == request.auth.uid;
+    }
+
+    // 친구 요청
+    match /friendRequests/{reqId} {
+      allow read: if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid || isAdmin());
+      allow create: if signedIn()
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && !blockedByTarget(request.resource.data.to);
+      allow update: if signedIn() && (
+        isAdmin()
+        || (resource.data.to == request.auth.uid && request.resource.data.status in ['accepted','declined'])
+        || (resource.data.from == request.auth.uid && request.resource.data.status == 'pending')
+      );
+      allow delete: if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+    }
+
+    // 친구 (두 사람이 함께 들어 있는 문서)
+    match /friendships/{pairId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+      allow create: if signedIn() && request.auth.uid in request.resource.data.members;
+      allow delete: if signedIn() && request.auth.uid in resource.data.members;
+    }
+
+    // 학교 간 채팅 요청 (관리자 승인)
+    match /crossRequests/{reqId} {
+      allow read: if signedIn() && (
+        resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid || isAdmin()
+      );
+      allow create: if signedIn()
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if signedIn() && (
+        isAdmin() || (resource.data.fromUid == request.auth.uid && request.resource.data.status == 'pending')
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 이용 정지에 대한 이의 제기
+    match /appeals/{appealId} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow update, delete: if isAdmin();
+    }
+
+    // 예전 단일 학교 설정 (학교 정보가 없는 계정의 하위 호환용)
+    match /schoolSettings/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if self(uid) || isAdmin();
+      // 가입 시 필수 동의(만 14세 이상 · 개인정보 수집)를 서버에서도 강제한다
+      allow create: if self(uid)
+        && request.resource.data.role == 'student'
+        && request.resource.data.schoolId is string
+        && request.resource.data.schoolId.size() > 0
+        && request.resource.data.schoolCode is string
+        && request.resource.data.get('consents', {}).get('age14', false) == true
+        && request.resource.data.get('consents', {}).get('privacy', false) == true
+        && schoolCodeDoc(request.resource.data.schoolId).code == request.resource.data.schoolCode
+        && schoolDoc(request.resource.data.schoolId).active == true;
+      allow update: if (
+        self(uid)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.get('schoolId', '') == resource.data.get('schoolId', '')
+        && request.resource.data.get('schoolCode', '') == resource.data.get('schoolCode', '')
+        // 학생이 스스로 이용 정지를 풀거나 사유를 지우지 못하게 한다 (관리자만 변경 가능)
+        && request.resource.data.get('suspended', false) == resource.data.get('suspended', false)
+        && request.resource.data.get('suspendReason', '') == resource.data.get('suspendReason', '')
+      ) || isAdmin();
+      allow delete: if self(uid) || isAdmin();
+    }
+
+    match /publicProfiles/{uid} {
+      allow read: if signedIn() && (isAdmin() || self(uid) || schoolOk(resource.data));
+      // 자기 프로필은 만들거나 고칠 수 있다. 단, 역할(role)은 실제 내 역할과 같아야 한다
+      // (학생이 스스로 관리자로 바꾸는 것을 막고, 역할 표시가 비어 있어도 저장이 되게 한다)
+      allow create: if self(uid) && request.resource.data.get('role','student') == myRole();
+      allow update: if (self(uid) && request.resource.data.get('role','student') == myRole()) || isAdmin();
+      allow delete: if self(uid) || isAdmin();
+    }
+
+    match /channels/{channelId} {
+      // 나에게 온 초대가 있으면 아직 들어가지 않았어도 방 정보를 볼 수 있다 (수락 처리에 필요)
+      function invitedToRoom() {
+        return exists(/databases/$(database)/documents/roomInvites/$(channelId + '_' + request.auth.uid));
+      }
+      // 대화 내용은 오직 '그 방에 들어 있는 사람'만 볼 수 있다.
+      // 관리자·교사라도 남의 1:1/그룹 대화는 열람할 수 없다 (신고된 건만 reports 스냅샷으로 확인).
+      function canReadRoom() {
+        return signedIn() && (
+          resource.data.get('deleted', false) == false &&
+          resource.data.get('deleted_at', null) == null &&
+          (
+            invitedToRoom() ||
+            amMember(resource.data) ||
+            (
+              schoolOk(resource.data) &&
+              (
+                resource.data.get('createdBy', '') == request.auth.uid ||
+                resource.data.get('visibility', '') == 'all' ||
+                // 참가 코드로 들어올 수 있는 공유 채팅방은 정보를 볼 수 있다 (코드 확인용)
+                (
+                  resource.data.get('visibility', '') == 'members' &&
+                  resource.data.get('joinCode', '') != '' &&
+                  resource.data.get('joinPolicy', '') in ['open','approve']
+                )
+              )
+            )
+          )
+        );
+      }
+      function canPostInRoom() {
+        return signedIn() &&
+          resource.data.get('deleted', false) == false &&
+          resource.data.get('deleted_at', null) == null &&
+          (
+            amMember(resource.data) ||
+            (
+              schoolOk(resource.data) &&
+              (
+                resource.data.get('visibility', '') == 'all' ||
+                (resource.data.get('type', '') == 'notice' && isTeacher())
+              )
+            )
+          );
+      }
+      allow read: if canReadRoom();
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.auth.uid in request.resource.data.memberIds
+        && request.resource.data.visibility in ['all','private','members']
+        && (
+          !('schoolId' in request.resource.data) ||
+          request.resource.data.schoolId == mySchool()
+        );
+      allow update: if signedIn() && (
+        resource.data.createdBy == request.auth.uid ||
+        (
+          // 선생님은 '우리 학교 전체 공유' 요청을 승인하면서 공개 범위만 바꿀 수 있다
+          isTeacher()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visibility','updatedAt'])
+        ) ||
+        (
+          // 참가 코드만 입력하면 바로 들어오는 채팅방 (방장이 '바로 입장'으로 설정한 경우)
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds','updatedAt','schoolIds','classKeys']) &&
+          request.auth.uid in request.resource.data.get('memberIds', []) &&
+          request.resource.data.get('memberIds', []).hasAll(resource.data.get('memberIds', [])) &&
+          request.resource.data.get('memberIds', []).size() <= resource.data.get('memberIds', []).size() + 1 &&
+          resource.data.get('deleted', false) == false &&
+          resource.data.get('joinPolicy', '') == 'open' &&
+          resource.data.get('visibility', '') != 'private' &&
+          resource.data.get('joinCode', '') != '' &&
+          schoolOk(resource.data)
+        ) ||
+        (
+          // 초대를 받은 사람이 스스로 들어오는 경우 (이미 들어와 있으면 그대로 둔다)
+          request.auth.uid in request.resource.data.get('memberIds', []) &&
+          request.resource.data.get('memberIds', []).hasAll(resource.data.get('memberIds', [])) &&
+          request.resource.data.get('memberIds', []).size() <= resource.data.get('memberIds', []).size() + 1 &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds','updatedAt','schoolIds','classKeys']) &&
+          exists(/databases/$(database)/documents/roomInvites/$(channelId + '_' + request.auth.uid)) &&
+          get(/databases/$(database)/documents/roomInvites/$(channelId + '_' + request.auth.uid)).data.get('status','') == 'pending' &&
+          // 초대 문서가 정말 '이 방'을 가리키고 '나'에게 온 초대인지 확인한다
+          get(/databases/$(database)/documents/roomInvites/$(channelId + '_' + request.auth.uid)).data.get('roomId','') == channelId &&
+          get(/databases/$(database)/documents/roomInvites/$(channelId + '_' + request.auth.uid)).data.get('targetUid','') == request.auth.uid
+        ) ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText','lastSenderId','lastSenderName','lastCreatedAt','updatedAt']) &&
+          canPostInRoom()
+        ) ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds','updatedAt']) &&
+          request.auth.uid in resource.data.memberIds &&
+          !(request.auth.uid in request.resource.data.memberIds) &&
+          resource.data.memberIds.size() == request.resource.data.memberIds.size() + 1 &&
+          resource.data.memberIds.hasAll(request.resource.data.memberIds)
+        )
+      );
+      // 방도 즉시 지우지 않는다. deleted_at 을 남기고 30일 뒤 TTL이 영구 파기한다.
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        function room() { return get(/databases/$(database)/documents/channels/$(channelId)).data; }
+        function roomOk() { return schoolOk(room()); }
+        // 대화 내용 열람: 그 방에 들어 있는 사람(또는 방장)만. 관리자·교사 예외 없음.
+        function canReadMessages() {
+          return signedIn() &&
+            room().get('deleted', false) == false &&
+            room().get('deleted_at', null) == null &&
+            (
+              amMember(room()) ||
+              (
+                roomOk() &&
+                (
+                  room().get('visibility', '') == 'all' ||
+                  room().get('createdBy', '') == request.auth.uid
+                )
+              )
+            );
+        }
+        allow read: if canReadMessages();
+        allow create: if signedIn() && (
+          (
+            request.resource.data.senderId == request.auth.uid &&
+            room().get('deleted', false) == false &&
+            room().get('deleted_at', null) == null &&
+            (
+              amMember(room()) ||
+              (
+                roomOk() &&
+                (
+                  room().get('visibility', '') == 'all' ||
+                  (room().get('type', '') == 'notice' && isTeacher())
+                )
+              )
+            )
+          )
+          ||
+          // 자동 검열 이의 신청이 받아들여져 원래 작성자 대신 복구해 주는 경우 (교사·관리자만)
+          (
+            request.resource.data.get('appealRestored', false) == true
+            && (isTeacher() || isAdmin())
+            && room().get('deleted', false) == false &&
+            room().get('deleted_at', null) == null &&
+            // 차단 기록을 근거로 '원래 작성자'와 '그 방'이 맞을 때만 복구할 수 있다 (사칭 방지)
+            request.resource.data.get('appealBlockId', '') != '' &&
+            exists(/databases/$(database)/documents/moderationBlocks/$(request.resource.data.appealBlockId)) &&
+            get(/databases/$(database)/documents/moderationBlocks/$(request.resource.data.appealBlockId)).data.get('senderId', '') == request.resource.data.senderId &&
+            get(/databases/$(database)/documents/moderationBlocks/$(request.resource.data.appealBlockId)).data.get('roomId', '') == channelId &&
+            get(/databases/$(database)/documents/moderationBlocks/$(request.resource.data.appealBlockId)).data.get('status', '') == 'blocked' &&
+            (
+              room().get('createdBy', '') == request.auth.uid ||
+              (roomOk() && room().get('visibility', '') == 'all')
+            )
+          )
+        );
+        // 남의 메시지는 절대 건드릴 수 없다. 공감(reactions)만 자기 몫으로 바꿀 수 있다.
+        // 모두의 화면에서 숨기는 처리는 그 방을 만든 사람(방장)이나 본인 메시지의 작성자만 할 수 있다.
+        // (본문(text) 수정은 허용하지 않아 남의 말을 바꿔치기할 수 없다)
+        allow update: if signedIn() && (
+          (
+            (room().get('createdBy', '') == request.auth.uid || resource.data.get('senderId', '') == request.auth.uid)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deleted_at','expire_at','deleted_by'])
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+            && (
+              amMember(room()) ||
+              (roomOk() && room().get('visibility', '') == 'all')
+            )
+          )
+        );
+        // 즉시 삭제하지 않는다 (soft delete → 30일 뒤 TTL 영구 파기)
+        allow delete: if false;
+      }
+
+      // 입력 중 표시: 본인만 쓰고, 그 방을 볼 수 있는 사람은 읽을 수 있다.
+      // (타이핑 상태만 담는 짧은 문서라 방을 나가면 앱이 바로 지운다)
+      match /typing/{uid} {
+        function typingRoom() { return get(/databases/$(database)/documents/channels/$(channelId)).data; }
+        function canSeeRoom() {
+          return signedIn() &&
+            typingRoom().get('deleted', false) == false &&
+            typingRoom().get('deleted_at', null) == null &&
+            (
+              amMember(typingRoom()) ||
+              (schoolOk(typingRoom()) && typingRoom().get('visibility', '') == 'all') ||
+              typingRoom().get('createdBy', '') == request.auth.uid
+            );
+        }
+        allow read: if canSeeRoom();
+        allow create, update: if signedIn() && request.auth.uid == uid && canSeeRoom();
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+
+      // 읽음 위치: 본인만 쓰고, 그 방을 볼 수 있는 사람은 읽을 수 있다 (읽음 표시용)
+      match /reads/{uid} {
+        function readsRoom() { return get(/databases/$(database)/documents/channels/$(channelId)).data; }
+        function canSeeReads() {
+          return signedIn() &&
+            readsRoom().get('deleted', false) == false &&
+            (
+              amMember(readsRoom()) ||
+              (schoolOk(readsRoom()) && readsRoom().get('visibility', '') == 'all') ||
+              readsRoom().get('createdBy', '') == request.auth.uid
+            );
+        }
+        allow read: if canSeeReads();
+        allow create, update: if signedIn() && request.auth.uid == uid && canSeeReads();
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // 내 화면에서만 메시지 숨기기 (남의 메시지도 내 화면에서만 숨길 수 있다)
+    match /messageHides/{hideId} {
+      function roomOf(roomId) { return get(/databases/$(database)/documents/channels/$(roomId)).data; }
+      function canSeeRoom(roomId) {
+        return amMember(roomOf(roomId)) || (
+          schoolOk(roomOf(roomId)) &&
+          (
+            roomOf(roomId).get('visibility', '') == 'all' ||
+            roomOf(roomId).get('createdBy', '') == request.auth.uid
+          )
+        );
+      }
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.roomId is string
+        && request.resource.data.msgId is string
+        && canSeeRoom(request.resource.data.roomId);
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /roomInvites/{inviteId} {
+      function roomOf() { return get(/databases/$(database)/documents/channels/$(request.resource.data.roomId)).data; }
+      // 초대 문서 번호는 반드시 '방번호_대상사용자' 여야 한다.
+      // (이 검증이 없으면 자기 방을 roomId 로 넣고 문서 번호만 남의 방으로 만들어 규칙을 우회할 수 있다)
+      allow create: if signedIn()
+        && request.resource.data.inviterId == request.auth.uid
+        && request.resource.data.roomId is string
+        && request.resource.data.targetUid is string
+        && request.resource.data.roomId.size() > 0
+        && request.resource.data.targetUid.size() > 0
+        && inviteId == request.resource.data.roomId + '_' + request.resource.data.targetUid
+        && (
+          isTeacherOrAdmin() ||
+          roomOf().createdBy == request.auth.uid ||
+          (('memberIds' in roomOf()) && request.auth.uid in roomOf().memberIds)
+        );
+      allow read: if signedIn() && (
+        resource.data.targetUid == request.auth.uid || resource.data.inviterId == request.auth.uid || isAdmin()
+      );
+      // 초대받은 사람은 수락/거절할 수 있고, 초대한 사람은 다시 보낼 수 있다.
+      // (문서 번호가 '방번호_사용자번호' 이므로 targetUid 가 비어 있어도 본인 초대인지 확인한다)
+      allow update: if signedIn() && (
+        isAdmin()
+        || (
+          request.resource.data.status in ['accepted','declined']
+          && (resource.data.targetUid == request.auth.uid || inviteId.matches('.*_' + request.auth.uid))
+        )
+        || (resource.data.inviterId == request.auth.uid && request.resource.data.status == 'pending')
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 채팅 관리 설정 (금지어 · 전체 채팅 정지 · 전체 타임아웃)
+    // 모두 읽을 수 있어야 앱에서 잠금 상태를 표시할 수 있고, 쓰기는 관리자만 가능하다.
+    match /chatSettings/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // 개인별 채팅 타임아웃 (본인과 관리자·선생님만 볼 수 있다)
+    // 학생은 경고 누적으로 생긴 자동 타임아웃만 스스로 기록할 수 있다. (해제·연장 불가, 최대 하루)
+    match /chatTimeouts/{targetUid} {
+      allow read: if signedIn() && (self(targetUid) || isTeacherOrAdmin());
+      allow write: if isAdmin()
+        || (self(targetUid)
+            && request.resource.data.auto == true
+            && request.resource.data.permanent == false
+            && request.resource.data.until <= request.time.toMillis() + 86400000);
+    }
+
+    // 공유 채팅방에 들어오려는 참가 요청 (방장이 수락/거절)
+    match /joinRequests/{reqId} {
+      function roomOf() { return get(/databases/$(database)/documents/channels/$(request.resource.data.roomId)).data; }
+      function roomOfRes() { return get(/databases/$(database)/documents/channels/$(resource.data.roomId)).data; }
+      allow read: if signedIn() && (
+        isAdmin()
+        || resource.data.uid == request.auth.uid
+        || roomOfRes().get('createdBy', '') == request.auth.uid
+      );
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && roomOf().get('joinPolicy', '') == 'approve'
+        && roomOf().get('deleted', false) == false;
+      allow update, delete: if signedIn() && (
+        isAdmin()
+        || roomOfRes().get('createdBy', '') == request.auth.uid
+        || (resource.data.uid == request.auth.uid && request.resource.data.status == 'cancelled')
+      );
+    }
+
+    // 우리 학교 전체 공유 승인 요청 (관리자·선생님이 승인)
+    match /shareRequests/{reqId} {
+      allow read: if signedIn() && (resource.data.requestedBy == request.auth.uid || isTeacherOrAdmin());
+      allow create: if signedIn()
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update, delete: if signedIn() && (
+        isTeacherOrAdmin()
+        || (
+          resource.data.requestedBy == request.auth.uid
+          && request.resource.data.status in ['cancelled','pending']
+        )
+      );
+    }
+
+    // 신고: 신고 시점의 대화 30개 스냅샷을 함께 보관한다.
+    // 열람은 신고자 본인, 담당 교사(그 방을 만든 사람), 관리자로 제한한다 (신고된 건만 최소 열람).
+    match /reports/{id} {
+      allow create: if signedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow read: if signedIn() && (
+        isAdmin()
+        || resource.data.reporterId == request.auth.uid
+        || (
+          resource.data.get('roomOwnerId', '') != ''
+          && resource.data.get('roomOwnerId', '') == request.auth.uid
+        )
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // 금지어·심각 키워드 자동 감지 로그 (관리자만 열람)
+    match /moderationFlags/{id} {
+      allow create: if signedIn() && request.resource.data.byUid == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 자동 검열로 보내지 못한 메시지 (이의 신청·복구용)
+    // 보낸 사람 본인과 그 채팅방을 만든 사람(담당 교사)만 볼 수 있다. 관리자도 개인 대화는 볼 수 없다.
+    match /moderationBlocks/{blockId} {
+      allow read: if signedIn() && (
+        resource.data.get('senderId', '') == request.auth.uid
+        || resource.data.get('roomOwnerId', '') == request.auth.uid
+      );
+      allow create: if signedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.status == 'blocked';
+      // 승인·거부 처리는 담당 교사와 관리자만
+      allow update: if isTeacherOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // 오검열 이의 신청 (차단된 메시지에 대한 제보)
+    match /moderationAppeals/{appealId} {
+      allow read: if signedIn() && (
+        resource.data.get('senderId', '') == request.auth.uid
+        || resource.data.get('roomOwnerId', '') == request.auth.uid
+        || isAdmin()
+      );
+      allow create: if signedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow update: if isTeacherOrAdmin() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /directNotices/{id} {
+      allow create: if isTeacherOrAdmin() && request.resource.data.senderId == request.auth.uid;
+      allow read: if signedIn() && (
+        resource.data.targetUid == request.auth.uid
+        || resource.data.get('senderId', '') == request.auth.uid
+        || isAdmin()
+      );
+      allow update: if signedIn() && resource.data.targetUid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /siteNotices/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // 로그인 화면(로그인 전)에서도 읽어야 하는 안내 페이지
+    match /sitePages/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 로그인 전에 보여 주는 소개(랜딩) 페이지 설정. 로그인하지 않은 방문자도 읽어야 한다.
+    match /siteLanding/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
