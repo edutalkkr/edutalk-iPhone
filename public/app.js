@@ -1109,6 +1109,7 @@
     clearSiteNoticeListener();
     clearChatLockListeners();
     clearModerationListeners();
+    clearRoleListeners();
     $$('#stickyRoot .sticky-card').forEach(el=>el.remove());
     if(noticeUnsub){try{noticeUnsub();}catch{} noticeUnsub=null;}
     state.profileUnsubs.forEach(fn=>{try{fn();}catch{}});state.profileUnsubs=[];state.profileListeningKey='';
@@ -1336,6 +1337,7 @@
       backfillBlockDocs().catch(e=>console.error('blocks',e));
       attachNoticeListener();
       attachSiteNoticeListener();
+      attachRoleListeners();
       watchSuspension();
       backfillPublicProfile().catch(e=>console.error('public profile',e));
       recordLoginInfo().catch(e=>console.error('login info',e));
@@ -2237,8 +2239,8 @@
   initSidebarWidth();
   function adminTabs(){
     return isAdmin()
-      ? [['school','학교 관리'],['landing','소개 페이지'],['sitenotice','사이트 공지'],['pages','안내 페이지'],['chat','채팅 관리'],['sharereq','공유 요청'],['reports','신고 관리'],['modappeals','오검열 이의'],['appeals','이의 제기'],['popup','개인 안내'],['users','사용자'],['cross','학교 간 요청'],['rooms','채팅방']]
-      : [['sharereq','공유 요청'],['reports','신고 관리'],['modappeals','오검열 이의'],['rooms','채팅방'],['popup','개인 안내']];
+      ? [['school','학교 관리'],['landing','소개 페이지'],['sitenotice','사이트 공지'],['pages','안내 페이지'],['chat','채팅 관리'],['sharereq','공유 요청'],['reports','신고 관리'],['modappeals','오검열 이의'],['appeals','이의 제기'],['popup','개인 안내'],['users','사용자'],['cross','학교 간 요청'],['rooms','채팅방'],['roles','역할'],['notice','공지']]
+      : [['notice','공지'],['roles','역할'],['sharereq','공유 요청'],['reports','신고 관리'],['modappeals','오검열 이의'],['rooms','채팅방'],['popup','개인 안내']];
   }
   function adminPageHtml(){
     const tabs=adminTabs();
@@ -2264,6 +2266,42 @@
     renderRooms();
     renderFriends();
     startBrandRotate();
+  }
+  // ---------- 학교 역할 (반장·부반장·학생회장 등 · 중복 부여 가능) ----------
+  let roleDefsUnsub=null, roleGrantsUnsub=null;
+  function clearRoleListeners(){ if(roleDefsUnsub){try{roleDefsUnsub();}catch(e){} roleDefsUnsub=null;} if(roleGrantsUnsub){try{roleGrantsUnsub();}catch(e){} roleGrantsUnsub=null;} }
+  function attachRoleListeners(){
+    clearRoleListeners();
+    const sid=state.profile?.schoolId||''; if(!sid) return;
+    try{
+      roleDefsUnsub=db.collection('schoolRoles').where('schoolId','==',sid).limit(100).onSnapshot(s=>{
+        state.roleDefs=s.docs.map(d=>({id:d.id,...d.data()}));
+        if(state.memberPanel) renderMemberPanel();
+        if($('#messages')) renderMessages(false);
+      },e=>console.warn('roleDefs',e?.code||e));
+      roleGrantsUnsub=db.collection('roleGrants').where('schoolId','==',sid).limit(500).onSnapshot(s=>{
+        state.roleGrants=s.docs.map(d=>({id:d.id,...d.data()}));
+        if(state.memberPanel) renderMemberPanel();
+        if($('#messages')) renderMessages(false);
+      },e=>console.warn('roleGrants',e?.code||e));
+    }catch(e){}
+  }
+  // uid가 가진 역할 목록 (부여 순서대로)
+  function userRoles(uid){
+    const grants=(state.roleGrants||[]).filter(g=>g.uid===uid);
+    const defs=new Map((state.roleDefs||[]).map(d=>[d.id,d]));
+    return grants.map(g=>{
+      const d=defs.get(g.roleId)||{};
+      return {...g, name:g.roleName||d.name||'역할', emoji:g.emoji||d.emoji||'', color:g.color||d.color||''};
+    });
+  }
+  function roleChipsHtml(uid){
+    const roles=userRoles(uid); if(!roles.length) return '';
+    return `<span class="role-chips">${roles.map(r=>{
+      const scope=(r.grade?`${r.grade}학년${r.classNum?` ${r.classNum}반`:''}`:'전교');
+      const style=r.color?` style="background:${esc(r.color)}1f;color:${esc(r.color)}"`:'';
+      return `<span class="role-chip"${style} title="${esc(scope)}" data-gid="${esc(r.id)}">${r.emoji?esc(r.emoji)+' ':''}${esc(r.name)}</span>`;
+    }).join('')}</span>`;
   }
   function sidebarHtml(){
     return `<div class="side-top"><div class="brand"><div class="brand-mark">${esc(brandMarkText())}</div><span class="brand-name" data-brand-roll>${esc(brandNames()[0]||'에듀톡')}</span></div><button class="icon-btn" data-action="settings" aria-label="설정">⚙</button></div>
@@ -2475,6 +2513,13 @@
       if(a==='refresh-modappeals')return renderModAppeals($('#adminPanel'));
       if(a==='mod-approve')return resolveModAppeal(el.dataset.id,true);
       if(a==='mod-reject')return resolveModAppeal(el.dataset.id,false);
+      if(a==='role-def-add')return addRoleDef();
+      if(a==='role-def-remove')return removeRoleDef(el.dataset.id);
+      if(a==='role-user-search')return searchRoleUsers();
+      if(a==='role-user-pick'){state.roleGrantPick={...(state.roleGrantPick||{}),uid:el.dataset.uid,name:el.dataset.name,grade:Number(el.dataset.grade)||null,class:el.dataset.class?Number(el.dataset.class):null};const pl=$('#rolePicked');if(pl)pl.innerHTML=rolePickedText();$$('#roleUserList .list-item').forEach(x=>{const on=x.dataset.uid===(state.roleGrantPick||{}).uid;const t=x.querySelector('.title');if(t)t.innerHTML=`${esc(x.dataset.name||'사용자')}${on?' ✓':''}`;});return;}
+      if(a==='role-grant')return grantRole();
+      if(a==='role-ungrant')return ungrantRole(el.dataset.id);
+      if(a==='notice-create')return createNoticeRoom();
       if(a==='appeal-unblock')return handleAppeal(el.dataset.id,el.dataset.uid,el.dataset.name,true);
       if(a==='appeal-close')return handleAppeal(el.dataset.id,el.dataset.uid,el.dataset.name,false);
       if(a==='members'){closeAllModals();return openMembersPanel(el.dataset.roomId||state.room?.id);}
@@ -2638,7 +2683,7 @@
     const emojiButtons=AVATAR_EMOJIS.map(e=>`<button type="button" class="avatar-opt ${state.profileDraft.avatarEmoji===e?'on':''}" data-action="profile-emoji" data-emoji="${esc(e)}">${e?esc(e):esc((p.displayName||'?').trim().charAt(0)||'?')}</button>`).join('');
     const colorButtons=AVATAR_COLORS.map(c=>`<button type="button" class="color-opt ${state.profileDraft.avatarColor===c?'on':''}" data-action="profile-color" data-color="${esc(c)}" style="background:${c||'#eef2f6'}"></button>`).join('');
     openModal(`<h2>프로필</h2><p class="desc">닉네임과 학급 정보, 나만의 프로필을 꾸밀 수 있어요.</p><form id="profileForm">
-      <div class="user-head"><div id="profileAvatarPreview">${avatarHtml(p,'large')}</div><div class="grow"><strong style="font-size:16px">${esc(p.displayName||'사용자')}</strong><div class="profile-meta">${gradeClassPrefix(p)}${roleLabel(p.role)}</div><div class="presence-row"><span class="presence-dot inline ${myPresenceState()||'hidden'}" data-my-presence-dot aria-hidden="true"></span><button type="button" class="presence-menu-btn" data-action="presence-menu" aria-haspopup="menu" aria-label="접속 상태 변경"><span class="presence-text" data-my-presence-label>${esc(myPresenceLabel())}</span><span class="presence-caret" aria-hidden="true">⌄</span></button></div></div></div>
+      <div class="user-head"><div id="profileAvatarPreview">${avatarHtml(p,'large')}</div><div class="grow"><strong style="font-size:16px">${esc(p.displayName||'사용자')}</strong><div class="profile-meta">${gradeClassPrefix(p)}${roleLabel(p.role)}</div>${roleChipsHtml(uid())}<div class="presence-row"><span class="presence-dot inline ${myPresenceState()||'hidden'}" data-my-presence-dot aria-hidden="true"></span><button type="button" class="presence-menu-btn" data-action="presence-menu" aria-haspopup="menu" aria-label="접속 상태 변경"><span class="presence-text" data-my-presence-label>${esc(myPresenceLabel())}</span><span class="presence-caret" aria-hidden="true">⌄</span></button></div></div></div>
       <div class="code-row"><div class="grow"><div class="code-label">내 초대 코드</div><div class="code-value" data-my-code>${esc(p.userCode||'준비 중')}</div></div><button type="button" class="soft-btn" data-action="copy-code">복사</button></div>
       <p class="desc" style="margin:8px 0 16px;font-size:12px">친구가 이 코드를 입력하면 나를 채팅방에 초대할 수 있어요. 자유롭게 알려 주세요.</p>
       <div class="field"><label>닉네임</label><input class="input" name="displayName" value="${esc(p.displayName)}" maxlength="20" required></div>
@@ -2698,7 +2743,7 @@
         ? `<div class="form-error" style="margin:10px 0 0">지금 이용이 정지된 계정이에요. 사유: ${esc(adminInfo.suspendReason||'적혀 있지 않아요.')}</div><button type="button" class="soft-btn" style="width:100%;margin-top:8px" data-action="unsuspend-user" data-uid="${esc(id)}" data-name="${esc(dispName)}">이용 정지 풀기</button>`
         : `<button type="button" class="danger-btn" style="width:100%;margin-top:8px;height:38px;border-radius:13px;font-size:13px" data-action="suspend-user" data-uid="${esc(id)}" data-name="${esc(dispName)}">이용 정지</button>`}
     </div>`:'';
-    openModal(`<h2>프로필</h2><div class="user-head">${avatarHtml(p,'large',true)}<div class="grow"><strong style="font-size:17px">${esc(dispName)}</strong><div class="profile-meta">${gradeClassPrefix(p)}${roleLabel(p.role)}</div>${presenceStateOf(p)?`<div class="presence-row static"><span class="presence-dot inline ${presenceStateOf(p)}" aria-hidden="true"></span><span class="presence-text">${esc(presenceLabel(presenceStateOf(p)))}</span></div>`:''}</div></div>${p.photoFlagged?'<p class="photo-caution">이 프로필 사진은 자동 검사에서 주의가 필요한 사진으로 확인됐어요.</p>':''}${p.bio?`<p class="bio-text">${esc(p.bio)}</p>`:'<p class="desc">아직 자기소개가 없어요.</p>'}${infoRows}<div class="modal-actions" style="flex-wrap:wrap">${friendBtn}<button class="cancel" data-action="block" data-uid="${esc(id)}" data-name="${esc(dispName)}">${blocked?'차단 해제':'차단'}</button><button class="cancel" data-action="report-user" data-uid="${esc(id)}" data-name="${esc(dispName)}">신고</button><button class="confirm" data-close-modal>닫기</button></div>`);
+    openModal(`<h2>프로필</h2><div class="user-head">${avatarHtml(p,'large',true)}<div class="grow"><strong style="font-size:17px">${esc(dispName)}</strong><div class="profile-meta">${gradeClassPrefix(p)}${roleLabel(p.role)}</div>${roleChipsHtml(id)}${presenceStateOf(p)?`<div class="presence-row static"><span class="presence-dot inline ${presenceStateOf(p)}" aria-hidden="true"></span><span class="presence-text">${esc(presenceLabel(presenceStateOf(p)))}</span></div>`:''}</div></div>${p.photoFlagged?'<p class="photo-caution">이 프로필 사진은 자동 검사에서 주의가 필요한 사진으로 확인됐어요.</p>':''}${p.bio?`<p class="bio-text">${esc(p.bio)}</p>`:'<p class="desc">아직 자기소개가 없어요.</p>'}${infoRows}<div class="modal-actions" style="flex-wrap:wrap">${friendBtn}<button class="cancel" data-action="block" data-uid="${esc(id)}" data-name="${esc(dispName)}">${blocked?'차단 해제':'차단'}</button><button class="cancel" data-action="report-user" data-uid="${esc(id)}" data-name="${esc(dispName)}">신고</button><button class="confirm" data-close-modal>닫기</button></div>`);
   }
   async function saveProfile(f){
     const displayName=f.displayName.value.trim(); if(!displayName)return toast('닉네임을 적어 주세요.');
@@ -3837,7 +3882,7 @@
       const nm=acct.displayName||p.displayName||'사용자';
       const st=presenceStateOf(p);
       const owner=id===r.createdBy;
-      return `<div class="list-item tappable" data-action="user-profile" data-uid="${esc(id)}" data-name="${esc(nm)}"><div>${avatarHtml(p,'',true)}</div><div class="grow"><div class="title">${esc(nm)}${id===uid()?' (나)':''}${owner?' <span class="admin-chip">방장</span>':''}</div><div class="meta">${gradeClassPrefix({grade:acct.grade||p.grade,classNum:acct.classNum||p.classNum})}${roleLabel(role)} <span class="presence-dot inline ${st||'hidden'}" data-mem-dot="${esc(id)}" aria-hidden="true"></span><span class="presence-text" data-mem-text="${esc(id)}">${st?esc(presenceLabel(st)):''}</span></div></div></div>`;
+      return `<div class="list-item tappable" data-action="user-profile" data-uid="${esc(id)}" data-name="${esc(nm)}"><div>${avatarHtml(p,'',true)}</div><div class="grow"><div class="title">${esc(nm)}${id===uid()?' (나)':''}${owner?' <span class="admin-chip">방장</span>':''}</div><div class="meta">${gradeClassPrefix({grade:acct.grade||p.grade,classNum:acct.classNum||p.classNum})}${roleLabel(role)} <span class="presence-dot inline ${st||'hidden'}" data-mem-dot="${esc(id)}" aria-hidden="true"></span><span class="presence-text" data-mem-text="${esc(id)}">${st?esc(presenceLabel(st)):''}</span></div>${roleChipsHtml(id)}</div></div>`;
     }).join('')||'<div class="empty-side">표시할 참여자가 없어요.</div>')
       +(hidden&&!staffView?`<div class="empty-side">관리자 ${hidden}명은 목록에 표시되지 않아요.</div>`:'');
   }
@@ -4330,7 +4375,7 @@
       const groupFirst=!samePrev, groupLast=!sameNext;
       const avBtn=`<button type="button" class="avatar-btn" data-action="user-profile" data-uid="${m.senderId}" data-name="${senderName}" aria-label="프로필 보기">${avatarHtml(profile,'',true)}</button>`;
       const receipt=(m.id===latestVisibleId)?(mine?readReceiptHtml(m):readReceiptOthersHtml(m)):'';
-      html+=`<div class="message-row ${mine?'mine':''}${groupFirst?'':' grouped'}${m.id===state.reportTargetId?' report-target':''}" data-msg-id="${esc(m.id)}">${state.selectMode?(canPickMsg(m)?`<button type="button" class="msg-pick ${selSet().has(m.id)?'on':''}" data-action="pick-msg" data-msg="${esc(m.id)}" aria-label="선택">✓</button>`:'<span class="msg-pick blank"></span>'):''}<div class="msg-side">${!mine?(groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'):''}</div><div class="message-content">${groupFirst?`<div class="message-author"><button type="button" class="author-btn" data-action="user-profile" data-uid="${m.senderId}" data-name="${senderName}">${senderName}</button> · ${roleLabel(profile.role||m.senderRole)} · ${t}${m.id===state.reportTargetId?' <span class="report-badge">신고된 메시지</span>':''}</div>`:''}${reply}<div class="bubble" data-time="${t}">${bubbleInner(m)}</div>${groupLast?'':`<div class="bubble-time">${t}</div>`}${reactionsHtml(m)}${groupLast?`<div class="msg-time">${t}</div>`:''}${receipt}</div>${mine?`<div class="msg-side">${groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'}</div>`:''}</div>`;
+      html+=`<div class="message-row ${mine?'mine':''}${groupFirst?'':' grouped'}${m.id===state.reportTargetId?' report-target':''}" data-msg-id="${esc(m.id)}">${state.selectMode?(canPickMsg(m)?`<button type="button" class="msg-pick ${selSet().has(m.id)?'on':''}" data-action="pick-msg" data-msg="${esc(m.id)}" aria-label="선택">✓</button>`:'<span class="msg-pick blank"></span>'):''}<div class="msg-side">${!mine?(groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'):''}</div><div class="message-content">${groupFirst?`<div class="message-author"><button type="button" class="author-btn" data-action="user-profile" data-uid="${m.senderId}" data-name="${senderName}">${senderName}</button> · ${roleLabel(profile.role||m.senderRole)}${roleChipsHtml(m.senderId)} · ${t}${m.id===state.reportTargetId?' <span class="report-badge">신고된 메시지</span>':''}</div>`:''}${reply}<div class="bubble" data-time="${t}">${bubbleInner(m)}</div>${groupLast?'':`<div class="bubble-time">${t}</div>`}${reactionsHtml(m)}${groupLast?`<div class="msg-time">${t}</div>`:''}${receipt}</div>${mine?`<div class="msg-side">${groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'}</div>`:''}</div>`;
     }
     const pendingId=state.pendingHighlight; state.pendingHighlight=null;
     // 더 옛날 메시지가 있으면 맨 위에 '이전 메시지 더 보기'를 둔다
@@ -5615,6 +5660,8 @@
     if(state.adminTab==='users')return renderUsersAdmin(p);
     if(state.adminTab==='cross')return renderCrossAdmin(p);
     if(state.adminTab==='rooms')return renderRoomsAdmin(p);
+    if(state.adminTab==='roles')return renderRolesAdmin(p);
+    if(state.adminTab==='notice')return renderNoticeRoomsAdmin(p);
   }
   function richToolbarHtml(id){
     return `<div class="rich-toolbar" data-rich-toolbar="${id}"><button type="button" class="re-btn" data-cmd="bold" title="굵게"><b>B</b></button><button type="button" class="re-btn" data-cmd="italic" title="기울임"><i>I</i></button><button type="button" class="re-btn" data-cmd="underline" title="밑줄"><u>U</u></button><button type="button" class="re-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button><label class="re-color" title="글자색"><input type="color" value="#3F9BFF" data-cmd-color="1"></label><button type="button" class="re-btn" data-cmd="createLink" title="링크">🔗</button><button type="button" class="re-btn" data-cmd="removeFormat" title="서식 지우기">⌫</button></div>`;
@@ -6278,10 +6325,10 @@
 
   function reattachAll(){
     state.listeners.forEach(fn=>{try{fn()}catch{}}); state.listeners=[];
-    clearRoomListener(); clearInviteListener(); clearSiteNoticeListener(); clearChatLockListeners(); clearModerationListeners();
+    clearRoomListener(); clearInviteListener(); clearSiteNoticeListener(); clearChatLockListeners(); clearModerationListeners(); clearRoleListeners();
     if(noticeUnsub){try{noticeUnsub()}catch{} noticeUnsub=null;}
     state.profileUnsubs.forEach(fn=>{try{fn()}catch{}}); state.profileUnsubs=[]; state.profileListeningKey='';
-    attachRoomListeners(); attachInviteListener(); attachNoticeListener(); attachSiteNoticeListener(); attachChatLockListeners(); attachModerationListeners();
+    attachRoomListeners(); attachInviteListener(); attachNoticeListener(); attachSiteNoticeListener(); attachChatLockListeners(); attachModerationListeners(); attachRoleListeners();
     watchSuspension();   // 목록을 다시 붙일 때 정지 감시가 빠지지 않게 다시 건다
   }
   // ---------- 관리자 · 오검열 이의 신청 (검열된 메시지 복구) ----------
@@ -6518,6 +6565,148 @@
     try{ await db.collection('directNotices').add({targetUid:t.value,senderId:uid(),senderName:state.profile.displayName,text,read:false,createdAt:ts()}); }
     catch(e){ console.error(e); return toast(errText(e)); }
     toast('안내를 보냈어요.'); f.reset();
+  }
+  // ---------- 학교 역할 관리 (반장·부반장·학생회장 등 · 선생님이 만들어 부여) ----------
+  function renderRolesAdmin(p){
+    if(!(isAdmin()||state.profile?.role==='teacher')) return;
+    const defs=state.roleDefs||[], grants=state.roleGrants||[];
+    const pick=state.roleGrantPick||{};
+    p.innerHTML=`<div class="admin-card"><h3>역할 만들기</h3><p class="desc">학교에서 쓰는 역할을 만들어요. 한 사람에게 여러 개를 줄 수 있어요.</p>
+      <div class="row"><input id="roleNameInput" class="input" maxlength="20" placeholder="예: 반장"><input id="roleEmojiInput" class="input" style="flex:0 0 64px;text-align:center" maxlength="4" placeholder="🎖"><button type="button" class="soft-btn" style="flex:0 0 76px" data-action="role-def-add">추가</button></div>
+      <div class="word-preview" style="margin-top:10px">${defs.map(d=>`<span class="word-chip" style="display:inline-flex;align-items:center;gap:6px">${d.emoji?esc(d.emoji)+' ':''}${esc(d.name)}<button type="button" data-action="role-def-remove" data-id="${esc(d.id)}" aria-label="역할 지우기" style="color:var(--danger);font-weight:800">×</button></span>`).join('')||'<span class="mini muted">아직 없어요.</span>'}</div></div>
+      <div class="admin-card"><h3>역할 주기</h3><p class="desc">받을 사람을 찾아 역할을 고르고 주세요. 같은 역할은 한 번만 줄 수 있어요.</p>
+      <div class="field"><label>받을 사람 (이름 검색)</label><div class="row"><input id="roleUserSearch" class="input" placeholder="이름 입력"><button type="button" class="soft-btn" style="flex:0 0 76px" data-action="role-user-search">찾기</button></div><div id="roleUserList" class="list" style="margin-top:8px"></div></div>
+      <div class="field"><label>역할</label><div class="choice-row" style="flex-wrap:wrap">${defs.map(d=>`<label class="choice ${pick.defId===d.id?'active':''}" style="cursor:pointer"><input type="radio" name="roleDefPick" value="${esc(d.id)}" ${pick.defId===d.id?'checked':''} data-action="role-def-pick" style="display:none">${d.emoji?esc(d.emoji)+' ':''}${esc(d.name)}</label>`).join('')||'<span class="mini muted">먼저 역할을 만드세요.</span>'}</div></div>
+      <div class="field"><label class="choice" style="cursor:pointer"><input type="checkbox" id="roleScopeSchool" ${pick.schoolWide?'checked':''}> 전교 역할로 (학급 없이)</label>
+      <div id="rolePicked" class="mini muted" style="margin-top:6px">${pick.uid?`받을 사람: ${esc(pick.name||'')} (${pick.schoolWide?'전교':`${pick.grade||'?'}학년 ${pick.classNum||'?'}반`})`:'받을 사람을 아직 고르지 않았어요.'}</div></div>
+      <button type="button" class="confirm" style="width:100%;height:46px;border-radius:13px" data-action="role-grant">주기</button></div>
+      <div class="admin-card"><h3>준 역할 (${grants.length})</h3><div class="list">${grants.map(g=>`<div class="list-item"><div class="grow"><div class="title">${g.emoji?esc(g.emoji)+' ':''}${esc(g.roleName||'역할')} <span class="mini muted">→ ${esc(g.displayName||'')}</span></div><div class="meta">${g.grade?`${g.grade}학년 ${g.classNum||''}반`.trim()+' · ':''}전교${g.grade?'학급':''} · ${esc(fmtDateTime(g.createdAt))}</div></div><button class="soft-btn" style="flex:0 0 68px" data-action="role-ungrant" data-id="${esc(g.id)}">회수</button></div>`).join('')||'<div class="empty-side">아직 준 역할이 없어요.</div>'}</div></div>`;
+    $$('input[name="roleDefPick"]',p).forEach(r=>r.onchange=()=>{ state.roleGrantPick={...(state.roleGrantPick||{}),defId:r.value}; renderRolesAdmin($('#adminPanel')); });
+    const sc=$('#roleScopeSchool'); if(sc) sc.onchange=()=>{ state.roleGrantPick={...(state.roleGrantPick||{}),schoolWide:sc.checked}; const pl=$('#rolePicked'); if(pl) pl.innerHTML=rolePickedText(); };
+  }
+  function rolePickedText(){
+    const pick=state.roleGrantPick||{};
+    return pick.uid?`받을 사람: ${esc(pick.name||'')} (${pick.schoolWide?'전교':`${pick.grade||'?'}학년 ${pick.classNum||'?'}반`})`:'받을 사람을 아직 고르지 않았어요.';
+  }
+  async function searchRoleUsers(){
+    const q=($('#roleUserSearch')?.value||'').trim();
+    const host=$('#roleUserList'); if(!host) return;
+    if(!q){ host.innerHTML='<div class="empty-side">이름을 입력해 주세요.</div>'; return; }
+    const sid=state.profile?.schoolId||'';
+    let docs=[];
+    try{ const s=await db.collection('publicProfiles').where('schoolId','==',sid).limit(200).get(); docs=s.docs.map(d=>({id:d.id,...d.data()})); }
+    catch(e){ host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; return; }
+    const rows=docs.filter(u=>String(u.displayName||'').includes(q)&&u.role!=='admin').slice(0,20);
+    host.innerHTML=rows.map(u=>`<button class="list-item" data-action="role-user-pick" data-uid="${esc(u.id)}" data-name="${esc(u.displayName||'')}" data-grade="${u.grade||''}" data-class="${u.classNum||''}"><div class="grow"><div class="title">${esc(u.displayName||'사용자')}${state.roleGrantPick?.uid===u.id?' ✓':''}</div><div class="meta">${gradeClassPrefix(u)}${roleLabel(u.role)}</div></div></button>`).join('')||'<div class="empty-side">찾지 못했어요.</div>';
+  }
+  async function grantRole(){
+    if(!(isAdmin()||state.profile?.role==='teacher')) return;
+    const pick=state.roleGrantPick||{};
+    const def=(state.roleDefs||[]).find(d=>d.id===pick.defId);
+    if(!pick.uid) return toast('받을 사람을 먼저 고르세요.');
+    if(!def) return toast('역할을 먼저 고르세요.');
+    const sid=state.profile?.schoolId||'';
+    const schoolWide=!!pick.schoolWide;
+    const grade=schoolWide?null:(Number(pick.grade)||null), classNum=schoolWide?null:(Number(pick.class)||null);
+    const scopeKey=schoolWide?'school':`${grade||'?'}-${classNum||'?'}`;
+    const gid=`${def.id}_${pick.uid}_${scopeKey}`;
+    const dup=(state.roleGrants||[]).some(g=>g.id===gid);
+    if(dup) return toast('이미 준 역할이에요.');
+    try{
+      await db.collection('roleGrants').doc(gid).set({
+        schoolId:sid,roleId:def.id,roleName:def.name,emoji:def.emoji||'',color:def.color||'',
+        uid:pick.uid,displayName:pick.name||'',grade,classNum,
+        grantedBy:uid(),grantedByName:state.profile?.displayName||'',createdAt:ts()
+      });
+    }catch(e){ console.error(e); return toast(errText(e)); }
+    state.roleGrantPick=null;
+    toast(`‘${def.name}’ 역할을 줬어요.`);
+    renderRolesAdmin($('#adminPanel'));
+  }
+  async function ungrantRole(gid){
+    if(!(isAdmin()||state.profile?.role==='teacher')) return;
+    try{ await db.collection('roleGrants').doc(gid).delete(); }
+    catch(e){ console.error(e); return toast(errText(e)); }
+    toast('역할을 회수했어요.');
+    renderRolesAdmin($('#adminPanel'));
+  }
+  async function addRoleDef(){
+    if(!(isAdmin()||state.profile?.role==='teacher')) return;
+    const name=($('#roleNameInput')?.value||'').trim().slice(0,20);
+    const emoji=($('#roleEmojiInput')?.value||'').trim().slice(0,4);
+    if(!name) return toast('역할 이름을 적어 주세요.');
+    const sid=state.profile?.schoolId||'';
+    try{ await db.collection('schoolRoles').add({schoolId:sid,name,emoji,color:'',createdBy:uid(),createdAt:ts()}); }
+    catch(e){ console.error(e); return toast(errText(e)); }
+    toast(`‘${name}’ 역할을 만들었어요.`);
+    renderRolesAdmin($('#adminPanel'));
+  }
+  async function removeRoleDef(rid){
+    if(!(isAdmin()||state.profile?.role==='teacher')) return;
+    try{
+      const s=await db.collection('roleGrants').where('roleId','==',rid).limit(400).get();
+      const b=db.batch(); s.docs.forEach(d=>b.delete(d.ref)); await b.commit();
+      await db.collection('schoolRoles').doc(rid).delete();
+    }catch(e){ console.error(e); return toast(errText(e)); }
+    toast('역할을 지웠어요.');
+    renderRolesAdmin($('#adminPanel'));
+  }
+
+  // ---------- 선생 전용 공지방 만들기 ----------
+  async function renderNoticeRoomsAdmin(p){
+    if(!(isAdmin()||state.profile?.role==='teacher')) return;
+    const grades=state.school.grades||[];
+    const mine=(state.rooms||[]).filter(r=>r.type==='notice'&&r.createdBy===uid());
+    p.innerHTML=`<div class="admin-card"><h3>공지 만들기</h3><p class="desc">선생님만 글을 올리는 공지방을 만들어요. 대상을 고르면 그 학생들이 자동으로 들어와요.</p>
+      <div class="field"><label>제목</label><input id="noticeRoomName" class="input" maxlength="40" placeholder="예: 3학년 2반 알림장"></div>
+      <div class="field"><label>설명</label><input id="noticeRoomDesc" class="input" maxlength="120" placeholder="어떤 안내를 올리는 방인지 적어 주세요."></div>
+      <div class="field"><label>대상</label><div class="row">
+        <select id="noticeGrade" class="input"><option value="all">전체 학생</option>${grades.map(g=>`<option value="${g}">${g}학년 전체</option>`).join('')}</select>
+        <select id="noticeClass" class="input"><option value="">반 전체</option></select>
+      </div></div>
+      <button type="button" class="confirm" style="width:100%;height:46px;border-radius:13px" data-action="notice-create">공지방 만들기</button></div>
+      <div class="admin-card"><h3>내 공지방 (${mine.length})</h3><div class="list">${mine.map(r=>`<div class="list-item"><div class="grow"><div class="title">${esc(r.name||'공지방')}</div><div class="meta">${(r.memberIds||[]).length}명</div></div><button class="soft-btn" style="flex:0 0 76px" data-action="open-admin-room" data-room-id="${r.id}">열기</button></div>`).join('')||'<div class="empty-side">아직 만든 공지방이 없어요.</div>'}</div></div>`;
+    const gs=$('#noticeGrade');
+    const refreshClasses=()=>{
+      const g=Number(gs?.value)||0, cs=$('#noticeClass');
+      if(!cs) return;
+      const n=g?Number(state.school.classCounts?.[g]||0):0;
+      cs.innerHTML='<option value="">반 전체</option>'+Array.from({length:n},(_,i)=>`<option value="${i+1}">${i+1}반</option>`).join('');
+    };
+    if(gs){ gs.onchange=refreshClasses; refreshClasses(); }
+  }
+  async function createNoticeRoom(){
+    if(!(isAdmin()||state.profile?.role==='teacher')) return;
+    const name=($('#noticeRoomName')?.value||'').trim().slice(0,40);
+    const desc=($('#noticeRoomDesc')?.value||'').trim().slice(0,120);
+    if(!name) return toast('제목을 적어 주세요.');
+    const gv=$('#noticeGrade')?.value||'all', cv=$('#noticeClass')?.value||'';
+    const sid=state.profile?.schoolId||'';
+    let members=[];
+    try{
+      const snap=await (sid?db.collection('publicProfiles').where('schoolId','==',sid).limit(500):db.collection('publicProfiles').limit(200).get());
+      snap.docs.forEach(d=>{
+        const u=d.data(); if(sid&&u.schoolId!==sid) return;
+        if(u.role==='admin'||u.role==='teacher'||d.id===uid()){ members.push(d.id); return; }
+        if(gv==='all'){ members.push(d.id); return; }
+        if(Number(u.grade)!==Number(gv)) return;
+        if(cv && Number(u.classNum)!==Number(cv)) return;
+        members.push(d.id);
+      });
+    }catch(e){ console.error(e); return toast('대상을 불러오지 못했어요.'); }
+    members=[...new Set(members)];
+    if(!members.length) return toast('대상이 없어요.');
+    try{
+      const ref=await db.collection('channels').add({
+        name,description:desc,type:'notice',typeLabel:'공지',visibility:'members',
+        memberIds:members,audience:cv?`c${gv}-${cv}`:(gv==='all'?'all':`g${gv}`),
+        createdBy:uid(),schoolId:sid,schoolName:state.profile?.schoolName||'',
+        createdAt:ts(),updatedAt:ts(),lastText:''
+      });
+      toast('공지방을 만들었어요.');
+      exitAdmin();
+      openRoom(ref.id);
+    }catch(e){ console.error(e); toast(errText(e)); }
   }
   async function renderRoomsAdmin(p){
     let rows=[];

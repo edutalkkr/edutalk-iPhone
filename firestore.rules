@@ -424,6 +424,28 @@ service cloud.firestore {
       );
     }
 
+    // 학교 역할 정의 (반장·부반장·학생회장 등 · 선생님이 만들어 부여)
+    match /schoolRoles/{roleId} {
+      allow read: if signedIn() && (isAdmin() || resource.data.schoolId == mySchool());
+      allow create: if signedIn() && (isAdmin() || (isTeacher() && request.resource.data.schoolId == mySchool()))
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 20;
+      allow update, delete: if isAdmin() || (isTeacher() && resource.data.schoolId == mySchool());
+    }
+
+    // 역할 부여 (한 사람에게 여러 개 가능 · 같은 역할 중복 부여는 앱에서 막는다)
+    match /roleGrants/{grantId} {
+      allow read: if signedIn() && (isAdmin() || resource.data.schoolId == mySchool());
+      allow create: if signedIn() && (isAdmin() || (isTeacher() && request.resource.data.schoolId == mySchool()))
+        && request.resource.data.uid is string
+        && request.resource.data.uid.size() > 0
+        && request.resource.data.roleId is string
+        && request.resource.data.roleId.size() > 0;
+      allow update: if false;
+      allow delete: if isAdmin() || (isTeacher() && resource.data.schoolId == mySchool());
+    }
+
     match /roomInvites/{inviteId} {
       function roomOf() { return get(/databases/$(database)/documents/channels/$(request.resource.data.roomId)).data; }
       // 초대 문서 번호는 반드시 '방번호_대상사용자' 여야 한다.

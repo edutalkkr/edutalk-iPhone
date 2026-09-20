@@ -551,6 +551,11 @@ button.profile-open.avatar-dot{line-height:0;border-radius:50%}
 .presence-menu-btn .presence-text{color:inherit}
 .presence-caret{font-size:13px;line-height:1;color:var(--muted)}
 .presence-menu-btn:hover .presence-caret{color:var(--text)}
+/* 학교 역할 칩 (반장·부반장 등 · 중복 표시 가능) */
+.role-chips{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle}
+.member-panel .role-chips,.user-head .role-chips{display:flex;margin-top:6px}
+.role-chip{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--brand-soft);color:var(--brand-strong);font-size:11px;font-weight:700;white-space:nowrap}
+html.dark .role-chip{background:var(--brand-soft);color:var(--brand)}
 .select-menu .select-option{display:flex;align-items:center;gap:9px}
 .select-menu .select-option .presence-dot{position:static;flex:0 0 9px;width:9px;height:9px}
 
