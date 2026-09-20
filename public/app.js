@@ -589,7 +589,7 @@
     toast(on?'이 채팅방 알림을 껐어요.':'이 채팅방 알림을 켰어요.');
     if($('#chatManagerRooms')) renderChatManagerRooms();
     else closeModal();
-    renderRooms(); if(state.room) renderChatFrame(state.room);
+    renderRooms(); if(state.room){ renderChatFrame(state.room); renderMessages(false); }
   }
 
   // ---------- 접속 상태 (온라인 · 자리비움 · 방해금지 · 오프라인) ----------
@@ -1203,6 +1203,19 @@
     if (!user) {
       // 관리자가 소개 페이지를 켜 두었으면 로그인 화면보다 소개 페이지를 먼저 보여 준다
       if (landingReady) await landingReady;
+      // 로그아웃은 화면 전체 줌 전환으로 나간다 (툭 바뀌지 않게)
+      if(state.logoutZoom){
+        state.logoutZoom=false;
+        zoomTransition('#app .app', ()=>{
+          if (landingEnabled()){ renderLanding(); }
+          else { loadSchoolList(true).catch(()=>{}); renderAuth(); }
+          if(!prefersReducedMotion()){
+            const el=document.querySelector('#app .landing')||document.querySelector('#app .auth');
+            if(el) el.classList.add('screen-enter');
+          }
+        }, null);
+        return;
+      }
       if (landingEnabled()) { renderLanding(); return; }
       await loadSchoolList(true);
       renderAuth();
@@ -1927,10 +1940,14 @@
     window.addEventListener('scroll', onOutside, true);
     state.dropdownOwner = button;
     state.openDropdownCleanup = () => {
-      menu.remove();
       document.removeEventListener('pointerdown', onOutside, true);
       window.removeEventListener('scroll', onOutside, true);
       state.dropdownOwner = null;
+      // 닫힐 때도 열릴 때의 반대 모션으로 사라진다
+      if(prefersReducedMotion()){ menu.remove(); return; }
+      menu.classList.remove('open');
+      menu.classList.add('closing');
+      setTimeout(()=>{ try{ menu.remove(); }catch(e){} },170);
     };
   }
   function closeDropdown(){ if(state.openDropdownCleanup){state.openDropdownCleanup();state.openDropdownCleanup=null;} }
@@ -2143,14 +2160,13 @@
     if(!(isAdmin()||state.profile?.role==='teacher')) return;
     state.view='admin';
     state.adminTab=tab || (isAdmin()?'school':'rooms');
-    renderShell();
+    zoomTransition('#app .app', ()=>renderShell(), '#app .app');
   }
   function exitAdmin(){
     if(state.view!=='admin') return;
     const rid=state.room?.id;
     state.view='chat';
-    renderShell();
-    if(rid) openRoom(rid);
+    zoomTransition('#app .app', ()=>{ renderShell(); if(rid) openRoom(rid); }, '#app .app');
   }
   function renderSidebar(){
     const sb=$('.sidebar'); if(sb)sb.innerHTML=sidebarHtml();
@@ -2326,7 +2342,7 @@
       if(a==='landing-mock-msg-add'){syncLandingDraft();const P=landingDraft().mock.presets[Number(el.dataset.idx)];if(P&&P.messages.length<6)P.messages.push({side:'left',avatar:'',text:'새 메시지'});renderLandingAdmin($('#adminPanel'));return}
       if(a==='landing-mock-msg-remove'){syncLandingDraft();const P=landingDraft().mock.presets[Number(el.dataset.idx)];if(P)P.messages.splice(Number(el.dataset.mi),1);renderLandingAdmin($('#adminPanel'));return}
       if(a==='google')return googleLogin(); if(a==='forgot')return forgot(); if(a==='send-reset')return sendReset();
-      if(a==='settings')return openSettings(); if(a==='delete-account')return openDeleteAccountModal(); if(a==='profile')return openProfile(); if(a==='presence-menu'){ openPresenceMenu(el); return; } if(a==='logout')return confirmModal('로그아웃 하시겠어요?','다시 로그인해야 들어올 수 있어요.',()=>{closeAllModals();clearListeners();return auth.signOut();}); if(a==='new-room')return openRoomModal(); if(a==='admin')return openAdmin();
+      if(a==='settings')return openSettings(); if(a==='delete-account')return openDeleteAccountModal(); if(a==='profile')return openProfile(); if(a==='presence-menu'){ openPresenceMenu(el); return; } if(a==='logout')return confirmModal('로그아웃 하시겠어요?','다시 로그인해야 들어올 수 있어요.',()=>{closeAllModals();clearListeners();state.logoutZoom=true;return auth.signOut();}); if(a==='new-room')return openRoomModal(); if(a==='admin')return openAdmin();
       if(a==='close-admin')return exitAdmin(); if(a==='site-notice')return openAdmin('sitenotice'); if(a==='users-admin')return openAdmin('users');
       if(a==='user-profile')return openUserProfile(el.dataset.uid,el.dataset.name);
       if(a==='notice-link')return openNoticeLink(el.dataset.url);
@@ -3791,7 +3807,7 @@
       return `<div class="composer"><div class="composer-inner centered compose-lock">⏳ <span>${head}</span>${st.to.reason?`<span class="lock-reason">사유: ${esc(st.to.reason)}</span>`:''}</div></div>`;
     }
     if(st.kind==='flood') return `<div class="composer"><div class="composer-inner centered compose-lock">메시지를 너무 빠르게 보냈어요<span class="lock-reason"><b>${Math.ceil(st.ms/1000)}초</b> 뒤에 다시 보낼 수 있어요.</span></div></div>`;
-    if(st.kind==='chatoff') return `<div class="composer"><div class="composer-inner centered compose-lock">지금은 이 채팅방에서 메시지를 보낼 수 없어요.<span class="lock-reason">선생님이 채팅을 잠시 멈춰 두었어요.</span></div></div>`;
+    if(st.kind==='chatoff') return `<div class="composer"><div class="composer-inner centered compose-lock">관리자가 채팅을 정지한 방이에요.<span class="lock-reason">지금은 대화할 수 없어요.</span></div></div>`;
     if(st.kind==='warn') return `<div class="composer"><div class="composer-inner centered compose-lock">경고가 ${warnLimit()}번 쌓여서 메시지를 보낼 수 없어요.<span class="lock-reason">선생님께 이야기해 주세요.</span></div></div>`;
     const rxToggle=(room.type==='notice' && isTeacher())
       ? `<button type="button" class="icon-btn ${state.noReactions?'off':''}" data-action="toggle-reactions" title="${state.noReactions?'이 공지는 공감을 받지 않아요':'이 공지는 공감을 받을 수 있어요'}" aria-label="공감 허용">${state.noReactions?'🚫':'🙂'}</button>`
@@ -4280,7 +4296,7 @@
     if(!isStaff()){
       const to=timeoutInfo();
       if(to) return toast(to.permanent?'채팅 이용이 정지되어 있어요.':`타임아웃 중이에요. ${fmtRemain(to.ms)} 남았어요.`);
-      if(roomChatOff(room)) return toast('지금은 이 채팅방에서 메시지를 보낼 수 없어요.');
+      if(roomChatOff(room)) return toast('관리자가 채팅을 정지한 방이에요. 지금은 대화할 수 없어요.');
       if(state.warnCount>=warnLimit()) return toast('경고가 쌓여 메시지를 보낼 수 없어요. 선생님께 이야기해 주세요.');
       // 관리자가 '예외 단어'로 등록한 말이 들어 있으면 1차 차단을 건너뛴다 (예: 시발역)
       const allowed=findAnyBanned(text,chatCfg().allowWords);
@@ -4818,7 +4834,7 @@
     try{ await db.collection('channels').doc(roomId).update({...patch,updatedAt:ts()}); }
     catch(e){ console.error(e); return toast(errText(e)); }
     Object.assign(r,patch);
-    if(state.room?.id===roomId) renderChatFrame(state.room);
+    if(state.room?.id===roomId){ renderChatFrame(state.room); renderMessages(false); }
     renderRooms();
     if(state.view==='admin'&&state.allRooms) state.allRooms=state.allRooms.map(x=>x.id===roomId?{...x,...patch}:x);
     closeAllModals();
@@ -4948,7 +4964,7 @@
     catch(e){ console.error(e); return toast(errText(e)); }
     toast(on?'이 채팅방 채팅을 정지했어요.':'이 채팅방 채팅 정지를 풀었어요.');
     closeModal();
-    if(state.room) renderChatFrame(state.room);
+    if(state.room){ renderChatFrame(state.room); renderMessages(false); }
   }
   async function toggleChatOffAll(){
     if(!isAdmin()) return;
