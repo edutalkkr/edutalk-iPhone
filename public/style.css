@@ -61,6 +61,11 @@ body.offline .composer-inner{border-style:dashed}
 .banner-go{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;font-size:13px}
 /* 오래된 채팅 상단 바 + 아래쪽 플로팅 화살표 */
 .old-chat-bar{flex:0 0 auto;text-align:center;font-size:11.5px;color:var(--sub);background:var(--chip);border-bottom:1px solid var(--line);padding:5px 8px}
+.load-more-wrap{display:flex;justify-content:center;padding:6px 0 14px}
+.load-more{height:36px;padding:0 18px;border-radius:999px;background:var(--surface);border:1px solid var(--line);box-shadow:0 4px 14px rgba(25,31,40,.08);font-size:13px;font-weight:650;color:var(--sub);transition:background .16s,color .16s,transform .16s}
+.load-more:hover{background:var(--hover);color:var(--text)}
+.load-more:active{transform:scale(.96)}
+.load-more:disabled{opacity:.6;cursor:default;transform:none}
 .old-chat-bar.hidden{display:none}
 .jump-bottom-fab{position:absolute;right:16px;bottom:calc(var(--composer) + 18px + var(--kb,0px));width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--line);box-shadow:0 8px 22px rgba(25,31,40,.16);font-size:17px;color:var(--text);z-index:70;cursor:pointer}
 .jump-bottom-fab.hidden{display:none}

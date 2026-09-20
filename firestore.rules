@@ -199,6 +199,7 @@ service cloud.firestore {
         ) ||
         (
           // 참가 코드만 입력하면 바로 들어오는 채팅방 (방장이 '바로 입장'으로 설정한 경우)
+          // 코드는 클라이언트가 미리 남긴 증표(joinAttempts)와 대조해 서버에서 검증한다
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds','updatedAt','schoolIds','classKeys']) &&
           request.auth.uid in request.resource.data.get('memberIds', []) &&
           request.resource.data.get('memberIds', []).hasAll(resource.data.get('memberIds', [])) &&
@@ -207,7 +208,15 @@ service cloud.firestore {
           resource.data.get('joinPolicy', '') == 'open' &&
           resource.data.get('visibility', '') != 'private' &&
           resource.data.get('joinCode', '') != '' &&
-          schoolOk(resource.data)
+          schoolOk(resource.data) &&
+          (
+            isAdmin() ||
+            (
+              exists(/databases/$(database)/documents/joinAttempts/$(channelId + '_' + request.auth.uid)) &&
+              get(/databases/$(database)/documents/joinAttempts/$(channelId + '_' + request.auth.uid)).data.get('roomId', '') == channelId &&
+              get(/databases/$(database)/documents/joinAttempts/$(channelId + '_' + request.auth.uid)).data.get('code', '') == resource.data.get('joinCode', '')
+            )
+          )
         ) ||
         (
           // 초대를 받은 사람이 스스로 들어오는 경우 (이미 들어와 있으면 그대로 둔다)
@@ -366,6 +375,23 @@ service cloud.firestore {
         && request.resource.data.roomId is string
         && request.resource.data.msgId is string
         && canSeeRoom(request.resource.data.roomId);
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // 참가 코드 증표 (코드로 들어올 때 서버 검증을 위해 본인이 미리 남긴다)
+    // 문서 번호는 반드시 '방번호_사용자번호' 여야 한다. 방장·관리자 대신 코드를 아는 사람만 만들 수 있다.
+    match /joinAttempts/{attemptId} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.roomId is string
+        && request.resource.data.roomId.size() > 0
+        && request.resource.data.code is string
+        && request.resource.data.code.size() > 0
+        && attemptId == request.resource.data.roomId + '_' + request.auth.uid;
       allow update: if signedIn()
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == request.auth.uid;

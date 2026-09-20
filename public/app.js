@@ -2430,7 +2430,7 @@
       if(a==='link-school-data')return linkSchoolData(el.dataset.sid);
       if(a==='save-site-notice')return saveSiteNotice();
       if(a==='profile-emoji')return pickProfileEmoji(el.dataset.emoji); if(a==='profile-color')return pickProfileColor(el.dataset.color);
-      if(a==='close-drawer')return closeDrawer(); if(a==='open-drawer')return openDrawer(); if(a==='mobile-back'){document.body.classList.remove('m-chat-open');openDrawer();return;} if(a==='jump-bottom'){hideInRoomPill();const h=$('#messages');if(h)scrollMessagesToBottom(h,true);return;} if(a==='open-invite'||a==='invite'){closeAllModals();return openInvite(rid());} if(a==='accept-invite')return acceptInvite(inv()); if(a==='decline-invite')return declineInvite(inv());
+      if(a==='close-drawer')return closeDrawer(); if(a==='open-drawer')return openDrawer(); if(a==='mobile-back'){document.body.classList.remove('m-chat-open');openDrawer();return;} if(a==='jump-bottom'){hideInRoomPill();const h=$('#messages');if(h)scrollMessagesToBottom(h,true);return;} if(a==='load-more-msgs')return loadMoreMessages(); if(a==='open-invite'||a==='invite'){closeAllModals();return openInvite(rid());} if(a==='accept-invite')return acceptInvite(inv()); if(a==='decline-invite')return declineInvite(inv());
       if(a==='cross-approve')return handleCross(el.dataset.id,true); if(a==='cross-reject')return handleCross(el.dataset.id,false);
       if(a==='admin-set-school')return openUserSchoolPicker(el.dataset.uid,el.dataset.name);
       if(a==='admin-set-school-apply')return applyUserSchool(el.dataset.uid,el.dataset.name,el.dataset.sid);
@@ -3477,6 +3477,8 @@
   // 방을 빠르게 여러 번 열면 먼저 시작한 호출이 뒤늦게 끝나 화면을 덮어쓸 수 있으므로
   // 마지막으로 시작한 호출만 살아남도록 토큰을 쓴다
   let roomOpenToken=0;
+  // 메시지 목록은 최신 300개부터 보여주고, '이전 메시지 더 보기'로 넓혀간다
+  const MSG_PAGE=300, MSG_MAX_LIMIT=3000;
   async function openRoom(id){
     const token=++roomOpenToken;
     let room=state.rooms.find(r=>r.id===id);
@@ -3486,6 +3488,7 @@
     if(window.innerWidth<=820) document.body.classList.add('m-chat-open');
     stopTyping(); state.typingCooldownUntil=0; state.mentionTriedKey='';
     state.searchMode=false; state.searchQuery=''; state.searchHits=[]; state.searchIndex=-1; state.unreadMarkerId=null; state.awayMsgId=null; state.scrollToMarker=false; state.justOpenedRoom=true;
+    state.msgLimit=MSG_PAGE; state.msgExhausted=false; state.msgLoading=false; state.msgPaging=false;
     const focus=(state.reportFocus&&state.reportFocus.roomId===id)?state.reportFocus:null;
     state.reportFocus=null; state.reportTargetId=focus?focus.msgId:null;
     const gb=$('#globalBanner'); if(gb){gb.classList.remove('show');clearTimeout(state.banner.timer);} hideInRoomPill(); renderRooms();
@@ -3496,8 +3499,16 @@
     startLockTick();
     state.seenMsgIds=new Set();
     state.bubbleAnims=new Map();
-    const ref=db.collection('channels').doc(id).collection('messages').orderBy('createdAt','asc').limitToLast(300);
-    let first=true; roomUnsub=ref.onSnapshot(s=>{
+    attachMessageListener(id,token,{initial:true});
+    attachTypingListener(id);
+    attachReadsListener(id);
+  }
+  function attachMessageListener(id,token,opts){
+    if(roomUnsub){ try{roomUnsub();}catch(e){} roomUnsub=null; }
+    const initial=!opts||opts.initial!==false;
+    const onFirst=(opts&&opts.onFirst)||null;
+    const ref=db.collection('channels').doc(id).collection('messages').orderBy('createdAt','asc').limitToLast(state.msgLimit||MSG_PAGE);
+    let first=initial; roomUnsub=ref.onSnapshot(s=>{
       if(token!==roomOpenToken || state.room?.id!==id) return;   // 다른 방으로 옮겼으면 무시
       const oldCount=state.messages.length;
       state.messages=s.docs.map(d=>({id:d.id,...d.data()}));
@@ -3505,19 +3516,43 @@
       if(state.searchMode) runRoomSearch(state.searchQuery);
       renderMessages(first);
       ensureCurrentProfiles();
-      if(!first && state.messages.length>oldCount){
+      // 이전 메시지 더 보기로 넓히는 중에는 알림·읽음 처리를 건너뛴다 (옛날 메시지가 새 알림이 되지 않게)
+      if(!first && !state.msgPaging && state.messages.length>oldCount){
         const latest=state.messages[state.messages.length-1];
         if(latest && latest.senderId!==uid() && !isBlockedMessage(latest)) notifyMessage(id,room,latest);
       }
       // 보고 있는 동안 새 메시지가 오면 읽음 위치를 갱신한다 (읽음 표시 · 안읽음 배지)
-      if(!first && state.messages.length>oldCount && !document.hidden && state.atBottom){
+      if(!first && !state.msgPaging && state.messages.length>oldCount && !document.hidden && state.atBottom){
         const t=Date.now();
         if(t-(state.readWriteAt||0)>1500){ state.readWriteAt=t; markRead(id); }
       }
       first=false;
+      if(onFirst){ const cb=onFirst; try{ cb(); }catch(e){} state.msgPaging=false; }
     },e=>{console.error(e);toast('채팅을 불러오지 못했어요.');});
-    attachTypingListener(id);
-    attachReadsListener(id);
+  }
+  // 이전 메시지 더 보기 (읽기 범위를 넓혀 다시 구독한다)
+  function loadMoreMessages(){
+    const id=state.room?.id; if(!id||state.msgLoading||state.msgExhausted) return;
+    if((state.msgLimit||MSG_PAGE)>=MSG_MAX_LIMIT) return;
+    const host=$('#messages'); if(!host) return;
+    const rows=host.querySelectorAll('.message-row[data-msg-id]');
+    const anchorId=rows.length?rows[0].dataset.msgId:null;
+    const anchorTop=rows.length?rows[0].getBoundingClientRect().top:null;
+    const before=state.messages.length;
+    state.msgLoading=true; state.msgPaging=true;
+    state.msgLimit=Math.min(MSG_MAX_LIMIT,(state.msgLimit||MSG_PAGE)+MSG_PAGE);
+    renderMessages(false);
+    attachMessageListener(id,roomOpenToken,{initial:false,onFirst:()=>{
+      state.msgLoading=false;
+      // 더 넓혔는데 개수가 그대로면 처음까지 다 본 것이다
+      if(state.messages.length<=before) state.msgExhausted=true;
+      renderMessages(false);
+      if(anchorId){
+        const h=$('#messages');
+        const el=h&&h.querySelector(`[data-msg-id="${anchorId}"]`);
+        if(h&&el&&anchorTop!=null){ h.scrollTop+=el.getBoundingClientRect().top-anchorTop; }
+      }
+    }});
   }
   function attachTypingListener(id){
     clearTypingListener();
@@ -4248,6 +4283,9 @@
     const pendingId=state.pendingHighlight; state.pendingHighlight=null;
     // 검열로 막힌 내 메시지는 목록 맨 아래에 카드로 남는다 (보낸 사람에게만 보임)
     html+=modBlocksHtml();
+    // 더 옛날 메시지가 있으면 맨 위에 '이전 메시지 더 보기'를 둔다
+    const showLoadMore=!state.msgExhausted && (state.messages||[]).length>=(state.msgLimit||MSG_PAGE) && (state.messages||[]).length>0;
+    if(showLoadMore) html=`<div class="load-more-wrap"><button type="button" class="load-more" data-action="load-more-msgs"${state.msgLoading?' disabled':''}>${state.msgLoading?'불러오는 중…':'이전 메시지 더 보기'}</button></div>`+html;
     const prevScrollTop=host.scrollTop, prevScrollH=host.scrollHeight;
     host.innerHTML=html || `<div class="empty-side" style="margin-top:30px">아직 메시지가 없어요.<br>첫 메시지를 남겨 보세요.</div>`;
     if(newIds.length){
@@ -4301,7 +4339,8 @@
       }
     }
     // 과거를 보고 있는데 새 메시지가 오면 입력창 바로 위에 고정 알림을 띄운다 (계속 유지)
-    if(!initial && !wasBottom && newIds.length){
+    // 이전 메시지 더 보기로 넓히는 중에는 옛날 메시지가 새 알림이 되지 않게 막는다
+    if(!initial && !wasBottom && newIds.length && !state.msgPaging){
       const newSet=new Set(newIds);
       const latest=[...visible].reverse().find(m=>!m.deleted&&newSet.has(m.id)&&m.senderId!==uid());
       if(latest) showInRoomPill(latest);
@@ -4956,8 +4995,17 @@
     if(r.deleted) return say('지워진 채팅방이에요.','warn');
     if((r.memberIds||[]).includes(uid())){ closeAllModals(); return openRoom(r.id); }
     if(r.joinPolicy==='open'){
-      try{ await db.collection('channels').doc(r.id).update({memberIds:firebase.firestore.FieldValue.arrayUnion(uid()),updatedAt:ts()}); }
-      catch(e){ console.error(e); return say('채팅방에 들어가지 못했어요.','warn'); }
+      try{
+        // 서버가 코드를 검증할 수 있게 증표를 먼저 남긴다 (모르면 입장 규칙에서 막힌다)
+        await db.collection('joinAttempts').doc(`${r.id}_${uid()}`).set({roomId:r.id,uid:uid(),code,createdAt:ts()},{merge:true});
+        await db.collection('channels').doc(r.id).update({memberIds:firebase.firestore.FieldValue.arrayUnion(uid()),updatedAt:ts()});
+        await db.collection('joinAttempts').doc(`${r.id}_${uid()}`).delete().catch(()=>{});
+      }
+      catch(e){
+        console.error(e);
+        if(e?.code==='permission-denied') return say('코드가 맞지 않거나 들어갈 수 없는 방이에요.','warn');
+        return say('채팅방에 들어가지 못했어요.','warn');
+      }
       state.rooms=[r,...state.rooms];
       closeAllModals();
       toast('채팅방에 들어왔어요.');
