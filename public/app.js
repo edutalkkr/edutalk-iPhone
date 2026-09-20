@@ -576,6 +576,58 @@
   }
   function isRoomMuted(roomId){ return !!(state.settings?.mutedRooms||[]).includes(roomId); }
   function isDnd(){ return presenceModeSetting()==='dnd'; }
+
+  // ---------- 중복 로그인 감지 (한 기기에서만 유지) ----------
+  // 같은 브라우저(탭 공유)는 같은 세션 ID를 써서 서로 내쫓지 않고,
+  // 다른 기기·브라우저는 ID가 달라 나중에 들어온 쪽이 남는다.
+  let sessionUnsub=null;
+  function mySessionId(){
+    try{
+      let s=localStorage.getItem('edutalk_session');
+      if(!s){
+        const b=new Uint8Array(16);
+        try{ crypto.getRandomValues(b); }catch(e){ for(let i=0;i<16;i++) b[i]=Math.floor(Math.random()*256); }
+        s=[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
+        localStorage.setItem('edutalk_session',s);
+      }
+      return s;
+    }catch(e){ return ''; }
+  }
+  async function claimSession(){
+    const s=mySessionId(); if(!s||!uid()) return false;
+    try{ await db.collection('users').doc(uid()).update({sessionId:s,updatedAt:ts()}); return true; }
+    catch(e){ console.warn('session claim',e?.code||e); return false; }
+  }
+  function clearSessionListener(){ if(sessionUnsub){ try{sessionUnsub();}catch(e){} sessionUnsub=null; } }
+  function attachSessionListener(){
+    clearSessionListener();
+    if(!uid()) return;
+    const mine=mySessionId(); if(!mine) return;
+    try{
+      sessionUnsub=db.collection('users').doc(uid()).onSnapshot(s=>{
+        if(!s.exists) return;
+        const v=s.data()||{};
+        // 서버에 기록된 세션이 내 것과 다르면 다른 기기에서 들어온 것이다
+        if(v.sessionId && v.sessionId!==mine && !state.dupKicked){
+          state.dupKicked=true;
+          onDuplicateKick();
+        }
+      },e=>console.warn('session listen',e?.code||e));
+    }catch(e){}
+  }
+  function onDuplicateKick(){
+    try{ localStorage.setItem('edutalk_dup_kick','1'); }catch(e){}
+    closeAllModals();
+    clearListeners();
+    stopPresence();
+    try{ auth.signOut().catch(()=>{}); }catch(e){}
+  }
+  function consumeDupKick(){
+    try{
+      if(localStorage.getItem('edutalk_dup_kick')==='1'){ localStorage.removeItem('edutalk_dup_kick'); return true; }
+    }catch(e){}
+    return false;
+  }
   async function toggleRoomMute(roomId){
     if(!roomId) return;
     const cur=new Set(state.settings.mutedRooms||[]);
@@ -1060,6 +1112,7 @@
     // 로그아웃 뒤에도 남아 있던 타이머를 정리한다
     clearTimeout(profileRerenderTimer);profileRerenderTimer=null;
     if(resetTick){ clearInterval(resetTick); resetTick=null; }
+    clearSessionListener();
   }
   let roomLoadTimer = null;
   let roomUnsub = null;
@@ -1200,6 +1253,7 @@
 
   async function handleUser(user) {
     resetApp();
+    state.dupKickNotice=consumeDupKick(); state.dupKickToastShown=false;
     if (!user) {
       // 관리자가 소개 페이지를 켜 두었으면 로그인 화면보다 소개 페이지를 먼저 보여 준다
       if (landingReady) await landingReady;
@@ -1240,6 +1294,9 @@
       state.profileCache.set(uid(), state.profile);
       ensureUserCode().catch(e=>console.error('userCode',e));
       applyFontSize();
+      // 중복 로그인: 이 기기의 세션을 기록하고 감시를 시작한다
+      state.dupKicked=false; state.dupKickNotice=false; state.dupKickToastShown=false;
+      claimSession().then(ok=>{ if(ok) attachSessionListener(); });
       state.shellZoomEnter=true; // 로딩→채팅 진입도 바깥→안 줌으로
       renderShell();
       attachRoomListeners();
@@ -1538,7 +1595,7 @@
     if(feats.length) dots.push(['features','기능']);
     if(stepList.length) dots.push(['steps','이용 방법']);
     dots.push(['start','시작하기']);
-    const dotsHtml=dots.map(([t,label])=>`<button type="button" class="landing-dot" data-action="landing-scroll" data-target="${t}" data-sec="${t}"><span>${label}</span><i></i></button>`).join('');
+    const dotsHtml=dots.map(([t,label])=>`<button type="button" class="landing-dot" data-action="landing-scroll" data-target="${t}" data-sec="${t}" aria-label="${esc(label)}"><span aria-hidden="true">${label}</span><i></i></button>`).join('');
     return `<div class="landing">
       <header class="landing-nav"><div class="landing-nav-inner">
         <button type="button" class="landing-brand" data-action="landing-scroll" data-target="top"><span class="brand-mark">E</span><strong>${esc(c.brandName)}</strong></button>
@@ -1766,6 +1823,10 @@
     startLandingPaging();
     wireLandingDrops();
     loadSchoolList().catch(()=>{});
+    if(state.dupKickNotice && !state.dupKickToastShown){
+      state.dupKickToastShown=true;
+      setTimeout(()=>toast('다른 기기에서 중복 로그인해서 로그아웃됐어요.'),400);
+    }
   }
   // 바깥→안 줌 전환: 현재 화면은 1→1.02로 페이드아웃, 새 화면은 0.985→1로 진입 (나갈 땐 반대 모션)
   function zoomTransition(exitSel, renderFn, enterSel){
@@ -1830,6 +1891,7 @@
         : `<button type="button" class="back-btn" data-action="toggle-auth" aria-label="로그인으로 돌아가기">←</button>`}
       <h1 class="auth-title">${state.authMode === 'login' ? '다시 만나서 반가워요' : '새 계정을 만들어봐요'}</h1>
       <p class="auth-desc">${state.authMode === 'login' ? '학교 코드로 만든 계정으로 로그인해 주세요.' : '학교 코드와 학급 정보를 입력하면 바로 시작할 수 있어요.'}</p>
+      ${state.dupKickNotice?`<div class="form-error" style="margin:0 0 14px">다른 기기에서 중복 로그인해서 로그아웃됐어요. 다시 로그인해 주세요.</div>`:''}
       <div id="authError" class="form-error hidden"></div>
       <form id="authForm">
         <div class="field"><label>이메일</label><input class="input" name="email" type="email" autocomplete="email" value="${esc(state.authMode==='login'?rememberedEmail():'')}" required></div>

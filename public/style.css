@@ -892,6 +892,7 @@ html.dark .landing-mock{box-shadow:0 26px 60px rgba(0,0,0,.5)}
   .landing-dot span{font-size:11px}
 }
 @media(max-width:560px){
+  .landing-dot span{display:none}
   .landing-nav-inner{height:60px;padding:0 14px;gap:10px}
   .landing-brand{font-size:17px;gap:8px}
   .landing-brand strong{display:none}

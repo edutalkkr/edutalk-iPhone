@@ -412,14 +412,23 @@ service cloud.firestore {
     }
 
     // 개인별 채팅 타임아웃 (본인과 관리자·선생님만 볼 수 있다)
-    // 학생은 경고 누적으로 생긴 자동 타임아웃만 스스로 기록할 수 있다. (해제·연장 불가, 최대 하루)
+    // 학생은 경고 누적으로 생긴 자동 타임아웃만 스스로 기록할 수 있다.
+    // (해제·단축 불가: 반드시 미래 시각이어야 하고, 기존보다 짧아질 수 없으며, 최대 하루)
     match /chatTimeouts/{targetUid} {
       allow read: if signedIn() && (self(targetUid) || isTeacherOrAdmin());
-      allow write: if isAdmin()
-        || (self(targetUid)
-            && request.resource.data.auto == true
-            && request.resource.data.permanent == false
-            && request.resource.data.until <= request.time.toMillis() + 86400000);
+      function autoTimeoutOk() {
+        return self(targetUid)
+          && request.resource.data.auto == true
+          && request.resource.data.permanent == false
+          && request.resource.data.until > request.time.toMillis()
+          && request.resource.data.until <= request.time.toMillis() + 86400000;
+      }
+      allow create: if isAdmin() || autoTimeoutOk();
+      allow update: if isAdmin() || (autoTimeoutOk()
+        && resource.data.get('auto', false) == true
+        && resource.data.get('permanent', true) == false
+        && request.resource.data.until >= resource.data.get('until', 0));
+      allow delete: if isAdmin();
     }
 
     // 공유 채팅방에 들어오려는 참가 요청 (방장이 수락/거절)
@@ -482,11 +491,13 @@ service cloud.firestore {
     }
 
     // 자동 검열로 보내지 못한 메시지 (이의 신청·복구용)
-    // 보낸 사람 본인과 그 채팅방을 만든 사람(담당 교사)만 볼 수 있다. 관리자도 개인 대화는 볼 수 없다.
+    // 보낸 사람 본인과 그 채팅방을 만든 사람(담당 교사)이 볼 수 있다.
+    // 관리자는 '이의 신청이 들어온 건'에 한해 복구 처리를 위해 열람할 수 있다.
     match /moderationBlocks/{blockId} {
       allow read: if signedIn() && (
         resource.data.get('senderId', '') == request.auth.uid
         || resource.data.get('roomOwnerId', '') == request.auth.uid
+        || isAdmin()
       );
       allow create: if signedIn()
         && request.resource.data.senderId == request.auth.uid
