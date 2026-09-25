@@ -1,0 +1,29 @@
+{
+  "name": "edutalk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "에듀톡 - 학교 전용 메신저 (Capacitor Native)",
+  "type": "module",
+  "scripts": {
+    "build": "echo \"web build is static public/ folder\"",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap add ios && npx cap sync ios",
+    "cap:android": "npx cap add android && npx cap sync android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android",
+    "cap:copy": "npx cap copy"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/haptics": "^6.0.1",
+    "@capacitor/ios": "^6.1.2",
+    "@capacitor/preferences": "^6.0.2",
+    "@capacitor/push-notifications": "^6.0.2",
+    "@capgo/capacitor-native-biometric": "^6.0.4",
+    "capacitor-native-biometric": "^4.2.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

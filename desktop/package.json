@@ -1,0 +1,46 @@
+{
+  "name": "edutalk-desktop",
+  "version": "1.0.0",
+  "description": "에듀톡(Edutalk) 학교 전용 메신저 데스크톱 앱",
+  "author": "Edutalk",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "icons": "node scripts/make-icons.js",
+    "prestart": "npm run icons",
+    "start": "electron .",
+    "prebuild:win": "npm run icons",
+    "build:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.edutalk.messenger",
+    "productName": "Edutalk",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "license": "build/license.txt",
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "에듀톡",
+      "artifactName": "Edutalk Setup.${ext}"
+    }
+  }
+}

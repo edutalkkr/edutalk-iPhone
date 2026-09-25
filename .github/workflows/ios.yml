@@ -1,0 +1,100 @@
+name: iOS AltStore IPA
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "public/**"
+      - "ios/**"
+      - "capacitor.config.json"
+      - "package.json"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Sync Capacitor iOS
+        run: |
+          npx cap sync ios
+          # Ensure native.js 등 최신 public이 복사됨
+          npx cap copy ios
+
+      - name: Setup Ruby & CocoaPods
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: false
+      - name: Pod install
+        working-directory: ios/App
+        run: |
+          pod --version
+          pod install --repo-update || pod install
+          # 실패해도 계속 (Windows에서 생성된 Podfile 호환)
+          ls -la Pods || true
+
+      - name: Build unsigned .app (CODE_SIGNING_ALLOWED=NO)
+        working-directory: ios/App
+        run: |
+          set -e
+          # Xcode 15+ / 16 호환: unsigned 빌드로 AltStore 재서명용 IPA 생성
+          # Scheme은 Capacitor 기본 "App"
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            clean build | xcpretty || xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO build
+
+          # 생성된 .app 찾기
+          APP_PATH=$(find build/DerivedData -name "*.app" -type d | head -n 1)
+          echo "APP_PATH=$APP_PATH"
+          ls -lh "$APP_PATH" || true
+          if [ -z "$APP_PATH" ]; then echo "No .app found"; exit 1; fi
+
+          # Payload로 IPA 패키징 (AltStore/Sideloadly는 unsigned IPA를 재서명)
+          rm -rf Payload App.ipa
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -r App.ipa Payload
+          ls -lh App.ipa
+          # также Archive 방식 대안 (서명 없이 archive)
+          mkdir -p ../../dist
+          cp App.ipa ../../dist/Edutalk-AltStore.ipa
+          cp App.ipa ../../dist/Edutalk-Sideloadly.ipa
+          ls -lh ../../dist/
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Edutalk-AltStore-IPA
+          path: dist/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summary
+        run: |
+          echo "### AltStore / Sideloadly용 IPA 생성 완료" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 위치: Actions → Artifacts → Edutalk-AltStore-IPA" >> $GITHUB_STEP_SUMMARY
+          echo "- AltStore: iPhone에서 AltStore 설치 → My Apps → + → Edutalk-AltStore.ipa 선택 (Apple ID로 재서명, 7일)" >> $GITHUB_STEP_SUMMARY
+          echo "- Sideloadly: PC에서 Sideloadly 실행 → iPhone 연결 → IPA 드래그 → Apple ID 입력" >> $GITHUB_STEP_SUMMARY
+          echo "- Bundle ID: com.edutalk.messenger" >> $GITHUB_STEP_SUMMARY
+          echo "- 서명 없이 빌드했으므로 AltStore/Sideloadly가 자동으로 재서명합니다." >> $GITHUB_STEP_SUMMARY

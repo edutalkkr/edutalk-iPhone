@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+
+# Firebase
+.firebase/
+.firebase-debug.log
+firestore-debug.log
+
+# Capacitor generated
+android/app/build/
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+ios/App/public/
+ios/App/App/public/
+ios/App/Pods/
+ios/capacitor-cordova-ios-plugins/
+
+# Desktop build artifacts (large, exceeds GitHub 100MB)
+desktop/dist/
+desktop/.cache/
+desktop/dist_electron/
+*.exe
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local

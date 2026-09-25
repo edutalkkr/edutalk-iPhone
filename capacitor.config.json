@@ -1,0 +1,24 @@
+{
+  "appId": "com.edutalk.messenger",
+  "appName": "에듀톡",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#F6F8FC"
+  },
+  "android": {
+    "backgroundColor": "#F6F8FC"
+  }
+}
