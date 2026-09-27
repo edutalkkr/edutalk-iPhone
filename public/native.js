@@ -170,23 +170,36 @@
       }
       await PushNotifications.register();
 
-      // 리스너는 한 번만 등록
+      // 리스너는 한 번만 등록 (로그인 전 토큰은 보관했다가 로그인 뒤 저장)
       if (!window.__edutalkPushBound) {
         window.__edutalkPushBound = true;
+        const saveToken = (value) => {
+          try {
+            if (!value) return false;
+            const uid = window.EduFirebase?.auth?.currentUser?.uid;
+            if (!uid) { window.__edutalkPendingPushToken = value; return false; }
+            window.__edutalkPendingPushToken = null;
+            window.EduFirebase.db.collection('pushTokens').doc(uid).set({
+              token: value,
+              platform: window.Capacitor?.getPlatform?.() || 'unknown',
+              updatedAt: window.firebase ? window.firebase.firestore.FieldValue.serverTimestamp() : new Date(),
+              enabled: true
+            }, { merge: true }).catch(()=>{});
+            return true;
+          } catch (e) { return false; }
+        };
+        window.__edutalkFlushPushToken = () => {
+          try { if (window.__edutalkPendingPushToken) saveToken(window.__edutalkPendingPushToken); } catch (e) {}
+        };
+        try {
+          if (window.EduFirebase?.auth?.onAuthStateChanged) {
+            window.EduFirebase.auth.onAuthStateChanged(() => { try { window.__edutalkFlushPushToken(); } catch (e) {} });
+          }
+        } catch (e) {}
         PushNotifications.addListener('registration', token => {
           console.log('push registration', token.value);
           // 서버에 토큰 저장 (FCM 토큰을 Firestore에 저장)
-          try {
-            const uid = window.EduFirebase?.auth?.currentUser?.uid;
-            if (uid && token.value) {
-              window.EduFirebase.db.collection('pushTokens').doc(uid).set({
-                token: token.value,
-                platform: window.Capacitor?.getPlatform?.() || 'unknown',
-                updatedAt: window.firebase ? window.firebase.firestore.FieldValue.serverTimestamp() : new Date(),
-                enabled: true
-              }, { merge: true }).catch(()=>{});
-            }
-          } catch (e) {}
+          saveToken(token.value);
         });
         PushNotifications.addListener('registrationError', err => {
           console.warn('push registrationError', err);
@@ -217,9 +230,14 @@
     }
   }
 
+  function flushPushToken() {
+    try { if (typeof window.__edutalkFlushPushToken === 'function') window.__edutalkFlushPushToken(); } catch (e) {}
+  }
+
   // 전역 노출 (웹에서는 no-op)
   window.EdutalkNative = {
     isNative,
+    flushPushToken,
     // storage
     secureSet,
     secureGet,

@@ -8,8 +8,25 @@
   // setupGlobalHandlers()가 뒤쪽 함수 정의보다 먼저 실행되므로 최상위에 둔다 (TDZ 방지)
   let devGuardTimer = null, devGuardShown = false;
 
+  // 전역 오류 방어막: 한 곳의 예외가 앱 전체를 멈추지 않게 한다 (이전 업데이트 이후 오류 대응)
+  try{
+    window.addEventListener('error', (e)=>{
+      try{ console.error('[global]', e?.message||e); }catch(_){}
+    });
+    window.addEventListener('unhandledrejection', (e)=>{
+      try{ console.error('[unhandled]', e?.reason||e); }catch(_){}
+      try{ if(e && typeof e.preventDefault==='function') e.preventDefault(); }catch(_){}
+    });
+  }catch(e){}
   // 데스크톱(Electron) 앱에서는 브라우저 알림 대신 앱 자체 알림창을 쓴다.
   const DESKTOP = !!(window.edutalkDesktop && window.edutalkDesktop.isDesktop && typeof window.edutalkDesktop.notify === 'function');
+  const isNativeApp = () => {
+    try {
+      if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function') return window.Capacitor.isNativePlatform();
+      if (window.EdutalkNative && typeof window.EdutalkNative.isNative === 'function') return window.EdutalkNative.isNative();
+      return false;
+    } catch(e){ return false; }
+  };
   const NOTIFY_POSITIONS = [['top-left','왼쪽 위'],['top-right','오른쪽 위'],['bottom-left','왼쪽 아래'],['bottom-right','오른쪽 아래']];
 
   const state = {
@@ -326,8 +343,15 @@
           else msg.textContent='비밀번호가 달라요.';
           msg.className='reset-msg warn';
         }
-        if(!prefersReducedMotion()) wrap.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:320,easing:'ease'});
+        if(!prefersReducedMotion()){
+          try{ wrap.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:320,easing:'ease'}); }catch(e){}
+          try{
+            dots.classList.remove('shake'); void dots.offsetWidth; dots.classList.add('shake');
+            setTimeout(()=>dots.classList.remove('shake'), 360);
+          }catch(e){}
+        }
         try{ if(navigator.vibrate) navigator.vibrate(40);}catch(e){}
+        try{ if(window.EdutalkNative?.hapticError) window.EdutalkNative.hapticError().catch(()=>{}); }catch(e){}
         input.value=''; updateDots();
       }
     };
@@ -336,9 +360,14 @@
       b.addEventListener('click', ()=>{
         if(refreshBlock()) return;
         const k=b.dataset.k;
+        try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){}
+        try{ if(window.EdutalkNative?.hapticImpactMedium) window.EdutalkNative.hapticImpactMedium().catch(()=>{}); }catch(e){}
         if(k==='clear'){ input.value=input.value.slice(0,-1); updateDots(); return; }
         if(k==='ok'){ tryVerify(); return; }
-        if(input.value.length<storedLen){ input.value+=k; updateDots(); }
+        if(input.value.length<storedLen){
+          input.value+=k; updateDots();
+          if(input.value.length>=storedLen){ setTimeout(()=>tryVerify(), 140); }
+        }
       });
     });
     // dots를 클릭하면 숨겨진 입력에 포커스
@@ -436,6 +465,20 @@
       '<p>에듀톡은 담당 선생님이 학교를 먼저 등록한 뒤, 그 학교의 <b>학교 코드</b>로 학생들이 가입할 수 있어요.</p>'+
       '<p><b>등록 순서</b><br>1) 담당 선생님이 관리자 계정을 만듭니다.<br>2) 관리자 도구 → 학교 관리에서 학교를 등록합니다.<br>3) 발급된 학교 코드를 학생들에게 알려 줍니다.</p>'+
       '<p>이미 학교가 등록되어 있다면 선생님께 학교 코드를 받아 회원가입해 주세요.</p>',
+      buttons: [] },
+    { id:'windows-guide', label:'윈도우 앱 다운로드', enabled:true, title:'윈도우 앱 다운로드', html:
+      '<h2>컴퓨터에서도 편하게, 윈도우 앱</h2>'+
+      '<p>수업 자료를 보면서 대화하고, 알림을 바로 받고 싶다면 <b>윈도우 앱</b>이 편해요. 웹과 같은 계정으로 로그인하면 채팅이 그대로 이어져요.</p>'+
+      '<h3>이렇게 좋아요</h3><ul><li>큰 화면에서 사진·파일을 편하게 확인</li><li>새 메시지를 PC 알림으로 바로 확인</li><li>수업 중 화면 공유와 함께 사용하기 좋음</li></ul>'+
+      '<h3>설치 순서</h3><p>1) 아래 버튼을 눌러 설치 파일을 받습니다.<br>2) 받은 파일을 실행하고 안내를 따라 설치합니다.<br>3) 학교 코드로 만든 계정으로 로그인합니다.</p>'+
+      '<p>설치가 안 되면 학교 PC 관리 선생님께 문의해 주세요.</p>',
+      buttons: [{label:'윈도우 앱 다운로드', url:''}] },
+    { id:'teacher-guide', label:'교사 인증 안내', enabled:true, title:'교사 인증 안내', html:
+      '<h2>선생님, 이렇게 인증해 주세요</h2>'+
+      '<p>교사 승인이 끝나야 공지·승인·관리 기능을 쓸 수 있어요. 학생 계정으로 가입한 뒤 아래 순서로 신청해 주세요.</p>'+
+      '<h3>신청 순서</h3><p>1) 로그인 후 <b>전체 설정 → 교사 인증 신청</b>을 누릅니다.<br>2) 재직증명서 사진 또는 교육청 이메일 중 하나를 냅니다.<br>3) 관리자가 확인하면 teacher 권한이 들어와요.</p>'+
+      '<h3>꼭 확인해 주세요</h3><ul><li>서류에는 학교명·성함이 보여야 해요</li><li>주민번호·급여 같은 민감 정보는 가리고 올려 주세요</li><li>재직증명서는 확인 후 바로 파기돼요</li></ul>'+
+      '<p>승인이 늦으면 관리자에게 직접 알려 주세요.</p>',
       buttons: [] },
     { id:'license', label:'이용권·환불 안내', enabled:true, title:'이용권·환불 안내', html:
       '<p><b>1. 이용권 방식</b><br>학교 관리자가 1년 단위 이용권을 구매하면 계정에 바로 들어가는 것이 아니라 <b>16자리 고유코드+인증코드</b>가 발급됩니다. 두 코드가 모두 일치해야 이용권 정보가 보입니다.</p>'+
@@ -949,11 +992,12 @@
   const LANDING_ACTION_OK = LANDING_ACTIONS.map(a=>a[0]);
   const DEFAULT_LANDING_NAV = [
     { label:'다운로드', type:'menu', items:[
-      { label:'윈도우 다운로드', action:'url', value:'' },
+      { label:'윈도우 앱 소개·다운로드', action:'page', value:'windows-guide' },
       { label:'안드로이드 앱 (준비 중)', action:'url', value:'' }
     ] },
     { label:'문의하기', type:'menu', items:[
       { label:'학교 등록', action:'page', value:'school' },
+      { label:'교사 인증 안내', action:'page', value:'teacher-guide' },
       { label:'개발자에게 문의', action:'url', value:'mailto:pupp0749@gmail.com' }
     ] },
     { label:'이용하기', type:'link', action:'login', value:'' }
@@ -1177,11 +1221,19 @@
     }
     return '';
   };
-  // 외부 링크는 http(s) · mailto · tel 만 허용한다
+  // 외부 링크는 http(s) · mailto · tel · 사이트 내부(/…) 만 허용한다 (파일 다운로드 포함)
   const openSafeLink = (raw) => {
     const u=String(raw??'').trim(); if(!u) return false;
     if(/^https?:\/\//i.test(u)){ try{ window.open(u,'_blank','noopener'); }catch(e){} return true; }
     if(/^(?:mailto:|tel:)/i.test(u)){ try{ location.href=u; }catch(e){} return true; }
+    if(/^\/(?!\/)/.test(u)){
+      try{
+        if(/\.(exe|msi|zip|dmg|apk|pdf)$/i.test(u)){
+          const a=document.createElement('a'); a.href=u; a.download=''; document.body.appendChild(a); a.click(); a.remove();
+        } else window.open(u,'_blank','noopener');
+      }catch(e){}
+      return true;
+    }
     toast('주소를 확인해 주세요.');
     return false;
   };
@@ -1257,7 +1309,7 @@
   const safeAlign = (a) => (a==='center'||a==='right') ? a : 'left';
   const clampSize = (n,min,max,def) => { const v=Number(n); return (v>=min&&v<=max) ? Math.round(v) : def; };
   const fmtDateTime = (v) => { const t=docTs(v); return t ? new Date(t).toLocaleString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-'; };
-  const RICH_TAGS = new Set(['B','STRONG','I','EM','U','S','STRIKE','A','BR','DIV','P','FONT','SPAN','SUB','SUP']);
+  const RICH_TAGS = new Set(['B','STRONG','I','EM','U','S','STRIKE','A','BR','DIV','P','FONT','SPAN','SUB','SUP','H1','H2','H3','UL','OL','LI','BLOCKQUOTE','HR','PRE','CODE','TABLE','THEAD','TBODY','TR','TH','TD','IMG','FIGURE','FIGCAPTION']);
   function sanitizeRichHtml(html){
     if(!html || typeof html!=='string') return '';
     const root=document.createElement('div');
@@ -1273,11 +1325,28 @@
         }
         [...child.attributes].forEach(attr=>{
           const name=attr.name.toLowerCase();
-          if(child.tagName==='A' && name==='href' && /^(?:https?:|mailto:|\/(?!\/))/i.test(attr.value)) return;
+          if(child.tagName==='A' && name==='href' && /^(?:https?:|mailto:|tel:|\/(?!\/))/i.test(attr.value)) return;
+          if(child.tagName==='IMG' && name==='src'){
+            const v=String(attr.value||'').trim();
+            if(/^https:\/\//i.test(v) || /^data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(v)) return;
+          }
+          if(child.tagName==='IMG' && (name==='alt'||name==='loading')) return;
+          if((child.tagName==='TH'||child.tagName==='TD') && (name==='colspan'||name==='rowspan')) return;
           if(child.tagName==='FONT' && (name==='color'||name==='size')) return;
-          if((child.tagName==='SPAN'||child.tagName==='FONT') && name==='style'){
-            const m=/(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(attr.value);
-            if(m) attr.value='color:'+m[1].trim(); else child.removeAttribute('style');
+          if((child.tagName==='SPAN'||child.tagName==='FONT'||child.tagName==='IMG'||child.tagName==='P'||child.tagName==='DIV'||child.tagName==='H1'||child.tagName==='H2'||child.tagName==='H3') && name==='style'){
+            const keep=[];
+            const mColor=/(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(attr.value);
+            if(mColor) keep.push('color:'+mColor[1].trim());
+            const mAlign=/(?:^|;)\s*text-align\s*:\s*(left|center|right)/i.exec(attr.value);
+            if(mAlign) keep.push('text-align:'+mAlign[1].toLowerCase());
+            if(child.tagName==='IMG'){
+              const mW=/(?:^|;)\s*max-width\s*:\s*([^;]+)/i.exec(attr.value);
+              if(mW) keep.push('max-width:'+mW[1].trim());
+              const mW2=/(?:^|;)\s*width\s*:\s*([^;]+)/i.exec(attr.value);
+              if(mW2) keep.push('width:'+mW2[1].trim());
+            }
+            if(keep.length){ attr.value=keep.join(';'); return; }
+            else child.removeAttribute('style');
             return;
           }
           child.removeAttribute(name);
@@ -1467,7 +1536,7 @@
       const n=getTotalUnread();
       if(!n){ host.classList.add('hidden'); host.innerHTML=''; return; }
       const roomsCount=Object.keys(state.unread||{}).length;
-      host.innerHTML=`<span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 3V6Z"/></svg></span><span><b>${n}개</b> 안 읽은 메시지 · ${roomsCount}개 방 <span style="opacity:.7">— 클릭하면 첫 안읽은 방으로</span></span><span style="margin-left:auto;font-size:12px">›</span>`;
+      host.innerHTML=`<span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 3V6Z"/></svg></span><span><b>${n}개</b> 안 읽은 메시지 · ${roomsCount}개 방</span><span style="margin-left:auto;font-size:12px">›</span>`;
       host.classList.remove('hidden');
     }catch(e){}
   }
@@ -2261,11 +2330,17 @@
         const membersChanged=[...prevIds,...nextIds].some(x=>!prevIds.has(x)||!nextIds.has(x));
         const iWasIn=prevIds.has(uid()), iAmIn=nextIds.has(uid());
         const myChanged=iWasIn!==iAmIn;
-        // 내가 방에서 빠졌는데 private/members 방이면 진짜 나가기로 처리한다
-        // (대화 불가 상태로 남아있지 않고 목록에서 제거 + 화면 닫기)
-        if(!iAmIn && data.visibility!=='all'){
+        // 내가 방에서 빠지면 visibility와 무관하게 진짜 나가기로 처리한다
+        // (대화 불가 상태로 남아있지 않고 목록에서 제거 + 화면·설정 닫기)
+        if(!iAmIn && myChanged){
+          markRoomLeft(id);
           state.rooms=(state.rooms||[]).filter(r=>r.id!==id);
+          if(state.allRooms) state.allRooms=state.allRooms.filter(r=>r.id!==id);
+          if(state.unread) delete state.unread[id];
+          try{ renderUnreadSummary(); }catch(e){}
           state.room=null; clearRoomListener(); clearChatPane();
+          closeRoomSettingsIfOpen(id);
+          closeAllModals();
           renderRooms();
           toast('채팅방에서 나왔어요.');
           return;
@@ -2467,7 +2542,10 @@
       applyFontSize();
       try{ if(DESKTOP) startDesktopUnreadTimer(); }catch(e){}
       // Native 푸시 등록 (Capacitor.isNativePlatform() 일 때만, 웹은 스킵)
+      // 로그인 전에 받은 토큰이 있으면 지금 저장한다 (오프라인·백그라운드 알림용)
       try{ if(window.EdutalkNative?.isNative()) window.EdutalkNative.registerPush().catch(()=>{}); }catch(e){}
+      try{ if(window.EdutalkNative?.flushPushToken) window.EdutalkNative.flushPushToken(); }catch(e){}
+      try{ if(typeof window.__edutalkFlushPushToken==='function') window.__edutalkFlushPushToken(); }catch(e){}
       // 중복 로그인: 이 기기의 세션을 기록하고 감시를 시작한다
       state.dupKicked=false; state.dupKickNotice=''; state.dupKickToastShown=false;
       // 12번: 기존 세션이 있으면 예/아니오 확인 후 claim (아니오면 로그인 중단)
@@ -3298,6 +3376,16 @@
   }
 
   async function googleLogin(){
+    try{
+      if(isNativeApp()){
+        try{
+          const provider = new firebase.auth.GoogleAuthProvider();
+          await auth.signInWithRedirect(provider);
+          return;
+        }catch(e){}
+      }
+    }catch(e){}
+
     const f=$('#authForm');
     if(state.authMode==='signup' && f){
       const schoolId=state.selectedSchool?.id||''; const schoolCode=(f.schoolCode?.value||'').trim().toUpperCase();
@@ -3390,6 +3478,7 @@
   }
 
   function renderShell(){
+    try{ if(isNativeApp() && !state.user) { state.landingRequested=false; state.landing=null; } }catch(e){}
     applyFontSize();
     applyTheme();
     stopHeroRoll();
@@ -4157,6 +4246,7 @@
       if(a==='banner-prev')return bannerPageMove(-1); if(a==='banner-next')return bannerPageMove(1);
       if(a==='banner-collapse')return setBannerCollapsed(true); if(a==='banner-expand')return setBannerCollapsed(false);
       if(a==='unread-summary-go'){ const nid=Object.keys(state.unread||{})[0]; if(nid) openRoom(nid); return; }
+      if(a==='open-palette'){ try{ openCmdPalette(); }catch(e){} return; }
       if(a==='close-room-settings')return closeRoomSettings();
       if(a==='side-toggle')return toggleSideCollapse(el.dataset.side||el.dataset.sidekey||'');
       if(a==='toggle-pw'){
@@ -4904,11 +4994,12 @@
         const snaps=await Promise.all(queries.map(q=>q.get()));
         const map=new Map(); snaps.forEach(s=>s.docs.forEach(d=>map.set(d.id,{id:d.id,...d.data()})));
         // 지워진 채팅방은 목록에서 감춘다 (기록은 관리자 도구에서 계속 볼 수 있다)
-        // 내가 만든 방이라도 이미 나간 private/members 방은 진짜 나간 것으로 보고 감춘다
+        // 나간 방은 visibility와 무관하게 감춘다 (공개방도 나간 뒤엔 없던 것처럼)
         state.rooms=[...map.values()].filter(r=>{
           if(r.deleted||r.deleted_at) return false;
           const amIn=(r.memberIds||[]).includes(uid());
-          if(amIn) return true;
+          if(amIn){ try{ unmarkRoomLeft(r.id); }catch(e){} return true; }
+          try{ if(isRoomLeft(r.id)) return false; }catch(e){}
           if((r.visibility||'')==='all') return true;
           return false;
         }).map(r=>{
@@ -5455,12 +5546,23 @@
         const data=s.data()||{};
         const mySid=state.profile?.schoolId||'';
         const isMember = Array.isArray(data.memberIds) && data.memberIds.includes(uid());
+        try{ if(isMember) unmarkRoomLeft(id); }catch(e){}
+        try{
+          if(!isMember && !isAdmin() && isRoomLeft(id)){
+            openModal(`<h2>나온 채팅방이에요</h2><p class="desc">이미 나온 채팅방은 다시 볼 수 없어요. 다시 초대받으면 들어갈 수 있어요.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
+            if(!fromHistory) try{ history.replaceState({},'', location.pathname); }catch(_){}
+            return;
+          }
+        }catch(e){}
         const sameSchool = !data.schoolId || !mySid || data.schoolId===mySid;
         const canRead = isAdmin() || isMember || (sameSchool && (data.visibility==='all' || data.createdBy===uid()));
         if(!canRead){
           openModal(`<h2>권한이 없어요</h2><p class="desc">이 채팅방은 다른 학교 전용이에요. 우리 학교 채팅방만 들어갈 수 있어요.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
           if(!fromHistory) try{ history.replaceState({},'', location.pathname); }catch(_){}
           return;
+        }
+        if(!isMember && !isAdmin()){
+          try{ if(isRoomLeft(id)) return; }catch(e){}
         }
         room={id,...data}; state.rooms=[room,...state.rooms];
       }catch(e){
@@ -5474,6 +5576,16 @@
     } else {
       const mySid=state.profile?.schoolId||'';
       const isMember = Array.isArray(room.memberIds) && room.memberIds.includes(uid());
+      try{ if(isMember) unmarkRoomLeft(id); }catch(e){}
+      try{
+        if(!isMember && !isAdmin() && isRoomLeft(id)){
+          state.rooms=(state.rooms||[]).filter(r=>r.id!==id);
+          try{ renderRooms(); }catch(e){}
+          openModal(`<h2>나온 채팅방이에요</h2><p class="desc">이미 나온 채팅방은 다시 볼 수 없어요. 다시 초대받으면 들어갈 수 있어요.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
+          if(!fromHistory) try{ history.replaceState({},'', location.pathname); }catch(_){}
+          return;
+        }
+      }catch(e){}
       const sameSchool = !room.schoolId || !mySid || room.schoolId===mySid;
       const canRead = isAdmin() || isMember || (sameSchool && (room.visibility==='all' || room.createdBy===uid()));
       if(!canRead){
@@ -5499,9 +5611,14 @@
     state.reportFocus=null; state.reportTargetId=focus?focus.msgId:null;
     const gb=$('#globalBanner'); if(gb){gb.classList.remove('show');clearTimeout(state.banner.timer);} hideInRoomPill(); renderRooms();
     ensureJoinCodeMapping(room);
-    // 학교 전체 공개방은 열람·발언 권한과 명단을 일치시키기 위해 열 때 자동으로 들어간다 (총관리자 제외)
-    if(room.visibility==='all' && !isAdmin() && !(room.memberIds||[]).includes(uid())){
+    // 학교 전체 공개방 자동 입장: 나간 기록이 있는 방은 다시 들어가지 않는다 (나간 뒤 조회 차단)
+    try{ if((room.memberIds||[]).includes(uid())) unmarkRoomLeft(id); }catch(e){}
+    let leftBlocked=false;
+    try{ leftBlocked=isRoomLeft(id) && !(room.memberIds||[]).includes(uid()); }catch(e){}
+    // 학교 전체 공개방은 열람·발언 권한과 명단을 일치시키기 위해 열 때 자동으로 들어간다 (총관리자·나간 방 제외)
+    if(!leftBlocked && room.visibility==='all' && !isAdmin() && !(room.memberIds||[]).includes(uid())){
       room.memberIds=[...(room.memberIds||[]),uid()];
+      try{ unmarkRoomLeft(id); }catch(e){}
       db.collection('channels').doc(id).update({memberIds:firebase.firestore.FieldValue.arrayUnion(uid()),updatedAt:ts()}).catch(()=>{});
     }
     await markRead(id);
@@ -7436,27 +7553,88 @@
       }
     });
   }
+  // ---------- 나간 방 기록 (공개방도 나간 뒤엔 없던 것처럼) ----------
+  function leftRoomsKey(){ try{ return 'edutalk_left_rooms_'+String(uid()||'anon'); }catch(e){ return 'edutalk_left_rooms_anon'; } }
+  function getLeftRooms(){
+    try{
+      const raw=localStorage.getItem(leftRoomsKey());
+      if(!raw) return {};
+      const o=JSON.parse(raw);
+      return (o&&typeof o==='object')?o:{};
+    }catch(e){ return {}; }
+  }
+  function isRoomLeft(id){
+    try{ return !!getLeftRooms()[String(id||'')]; }catch(e){ return false; }
+  }
+  function markRoomLeft(id){
+    try{
+      const k=leftRoomsKey(); const o=getLeftRooms();
+      o[String(id)]=Date.now();
+      try{ localStorage.setItem(k, JSON.stringify(o)); }catch(e){}
+    }catch(e){}
+  }
+  function unmarkRoomLeft(id){
+    try{
+      const k=leftRoomsKey(); const o=getLeftRooms();
+      if(String(id) in o){ delete o[String(id)]; try{ localStorage.setItem(k, JSON.stringify(o)); }catch(e){} }
+    }catch(e){}
+  }
+  async function autoTransferOwnershipIfOwner(roomId){
+    // 방장이 나갈 때 남은 멤버 중 1명에게 자동으로 방장을 넘긴다. 넘길 사람이 없으면 null.
+    try{
+      let fresh=null;
+      try{ const s=await db.collection('channels').doc(roomId).get(); if(s.exists) fresh={id:roomId,...s.data()}; }catch(e){}
+      if(!fresh) return null;
+      if(fresh.createdBy!==uid()) return fresh.createdBy||null;
+      const others=(fresh.memberIds||[]).filter(x=>x&&x!==uid());
+      if(!others.length) return null;
+      const newOwner=others[0];
+      try{ await db.collection('channels').doc(roomId).update({createdBy:newOwner,updatedAt:ts()}); }
+      catch(e){ console.error(e); return fresh.createdBy||null; }
+      state.rooms=(state.rooms||[]).map(x=>x.id===roomId?{...x,createdBy:newOwner}:x);
+      if(state.allRooms) state.allRooms=state.allRooms.map(x=>x.id===roomId?{...x,createdBy:newOwner}:x);
+      if(state.room?.id===roomId) state.room={...state.room,createdBy:newOwner};
+      return newOwner;
+    }catch(e){ return null; }
+  }
+  function closeRoomSettingsIfOpen(roomId){
+    try{
+      if(state.roomManageOpen && (!roomId || state.roomManagePrevId===roomId)){
+        closeRoomSettings();
+      }
+    }catch(e){}
+  }
   async function leaveRoom(id){
     const r=state.rooms.find(x=>x.id===id)||state.room||((state.allRooms||[]).find(x=>x.id===id));
     if(!r) return;
     if(!(r.memberIds||[]).includes(uid())) return toast('이미 나와 있는 채팅방이에요.');
     if(!isAdmin() && !licenseActiveInfo().active) return toast(licenseFrozenMessage());
     const owner=r.createdBy===uid();
+    const othersCount=(r.memberIds||[]).filter(x=>x&&x!==uid()).length;
     confirmModal('이 채팅방에서 나갈까요?',
-      owner?'내가 만든 방이에요. 나가도 방은 남고, 다시 들어올 수 있어요.':'다시 초대받으면 들어올 수 있어요.',
+      owner?(othersCount>0?'방장이 나가면 다른 참여자에게 방장이 자동으로 넘어가요. 나간 방은 목록에서 사라져요.':'나간 방은 목록에서 사라져요. 다시 초대받으면 들어올 수 있어요.'):'나간 방은 목록에서 사라져요. 다시 초대받으면 들어올 수 있어요.',
       async()=>{
-        await postSystemMessage(id,'leave',state.profile?.displayName||'사용자');
+        try{
+          if(owner && othersCount>0){
+            await autoTransferOwnershipIfOwner(id);
+          }
+        }catch(e){ console.error(e); }
+        try{ await postSystemMessage(id,'leave',state.profile?.displayName||'사용자'); }catch(e){ console.error(e); }
         try{ await db.collection('channels').doc(id).update({memberIds:firebase.firestore.FieldValue.arrayRemove(uid()),updatedAt:ts()}); }
         catch(e){ console.error(e); return toast(errText(e)); }
         // 내 타이핑·읽음 표시도 함께 지운다 (유령 표시 방지)
         try{ await db.collection('channels').doc(id).collection('typing').doc(uid()).delete().catch(()=>{}); }catch(e){}
         try{ await db.collection('channels').doc(id).collection('reads').doc(uid()).delete().catch(()=>{}); }catch(e){}
-        // 진짜 나가기: 목록에서 제거하고, 보고 있던 방이면 화면도 닫는다
+        // 진짜 나가기: 나간 기록을 남기고, 목록에서 제거하고, 보고 있던 방·설정 화면도 닫는다
+        markRoomLeft(id);
         state.rooms=state.rooms.filter(x=>x.id!==id);
         if(state.allRooms) state.allRooms=state.allRooms.filter(x=>x.id!==id);
+        if(state.unread && state.unread[id]!==undefined){ delete state.unread[id]; try{ renderUnreadSummary(); }catch(e){} }
         closeAllModals();
+        closeRoomSettingsIfOpen(id);
         if(state.room?.id===id){ state.room=null; clearRoomListener(); clearChatPane(); }
-        renderRooms();
+        // 설정 화면에서 나간 경우 뒤에 남은 설정 화면이 현재 방을 가리키면 닫는다
+        try{ renderRooms(); }catch(e){}
         toast('채팅방에서 나왔어요.');
       });
   }
@@ -7464,15 +7642,24 @@
     const rooms=(list||[]).filter(r=>r&&(r.memberIds||[]).includes(uid()));
     if(!rooms.length) return toast('나갈 채팅방을 먼저 골라 주세요.');
     if(!isAdmin() && !licenseActiveInfo().active) return toast(licenseFrozenMessage());
-    for(const r of rooms){ await postSystemMessage(r.id,'leave',state.profile?.displayName||'사용자'); }
+    for(const r of rooms){
+      if(r.createdBy===uid() && (r.memberIds||[]).filter(x=>x&&x!==uid()).length>0){
+        await autoTransferOwnershipIfOwner(r.id);
+      }
+      await postSystemMessage(r.id,'leave',state.profile?.displayName||'사용자');
+    }
     try{
       const batch=db.batch();
       rooms.forEach(r=>batch.update(db.collection('channels').doc(r.id),{memberIds:firebase.firestore.FieldValue.arrayRemove(uid()),updatedAt:ts()}));
       await batch.commit();
     }catch(e){ console.error(e); return toast(errText(e)); }
     const ids=new Set(rooms.map(r=>r.id));
+    ids.forEach(id=>{ markRoomLeft(id); if(state.unread) delete state.unread[id]; });
+    try{ renderUnreadSummary(); }catch(e){}
     state.rooms=state.rooms.filter(x=>!ids.has(x.id));
+    if(state.allRooms) state.allRooms=state.allRooms.filter(x=>!ids.has(x.id));
     if(state.room&&ids.has(state.room.id)){ state.room=null; clearRoomListener(); clearChatPane(); }
+    ids.forEach(id=>closeRoomSettingsIfOpen(id));
     state.cmSel=new Set();
     closeAllModals(); renderRooms();
     toast(`${rooms.length}개 채팅방에서 나왔어요.`);
@@ -7533,7 +7720,7 @@
         if(isMember) manage.push(`<button class="list-item" data-action="leave-room" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">🚪 채팅방 나가기</div></div></button>`);
         // 전체 설정(상단 기어)는 전체화면, 방 설정은 메인만 교체: 뒤로가기 버튼으로 원래 채팅 복원
         main.innerHTML = `<div class="room-settings-screen">
-          <div class="room-settings-head"><button class="icon-btn" data-action="close-room-settings" aria-label="뒤로">←</button><div class="grow"><div style="font-weight:730">${esc(r.name)} 설정</div><div style="font-size:12px;color:var(--sub)">${roomIconHtml(r)} ${esc(r.typeLabel||'채팅방')}</div></div><button class="icon-btn" data-action="close-room-settings" aria-label="닫기">✕</button></div>
+          <div class="room-settings-head"><button class="icon-btn" data-action="close-room-settings" aria-label="뒤로">←</button><div class="grow"><div class="rs-title">${esc(r.name)} 설정</div><div class="rs-sub"><span class="rs-ico">${roomIconHtml(r)}</span><span>${esc(r.typeLabel||'채팅방')}</span></div></div><button class="icon-btn" data-action="close-room-settings" aria-label="닫기">✕</button></div>
           <div class="room-settings-body">
             <div class="room-settings-tabs">
               <button class="tab ${tabActive('general')}" data-roomman-tab="general"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4 1.4"/></svg></span> 일반</button>
@@ -7943,6 +8130,7 @@
         // 서버가 코드를 검증할 수 있게 증표를 먼저 남긴다 (모르면 입장 규칙에서 막힌다)
         await db.collection('joinAttempts').doc(`${r.id}_${uid()}`).set({roomId:r.id,uid:uid(),code,createdAt:ts()},{merge:true});
         await db.collection('channels').doc(r.id).update({memberIds:firebase.firestore.FieldValue.arrayUnion(uid()),updatedAt:ts()});
+        try{ unmarkRoomLeft(r.id); }catch(e){}
         await db.collection('joinAttempts').doc(`${r.id}_${uid()}`).delete().catch(()=>{});
       }
       catch(e){
@@ -8046,6 +8234,7 @@
     if((r.memberIds||[]).includes(uid())) return toast('이미 이 채팅방에 있어요.');
     try{ await db.collection('channels').doc(id).update({memberIds:firebase.firestore.FieldValue.arrayUnion(uid()),updatedAt:ts()}); }
     catch(e){ console.error(e); return toast(errText(e)); }
+    try{ unmarkRoomLeft(id); }catch(e){}
     closeAllModals();
     toast('관리자로 참가했어요.');
     postSystemMessage(id,'join',state.profile?.displayName||'사용자');
@@ -8149,6 +8338,9 @@
         const sid=state.profile?.schoolId||''; if(sid) upd.schoolIds=firebase.firestore.FieldValue.arrayUnion(sid);
         const ck=myClassKey(); if(ck) upd.classKeys=firebase.firestore.FieldValue.arrayUnion(ck);
         await cref.update(upd);
+        try{ unmarkRoomLeft(roomId); }catch(e){}
+      } else {
+        try{ unmarkRoomLeft(roomId); }catch(e){}
       }
       step='초대 상태 변경';
       await ref.update({status:'accepted',handledAt:ts()});
@@ -8192,7 +8384,7 @@
         <button class="tab ${tabActive('chat')}" data-settings-tab="chat"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 3V6Z"/></svg></span> 채팅/알림</button>
         <button class="tab ${tabActive('invite')}" data-settings-tab="invite"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-1.5a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4V21"/><circle cx="10" cy="7" r="3"/><circle cx="17.5" cy="7" r="2.5"/><path d="M18.5 13.5A4 4 0 0 1 21 17v4"/></svg></span> 초대/친구</button>
         <button class="tab ${tabActive('security')}" data-settings-tab="security"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><circle cx="12" cy="15" r="1"/></svg></span> 보안</button>
-      </nav><div class="settings-search" id="settingsSearchWrap" style="display:none"><div class="settings-search-wrap"><span class="search-ico">⌕</span><input id="settingsSearch" placeholder="설정 검색 — 예: 알림, 테마, 잠금" autocomplete="off" spellcheck="false"></div></div><div id="settingsPanel"></div></div></div><div class="settings-save-bar" id="settingsSaveBar"><div class="admin-wrap"><button class="primary" data-action="save-settings" id="settingsSaveBtn" style="width:100%;height:50px;border-radius:13px" disabled><span class="save-dot"></span>저장하기</button><p class="desc" style="text-align:center;margin-top:8px">변경사항은 저장해야 반영됩니다. 아래 바는 항상 떠 있어 바로 저장할 수 있어요.</p></div></div></div>`;
+      </nav><div id="settingsPanel"></div></div></div><div class="settings-save-bar" id="settingsSaveBar"><div class="admin-wrap"><button class="primary" data-action="save-settings" id="settingsSaveBtn" style="width:100%;height:50px;border-radius:13px" disabled><span class="save-dot"></span>저장하기</button></div></div></div>`;
   }
   function renderSettingsPanel(tab){
     if(tab) state.settingsTab=tab;
@@ -8205,76 +8397,60 @@
     }catch(e){}
     const p=document.getElementById('settingsPanel');
     if(!p) return;
-    // 검색바 표시
-    const sWrap=document.getElementById('settingsSearchWrap');
-    if(sWrap){ sWrap.style.display='flex'; const inp=sWrap.querySelector('#settingsSearch'); if(inp && !inp._bound){ inp._bound=true; inp.addEventListener('input', ()=>{
-      const q=inp.value.trim().toLowerCase();
-      p.querySelectorAll('.admin-card').forEach(card=>{
-        const txt=card.textContent.toLowerCase();
-        card.classList.toggle('hidden-by-search', !!q && !txt.includes(q));
-      });
-    }); }
-      // 탭 전환 시에도 기존 검색어 유지
-      const q2=sWrap.querySelector('#settingsSearch')?.value.trim().toLowerCase()||'';
-      if(q2){
-        setTimeout(()=>{
-          p.querySelectorAll('.admin-card').forEach(card=>{
-            const txt=card.textContent.toLowerCase();
-            card.classList.toggle('hidden-by-search', !txt.includes(q2));
-          });
-        }, 10);
-      }
-    }
+    // 검색바 제거됨 (요청)
     // 저장 버튼 상태는 dirty에 따라 유지 (탭 전환 시 초기화하지 않음)
     // 초기 오픈 시에는 clearSettingsDirty가 openSettings에서 호출됨
     const saveBtn=document.getElementById('settingsSaveBtn');
     if(saveBtn) saveBtn.disabled = !settingsDirty;
     const nt=notifySettings();
-    const perm=notificationPermission();
-    const permText=perm==='granted'?'허용됨':perm==='denied'?'차단됨':perm==='unsupported'?'지원 안 함':'허용 필요';
-    const permCls=perm==='granted'?'on':(perm==='denied'||perm==='unsupported')?'warn':'';
+    let perm=notificationPermission();
+    let permText=perm==='granted'?'허용됨':perm==='denied'?'차단됨':perm==='unsupported'?'지원 안 함':'허용 필요';
+    let permCls=perm==='granted'?'on':(perm==='denied'||perm==='unsupported')?'warn':'';
+    if(isNativeApp()){
+      perm='granted'; permText='앱 알림'; permCls='on';
+    }
     const lockOn=isLockEnabled();
     // 탭별 HTML
     let html='';
     if(state.settingsTab==='display'){
       html=`
       <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8"/><path d="M12 14v6"/></svg></span> 표시</h3>
-        <div class="setting-row"><div class="setting-label"><strong>화면 테마</strong><span>밝은 화면과 어두운 화면을 고를 수 있어요.</span></div><div class="choice-row">${[['light','밝게'],['dark','어둡게'],['system','시스템']].map(([v,l])=>`<button type="button" class="choice ${currentTheme()===v?'active':''}" data-theme="${v}">${l}</button>`).join('')}</div></div>
-        <div class="setting-row"><div class="setting-label"><strong>글자 크기</strong><span>채팅과 메뉴에 적용돼요.</span></div><div class="choice-row">${[['sm','작게'],['md','기본'],['lg','크게'],['xl','더 크게']].map(([v,l])=>`<button type="button" class="choice ${state.settings.fontSize===v?'active':''}" data-setting-font="${v}">${l}</button>`).join('')}</div></div>
-        <div class="setting-row"><div class="setting-label"><strong>친구·대화방 배치</strong><span>왼쪽 목록에서 친구와 대화방을 어떻게 나눠 보여줄지 정해요.</span></div><div class="custom-select" style="width:210px"><button type="button" class="select-button" data-select-open="sideLayout"><span data-selected="sideLayout" data-value="${esc(state.settings.sideLayout||'split')}">${(state.settings.sideLayout==='friends-top'?'친구 먼저':state.settings.sideLayout==='rooms-only'?'대화방만':state.settings.sideLayout==='friends-only'?'친구만':'나눠서 보기')}</span><span>⌄</span></button></div></div>
+        <div class="setting-row"><div class="setting-label"><strong>화면 테마</strong></div><div class="choice-row">${[['light','밝게'],['dark','어둡게'],['system','시스템']].map(([v,l])=>`<button type="button" class="choice ${currentTheme()===v?'active':''}" data-theme="${v}">${l}</button>`).join('')}</div></div>
+        <div class="setting-row"><div class="setting-label"><strong>글자 크기</strong></div><div class="choice-row">${[['sm','작게'],['md','기본'],['lg','크게'],['xl','더 크게']].map(([v,l])=>`<button type="button" class="choice ${state.settings.fontSize===v?'active':''}" data-setting-font="${v}">${l}</button>`).join('')}</div></div>
+        <div class="setting-row"><div class="setting-label"><strong>친구·대화방 배치</strong></div><div class="custom-select" style="width:210px"><button type="button" class="select-button" data-select-open="sideLayout"><span data-selected="sideLayout" data-value="${esc(state.settings.sideLayout||'split')}">${(state.settings.sideLayout==='friends-top'?'친구 먼저':state.settings.sideLayout==='rooms-only'?'대화방만':state.settings.sideLayout==='friends-only'?'친구만':'나눠서 보기')}</span><span>⌄</span></button></div></div>
       </div>
-      <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 1 2.3 1.6 4 1.6s3-.6 4-1.6"/><path d="M9 9h.01M15 9h.01"/></svg></span> 감정 아이콘</h3><p class="desc">공감할 때 쓸 아이콘을 최대 8개까지 골라요.</p><div class="avatar-pick" id="rxPick" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:8px">${RX_CHOICES.map(e=>`<button type="button" class="avatar-opt ${reactionEmojis().includes(e)?'on':''}" data-rx="${esc(e)}">${esc(e)}</button>`).join('')}</div></div>
+      <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 1 2.3 1.6 4 1.6s3-.6 4-1.6"/><path d="M9 9h.01M15 9h.01"/></svg></span> 감정 아이콘</h3><div class="avatar-pick" id="rxPick" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:8px">${RX_CHOICES.map(e=>`<button type="button" class="avatar-opt ${reactionEmojis().includes(e)?'on':''}" data-rx="${esc(e)}">${esc(e)}</button>`).join('')}</div></div>
       `;
     } else if(state.settingsTab==='chat'){
       html=`
       <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 3V6Z"/></svg></span> 채팅 알림</h3>
-        <div class="setting-row"><div class="setting-label"><strong>새 메시지 알림음</strong><span>새 메시지가 오면 소리로 알려드려요.</span></div><label class="choice ${nt.sound?'active':''}"><input type="checkbox" name="notifySound" ${nt.sound?'checked':''} data-sound-toggle> 사용</label></div>
-        <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px"><div class="setting-label"><strong>알림음 고르기</strong><span>눌러서 바로 들어볼 수 있어요.</span></div><div class="sound-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">${SOUNDS.map(s=>`<button type="button" class="sound-item ${s.id===nt.soundId?'on':''}" data-sound="${s.id}"><div class="grow"><div class="title">${esc(s.name)}</div></div><span>▶</span></button>`).join('')}</div></div>
-        <div class="setting-row"><div class="setting-label"><strong>기기 알림</strong><span>${DESKTOP?'창을 닫아도 새 메시지가 오면 앱 알림창으로 알려드려요.':'창을 최소화했거나 다른 채팅방을 보고 있을 때 화면 알림으로 알려드려요.'}</span></div><div class="notify-row">${DESKTOP?'':`<span class="perm-badge ${permCls}">${permText}</span>`}<label class="choice ${nt.browser?'active':''}"><input type="checkbox" name="notifyBrowser" ${nt.browser?'checked':''} data-browser-toggle> 사용</label></div></div>
-        ${DESKTOP?'<div class="setting-row"><div class="setting-label"><strong>알림창 위치</strong><span>알림창이 나타날 화면 위치를 골라 주세요.</span></div><div class="choice-row">'+NOTIFY_POSITIONS.map(([v,l])=>'<button type="button" class="choice" data-notify-pos="'+v+'">'+l+'</button>').join('')+'</div></div>':''}
-        <div class="setting-row"><div class="setting-label"><strong>입력 중 표시</strong><span>상대가 메시지를 쓰는 동안 말풍선으로 알려줘요.</span></div><label class="choice ${state.settings.typingIndicator!==false?'active':''}"><input type="checkbox" name="typingIndicator" ${state.settings.typingIndicator!==false?'checked':''} data-typing-toggle> 사용</label></div>
-        <div class="setting-row"><div class="setting-label"><strong>읽음 표시</strong><span>내가 보낸 메시지를 누가 읽었는지 보여줘요.</span></div><label class="choice ${state.settings.readReceipts!==false?'active':''}"><input type="checkbox" name="readReceipts" ${state.settings.readReceipts!==false?'checked':''} data-read-toggle> 사용</label></div>
+        <div class="setting-row"><div class="setting-label"><strong>새 메시지 알림음</strong></div><label class="choice ${nt.sound?'active':''}"><input type="checkbox" name="notifySound" ${nt.sound?'checked':''} data-sound-toggle> 사용</label></div>
+        <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px"><div class="setting-label"><strong>알림음 고르기</strong></div><div class="sound-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">${SOUNDS.map(s=>`<button type="button" class="sound-item ${s.id===nt.soundId?'on':''}" data-sound="${s.id}"><div class="grow"><div class="title">${esc(s.name)}</div></div><span>▶</span></button>`).join('')}</div></div>
+        ${isNativeApp() ? `<div class="setting-row"><div class="setting-label"><strong>푸시 알림</strong></div><div class="notify-row"><span class="perm-badge ${permCls}">${permText}</span><label class="choice ${nt.browser?'active':''}"><input type="checkbox" name="notifyBrowser" ${nt.browser?'checked':''} data-browser-toggle> 사용</label></div></div>` : `<div class="setting-row"><div class="setting-label"><strong>기기 알림</strong></div><div class="notify-row"><span class="perm-badge ${permCls}">${permText}</span><label class="choice ${nt.browser?'active':''}"><input type="checkbox" name="notifyBrowser" ${nt.browser?'checked':''} data-browser-toggle> 사용</label></div></div>`}
+        ${DESKTOP?'<div class="setting-row"><div class="setting-label"><strong>알림창 위치</strong></div><div class="choice-row">'+NOTIFY_POSITIONS.map(([v,l])=>'<button type="button" class="choice" data-notify-pos="'+v+'">'+l+'</button>').join('')+'</div></div>':''}
+        <div class="setting-row"><div class="setting-label"><strong>입력 중 표시</strong></div><label class="choice ${state.settings.typingIndicator!==false?'active':''}"><input type="checkbox" name="typingIndicator" ${state.settings.typingIndicator!==false?'checked':''} data-typing-toggle> 사용</label></div>
+        <div class="setting-row"><div class="setting-label"><strong>읽음 표시</strong></div><label class="choice ${state.settings.readReceipts!==false?'active':''}"><input type="checkbox" name="readReceipts" ${state.settings.readReceipts!==false?'checked':''} data-read-toggle> 사용</label></div>
       </div>
-      ${DESKTOP?`<div class="admin-card" id="desktopUnreadCard"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5Z"/><path d="M7 8h10"/><path d="M7 12h6"/></svg></span> 데스크탑 요약 알림</h3><p class="desc">안 읽은 메시지가 있으면 주기적으로 바탕화면에 요약 알림을 띄워요. 창을 보고 있을 때는 뜨지 않아요.</p><div class="setting-row"><div class="setting-label"><strong>요약 알림 사용</strong><span>켜면 5분 또는 10분마다 “안읽은 알림이 N개 있어요” 알림이 떠요.</span></div><label class="choice "+(getDesktopUnread().enabled?'active':'')+""><input type="checkbox" id="desktopUnreadToggle" "+(getDesktopUnread().enabled?'checked':'')+" > "+(getDesktopUnread().enabled?'켜짐':'꺼짐')+"</label></div><div id="desktopUnreadOpts" style=""+(getDesktopUnread().enabled?'':'display:none')+";display:"+(getDesktopUnread().enabled?'block':'none')+""><div class="setting-row"><div class="setting-label"><strong>알림 주기</strong><span>얼마마다 알림을 받을지 정해요.</span></div><div class="choice-row"><button type="button" class="choice "+(getDesktopUnread().interval===5?'active':'')+"" data-desktop-interval="5">5분</button><button type="button" class="choice "+(getDesktopUnread().interval===10?'active':'')+"" data-desktop-interval="10">10분</button></div></div><div class="setting-row"><div class="setting-label"><strong>소리</strong><span>소리 없이 창만 띄울지, 소리와 함께 띄울지 정해요.</span></div><label class="choice "+(getDesktopUnread().sound?'active':'')+""><input type="checkbox" id="desktopUnreadSound" "+(getDesktopUnread().sound?'checked':'')+" > 소리와 함께</label></div></div></div>`:''}
+      ${DESKTOP?`<div class="admin-card" id="desktopUnreadCard"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5Z"/><path d="M7 8h10"/><path d="M7 12h6"/></svg></span> 데스크탑 요약 알림</h3><div class="setting-row"><div class="setting-label"><strong>요약 알림 사용</strong></div><label class="choice "+(getDesktopUnread().enabled?'active':'')+""><input type="checkbox" id="desktopUnreadToggle" "+(getDesktopUnread().enabled?'checked':'')+" > "+(getDesktopUnread().enabled?'켜짐':'꺼짐')+"</label></div><div id="desktopUnreadOpts" style=""+(getDesktopUnread().enabled?'':'display:none')+";display:"+(getDesktopUnread().enabled?'block':'none')+""><div class="setting-row"><div class="setting-label"><strong>알림 주기</strong></div><div class="choice-row"><button type="button" class="choice "+(getDesktopUnread().interval===5?'active':'')+"" data-desktop-interval="5">5분</button><button type="button" class="choice "+(getDesktopUnread().interval===10?'active':'')+"" data-desktop-interval="10">10분</button></div></div><div class="setting-row"><div class="setting-label"><strong>소리</strong></div><label class="choice "+(getDesktopUnread().sound?'active':'')+""><input type="checkbox" id="desktopUnreadSound" "+(getDesktopUnread().sound?'checked':'')+" > 소리와 함께</label></div></div></div>`:''}
       `;
     } else if(state.settingsTab==='invite'){
       html=`
       <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-1.5a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4V21"/><circle cx="10" cy="7" r="3"/><circle cx="17.5" cy="7" r="2.5"/><path d="M18.5 13.5A4 4 0 0 1 21 17v4"/></svg></span> 초대 / 친구</h3>
-        <div class="setting-row"><div class="setting-label"><strong>내 초대 코드</strong><span>친구가 이 코드를 입력하면 나를 채팅방에 초대할 수 있어요.</span></div><div class="notify-row"><span class="code-chip" data-my-code>${esc(state.profile?.userCode||'준비 중')}</span><button type="button" class="soft-btn" style="flex:0 0 74px" data-action="copy-code">복사</button></div></div>
-        <div class="setting-row"><div class="setting-label"><strong>채팅방 초대</strong><span>원하지 않는 초대가 자동으로 들어오는 걸 막을 수 있어요.</span></div><div class="custom-select" style="width:190px"><button type="button" class="select-button" data-select-open="invitePolicy"><span data-selected="invitePolicy" data-value="${state.settings.invitePolicy}">${state.settings.invitePolicy==='auto'?'자동으로 들어가요':state.settings.invitePolicy==='block'?'초대를 받지 않아요':'초대받으면 확인해요'}</span><span>⌄</span></button></div></div>
-        <div class="setting-row"><div class="setting-label"><strong>접속 상태 표시</strong><span>친구들에게 온라인 상태를 보여줄지 정해요.</span></div><div class="custom-select" style="width:210px"><button type="button" class="select-button" data-select-open="presenceMode"><span data-selected="presenceMode" data-value="${state.settings.presenceMode||'auto'}">${presenceModeLabel(state.settings.presenceMode||'auto')}</span><span>⌄</span></button></div></div>
+        <div class="setting-row"><div class="setting-label"><strong>내 초대 코드</strong></div><div class="notify-row"><span class="code-chip" data-my-code>${esc(state.profile?.userCode||'준비 중')}</span><button type="button" class="soft-btn" style="flex:0 0 74px" data-action="copy-code">복사</button></div></div>
+        <div class="setting-row"><div class="setting-label"><strong>채팅방 초대</strong></div><div class="custom-select" style="width:190px"><button type="button" class="select-button" data-select-open="invitePolicy"><span data-selected="invitePolicy" data-value="${state.settings.invitePolicy}">${state.settings.invitePolicy==='auto'?'자동으로 들어가요':state.settings.invitePolicy==='block'?'초대를 받지 않아요':'초대받으면 확인해요'}</span><span>⌄</span></button></div></div>
+        <div class="setting-row"><div class="setting-label"><strong>접속 상태 표시</strong></div><div class="custom-select" style="width:210px"><button type="button" class="select-button" data-select-open="presenceMode"><span data-selected="presenceMode" data-value="${state.settings.presenceMode||'auto'}">${presenceModeLabel(state.settings.presenceMode||'auto')}</span><span>⌄</span></button></div></div>
       </div>
       `;
     } else if(state.settingsTab==='security'){
       html=`
       <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><circle cx="12" cy="15" r="1"/></svg></span> 보안</h3>
-        <div class="setting-row"><div class="setting-label"><strong>앱 잠금</strong><span>앱을 열 때 비밀번호를 물어봐요. 공용 기기에서 메시지를 보호해요.</span></div><label class="choice ${lockOn?'active':''}"><input type="checkbox" id="lockEnableToggle" ${lockOn?'checked':''}> ${lockOn?'켜짐':'꺼짐'}</label></div>
+        ${isNativeApp() ? `<div class="setting-row"><div class="setting-label"><strong>앱 잠금</strong></div><label class="choice ${lockOn?'active':''}"><input type="checkbox" id="lockEnableToggle" ${lockOn?'checked':''}> ${lockOn?'켜짐':'꺼짐'}</label></div>` : `<div class="setting-row" style="opacity:.6"><div class="setting-label"><strong>앱 잠금</strong></div><span class="perm-badge">앱 전용</span></div>`}
         <div class="field" id="lockPwField" style="${lockOn?'':'display:none'}"><label>새 비밀번호 (4자리)</label><input id="lockPwInput" class="input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="4자리 숫자" style="letter-spacing:8px;text-align:center;font-size:16px"><input id="lockPwConfirm" class="input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="한 번 더 입력" style="margin-top:8px;letter-spacing:8px;text-align:center;font-size:16px"><label class="consent" style="margin-top:8px"><input type="checkbox" id="lockSyncToggle" ${isLockSyncEnabled()?'checked':''}><span><b>다른 기기에서도 잠그기</b> — 켜면 계정에 저장되어 모든 기기에서 잠금이 필요해요. 끄면 이 기기에서만 잠겨요.</span></label><div class="row" style="margin-top:8px"><button type="button" class="soft-btn" data-action="save-lock" style="flex:1">저장</button><button type="button" class="soft-btn" data-action="disable-lock" style="flex:1">잠금 해제</button></div><p id="lockMsg" class="reset-msg"></p></div>
-        <div class="setting-row"><div class="setting-label"><strong>차단한 사용자</strong><span>차단했던 사람을 다시 확인할 수 있어요.</span></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="blocked-users">보기</button></div>
-        <div class="setting-row"><div class="setting-label"><strong>약관 및 정책</strong><span>이용약관과 개인정보 처리방침을 확인해요.</span></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="open-policies">보기</button></div>
-        <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px"><div class="setting-label"><strong>키워드 알림</strong><span>이 말이 오면 음소거한 방에서도 알려줘요. 한 줄에 하나씩 최대 10개예요.</span></div><textarea name="keywords" class="input word-box" maxlength="200" rows="3" placeholder="예: 시험&#10;급식" style="width:100%;font-size:16px">${esc((state.settings.keywords||[]).join('\n'))}</textarea></div>
-        <div class="setting-row"><div class="setting-label"><strong>학교 변경 (전학·이직)</strong><span>현재 ${esc(state.profile?.schoolName||'학교 미지정')} · 7일에 1회만 가능해요.</span></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="self-school-change">변경하기</button></div>
-        ${state.profile?.role==='student'?'<div class="setting-row"><div class="setting-label"><strong>교사 인증 신청</strong><span>선생님이면 재직증명서나 교육청 이메일로 인증받고 교사 계정으로 바꿔요.</span></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="teacher-request">신청하기</button></div>':''}
+        <div class="setting-row"><div class="setting-label"><strong>차단한 사용자</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="blocked-users">보기</button></div>
+        <div class="setting-row"><div class="setting-label"><strong>약관 및 정책</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="open-policies">보기</button></div>
+        <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px"><div class="setting-label"><strong>키워드 알림</strong></div><textarea name="keywords" class="input word-box" maxlength="200" rows="3" placeholder="예: 시험&#10;급식" style="width:100%;font-size:16px">${esc((state.settings.keywords||[]).join('\n'))}</textarea></div>
+        <div class="setting-row"><div class="setting-label"><strong>학교 변경 (전학·이직)</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="self-school-change">변경하기</button></div>
+        ${state.profile?.role==='student'?'<div class="setting-row"><div class="setting-label"><strong>교사 인증 신청</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="teacher-request">신청하기</button></div>':''}
       </div>
       `;
     }
@@ -8433,7 +8609,7 @@
 
   function closeSettings(){
     state.view='chat';
-    try{ if(history.state && history.state.settings) history.back(); else history.replaceState({}, '', location.pathname); }catch(e){ history.replaceState({}, '', location.pathname); }
+    try{ history.replaceState({}, '', location.pathname); }catch(e){}
     renderShell();
   }
 
@@ -8883,23 +9059,23 @@
     state.cmSel=new Set();
     if(!state.cmTab) state.cmTab='rooms';
     const tabActive=(k)=> state.cmTab===k?'active':'';
-    openModal(`<h2>채팅 관리</h2><p class="desc">채팅방·목록·초대를 한 곳에서 관리해요. 할 일은 일정 탭에서도 볼 수 있어요.</p>
+    openModal(`<h2>채팅 관리</h2>
       <div class="tabs" style="margin-bottom:14px">
         <button type="button" class="tab ${tabActive('rooms')}" data-cm-tab="rooms"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 3V6Z"/></svg></span> 내 채팅방</button>
         <button type="button" class="tab ${tabActive('lists')}" data-cm-tab="lists"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></span> 목록 탭</button>
         <button type="button" class="tab ${tabActive('invites')}" data-cm-tab="invites"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l1-1a5 5 0 0 0-7-7L9 5"/><path d="M14 11a5 5 0 0 0-7 0l-1 1a5 5 0 0 0 7 7l1-1"/></svg></span> 초대/공유</button>
       </div>
       <div class="cm-pane ${state.cmTab==='rooms'?'':'hidden'}" data-cm-pane="rooms">
-        <div class="field"><label>내 채팅방 — 골라서 한 번에 관리</label>
+        <div class="field"><label>내 채팅방</label>
           <div class="row" style="margin-bottom:8px"><button type="button" class="soft-btn" data-action="cm-select-all">전체 선택</button><button type="button" class="soft-btn" data-action="cm-select-none">선택 해제</button><button type="button" class="danger-btn" style="flex:1;height:42px;border-radius:13px;font-size:14px;font-weight:650" data-action="leave-selected">선택한 채팅방 나가기</button></div>
           <div id="chatManagerRooms" class="list"></div>
         </div>
-        <div class="setting-row"><div class="setting-label"><strong>✅ 할 일 바로가기</strong><span>할 일은 일정 탭에서도 확인할 수 있어요.</span></div><button type="button" class="soft-btn" style="flex:0 0 100px" data-action="todos-go">할 일 보기</button></div>
+        <div class="setting-row"><div class="setting-label"><strong>✅ 할 일 바로가기</strong></div><button type="button" class="soft-btn" style="flex:0 0 100px" data-action="todos-go">할 일 보기</button></div>
       </div>
       <div class="cm-pane ${state.cmTab==='lists'?'':'hidden'}" data-cm-pane="lists">
         <div class="settings-list">
           <button class="list-item" data-action="chat-groups"><div class="grow"><div class="title"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></span> 목록 탭 관리</div><div class="meta">탭을 만들고 이름을 바꿔요. 탭은 꾹 눌러 순서를 바꿀 수 있어요.</div></div><span>›</span></button>
-          <div class="setting-row"><div class="setting-label"><strong>📅 일정</strong><span>학교 일정과 할 일을 함께 확인해요.</span></div><button type="button" class="soft-btn" style="flex:0 0 100px" data-action="calendar">일정 열기</button></div>
+          <div class="setting-row"><div class="setting-label"><strong>📅 일정</strong></div><button type="button" class="soft-btn" style="flex:0 0 100px" data-action="calendar">일정 열기</button></div>
         </div>
       </div>
       <div class="cm-pane ${state.cmTab==='invites'?'':'hidden'}" data-cm-pane="invites">
@@ -8934,7 +9110,7 @@
   }
   function openGroupManager(){
     state.groupDraft=groupOrderList().map(n=>({orig:n,name:n}));
-    openModal(`<h2>목록 탭 관리</h2><p class="desc">탭 이름을 바꾸거나 새 탭을 만들 수 있어요. 채팅방은 목록에서 <b>꾹 눌러 끌어서</b> 옮겨요.</p>
+    openModal(`<h2>목록 탭 관리</h2>
       <div class="field"><label>새 탭 만들기</label><div class="row"><input id="newGroupName" class="input" maxlength="12" placeholder="예: 컴퓨터"><button type="button" class="soft-btn" style="flex:0 0 78px" data-action="group-add">추가</button></div></div>
       <div id="groupDraftList" class="settings-list"></div>
       <div class="modal-actions"><button class="cancel" data-close-modal>취소</button><button class="confirm" data-action="save-group-map">저장하기</button></div>`);
@@ -9466,7 +9642,28 @@
     }catch(e){ console.error(e); toast(errText(e)); }
   }
   function richToolbarHtml(id){
-    return `<div class="rich-toolbar" data-rich-toolbar="${id}"><button type="button" class="re-btn" data-cmd="bold" title="굵게"><b>B</b></button><button type="button" class="re-btn" data-cmd="italic" title="기울임"><i>I</i></button><button type="button" class="re-btn" data-cmd="underline" title="밑줄"><u>U</u></button><button type="button" class="re-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button><label class="re-color" title="글자색"><input type="color" value="#3F9BFF" data-cmd-color="1"></label><button type="button" class="re-btn" data-cmd="createLink" title="링크">🔗</button><button type="button" class="re-btn" data-cmd="removeFormat" title="서식 지우기">⌫</button></div>`;
+    return `<div class="rich-toolbar" data-rich-toolbar="${id}"><button type="button" class="re-btn" data-cmd="bold" title="굵게"><b>B</b></button><button type="button" class="re-btn" data-cmd="italic" title="기울임"><i>I</i></button><button type="button" class="re-btn" data-cmd="underline" title="밑줄"><u>U</u></button><button type="button" class="re-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button><button type="button" class="re-btn" data-cmd="h2" title="제목">H</button><button type="button" class="re-btn" data-cmd="ul" title="목록">☰</button><button type="button" class="re-btn" data-cmd="hr" title="구분선">―</button><button type="button" class="re-btn" data-cmd="image" title="사진 넣기">🖼</button><label class="re-color" title="글자색"><input type="color" value="#3F9BFF" data-cmd-color="1"></label><button type="button" class="re-btn" data-cmd="createLink" title="링크">🔗</button><button type="button" class="re-btn" data-cmd="removeFormat" title="서식 지우기">⌫</button></div>`;
+  }
+  // 에디터 사진을 가볍게 줄여 data URL로 넣는다 (별도 서버 없이 페이지에 바로 저장)
+  function compressImageToDataUrl(file, maxW=960, quality=0.72){
+    return new Promise((res, rej)=>{
+      try{
+        const img=new Image();
+        const url=URL.createObjectURL(file);
+        img.onload=()=>{
+          try{
+            const ratio=Math.min(1, maxW/Math.max(1, img.width||maxW));
+            const w=Math.round((img.width||maxW)*ratio), h=Math.round((img.height||maxW)*ratio);
+            const cv=document.createElement('canvas'); cv.width=Math.max(1,w); cv.height=Math.max(1,h);
+            cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+            URL.revokeObjectURL(url);
+            res(cv.toDataURL('image/jpeg', quality));
+          }catch(e){ try{URL.revokeObjectURL(url);}catch(_){} rej(e); }
+        };
+        img.onerror=(e)=>{ try{URL.revokeObjectURL(url);}catch(_){} rej(e||new Error('img')); };
+        img.src=url;
+      }catch(e){ rej(e); }
+    });
   }
   function alignSegHtml(id,current){
     return `<div class="seg" id="${id}">${[['left','왼쪽'],['center','가운데'],['right','오른쪽']].map(([v,l])=>`<button type="button" class="seg-btn ${safeAlign(current)===v?'active':''}" data-action="notice-align" data-align="${v}">${l}</button>`).join('')}</div>`;
@@ -9490,6 +9687,33 @@
             if(!url||url==='https://') return;
             if(!/^https?:\/\//i.test(url)) return toast('http:// 또는 https:// 로 시작하는 주소만 넣을 수 있어요.');
             document.execCommand('createLink',false,url);
+          } else if(cmd==='h2'){
+            document.execCommand('formatBlock',false,'h2');
+          } else if(cmd==='ul'){
+            document.execCommand('insertUnorderedList',false,null);
+          } else if(cmd==='hr'){
+            document.execCommand('insertHorizontalRule',false,null);
+          } else if(cmd==='image'){
+            const pick=(prompt('사진 주소(https://…)를 붙여넣거나, 파일로 넣으려면 비워 두고 확인을 눌러 주세요.','https://')||'').trim();
+            if(pick && pick!=='https://'){
+              if(!/^https:\/\//i.test(pick)) return toast('https:// 로 시작하는 사진 주소만 넣을 수 있어요.');
+              document.execCommand('insertImage',false,pick);
+              return;
+            }
+            const fi=document.createElement('input');
+            fi.type='file'; fi.accept='image/*';
+            fi.onchange=async()=>{
+              const f=fi.files&&fi.files[0]; if(!f) return;
+              if(f.size>8*1024*1024) return toast('8MB 이하 사진만 넣을 수 있어요.');
+              try{
+                toast('사진을 넣는 중이에요.');
+                const dataUrl=await compressImageToDataUrl(f, 960, 0.72);
+                if(dataUrl && dataUrl.length>700*1024) toast('사진이 커서 페이지 저장이 무거울 수 있어요. 작은 사진이 좋아요.');
+                editor.focus();
+                document.execCommand('insertImage',false,dataUrl);
+              }catch(e){ console.error(e); toast('사진을 넣지 못했어요.'); }
+            };
+            fi.click();
           } else document.execCommand(cmd,false,null);
         });
       });
@@ -9516,7 +9740,7 @@
     const m={...DEFAULT_SITE_NOTICE.bottom,...(s.bottom||{})};
     p.innerHTML=`<form id="siteNoticeForm">
       <div class="admin-card"><h3>상단 배너</h3><p class="desc">앱 화면 맨 위에 항상 보이는 공지예요. 로그인한 모든 사용자에게 보여요.</p>
-        <div class="setting-row"><div class="setting-label"><strong>표시</strong><span>끄면 즉시 사라져요.</span></div><label class="choice ${b.enabled?'active':''}"><input type="checkbox" name="bannerEnabled" ${b.enabled?'checked':''}> 사용</label></div>
+        <div class="setting-row"><div class="setting-label"><strong>표시</strong></div><label class="choice ${b.enabled?'active':''}"><input type="checkbox" name="bannerEnabled" ${b.enabled?'checked':''}> 사용</label></div>
         <div class="field"><label>배너 내용</label>${richToolbarHtml('bannerEditor')}<div class="rich-editor" id="bannerEditor" contenteditable="true" data-placeholder="예: 9월 20일은 재량휴업일이에요.">${sanitizeRichHtml(b.html)}</div></div>
         <div class="admin-grid">
           <div class="field"><label>정렬</label>${alignSegHtml('bannerAlign',b.align)}</div>
@@ -9530,7 +9754,7 @@
         <div class="preview-banner" id="bannerPreview"></div>
       </div>
       <div class="admin-card"><h3>안내 팝업</h3><p class="desc">사용자가 로그인한 뒤 한 번만 뜨는 팝업이에요.</p>
-        <div class="setting-row"><div class="setting-label"><strong>표시</strong><span>켜면 다음 로그인부터 보여요.</span></div><label class="choice ${n.enabled?'active':''}"><input type="checkbox" name="popupEnabled" ${n.enabled?'checked':''}> 사용</label></div>
+        <div class="setting-row"><div class="setting-label"><strong>표시</strong></div><label class="choice ${n.enabled?'active':''}"><input type="checkbox" name="popupEnabled" ${n.enabled?'checked':''}> 사용</label></div>
         <div class="field"><label>팝업 제목</label><input class="input" name="popupTitle" maxlength="60" value="${esc(n.title||'')}" placeholder="안내"></div>
         <div class="field"><label>팝업 내용</label>${richToolbarHtml('popupEditor')}<div class="rich-editor" id="popupEditor" contenteditable="true" data-placeholder="팝업에 보여줄 내용을 적어 주세요.">${sanitizeRichHtml(n.html)}</div></div>
         <div class="admin-grid">
@@ -9543,7 +9767,7 @@
         </div>
       </div>
       <div class="admin-card"><h3>메인 하단 한마디</h3><p class="desc">채팅 입력창 바로 위에 보이는 관리자 글이에요. 글자 크기를 조절할 수 있어요.</p>
-        <div class="setting-row"><div class="setting-label"><strong>표시</strong><span>끄면 즉시 사라져요.</span></div><label class="choice ${m.enabled?'active':''}"><input type="checkbox" name="bottomEnabled" ${m.enabled?'checked':''}> 사용</label></div>
+        <div class="setting-row"><div class="setting-label"><strong>표시</strong></div><label class="choice ${m.enabled?'active':''}"><input type="checkbox" name="bottomEnabled" ${m.enabled?'checked':''}> 사용</label></div>
         <div class="field"><label>하단 내용</label>${richToolbarHtml('bottomEditor')}<div class="rich-editor" id="bottomEditor" contenteditable="true" data-placeholder="예: 오늘 급식은 카레라이스예요." style="min-height:70px;resize:vertical">${sanitizeRichHtml(m.html)}</div></div>
         <div class="admin-grid">
           <div class="field"><label>정렬</label>${alignSegHtml('bottomAlign',m.align)}</div>
@@ -9559,9 +9783,17 @@
     form?.addEventListener('input',()=>updateNoticePreview());
     updateNoticePreview();
   }
-  // ---- 안내 페이지 (로그인 화면의 개인정보 처리방침 · 문의하기 · 학교 등록) ----
+  // ---- 안내 페이지 (로그인 화면의 개인정보 처리방침 · 문의하기 · 학교 등록 + 자유 페이지) ----
   function rawAuthPages(){
-    return (Array.isArray(state.sitePages)&&state.sitePages.length) ? state.sitePages : DEFAULT_AUTH_PAGES;
+    const stored=(Array.isArray(state.sitePages)&&state.sitePages.length) ? state.sitePages : null;
+    if(!stored) return DEFAULT_AUTH_PAGES;
+    // 기본 새 페이지(윈도우·교사 안내)가 아직 저장본에 없으면 자동으로 덧붙인다 (관리자 손댈 필요 없음)
+    try{
+      const ids=new Set(stored.map(p=>p&&p.id));
+      const missing=DEFAULT_AUTH_PAGES.filter(p=>p&&p.id&&!ids.has(p.id));
+      if(missing.length) return [...stored, ...missing];
+    }catch(e){}
+    return stored;
   }
   function pagesDraft(){
     if(!state.pageDraft) state.pageDraft=rawAuthPages().map(p=>({
@@ -9591,8 +9823,8 @@
   function renderPagesAdmin(p){
     const list=pagesDraft();
     p.innerHTML=`<form id="pagesForm">
-      <div class="admin-card"><h3>로그인 화면 안내 페이지</h3>
-        <p class="desc">로그인 화면 아래 링크를 누르면 열리는 페이지예요. 표시를 끄면 링크도 사라져요.</p>
+      <div class="admin-card"><h3>자유 페이지 만들기</h3>
+        <p class="desc">로그인 화면 아래 링크·소개 메뉴에서 열리는 페이지예요. <b>+ 새 페이지 추가</b>로 직접 만들 수 있어요. 제목(H)·목록·구분선·<b>사진(🖼)</b>·링크를 자유롭게 넣을 수 있고, 사진은 파일로 올리면 자동 축소돼요. 표시를 끄면 링크도 사라져요.<br>윈도우 다운로드는 <b>윈도우 앱 다운로드</b> 페이지를 열고 장점을 쭉 설명한 뒤 맨 아래 <b>다운로드 버튼</b>에 설치 파일 주소(https://… 또는 /downloads/…)를 넣으면 돼요. 바로 파일로 가지 않고 소개를 먼저 보여주는 방식이에요.</p>
         ${list.map((pg,i)=>`<div class="page-edit">
           <div class="page-edit-head"><strong>${esc(pg.label||pg.title||pg.id)}</strong>
             <label class="choice ${pg.enabled?'active':''}"><input type="checkbox" data-page-enabled="${i}" ${pg.enabled?'checked':''}> 표시</label>
@@ -9604,8 +9836,8 @@
           <div class="field"><label>내용</label>${richToolbarHtml('pageEditor'+i)}<div class="rich-editor" id="pageEditor${i}" contenteditable="true" data-placeholder="내용을 적어 주세요.">${sanitizeRichHtml(pg.html)}</div></div>
           <div class="page-btn-list">
             ${pg.buttons.map((b,bi)=>`<div class="page-btn-row">
-              <input class="input" data-page-btn-label="${i}:${bi}" maxlength="24" placeholder="버튼 글자" value="${esc(b.label||'')}">
-              <input class="input" data-page-btn-url="${i}:${bi}" placeholder="https://... 또는 mailto:... (비우면 안내만)" value="${esc(b.url||'')}">
+              <input class="input" data-page-btn-label="${i}:${bi}" maxlength="24" placeholder="버튼 글자 (예: 윈도우 앱 다운로드)" value="${esc(b.label||'')}">
+              <input class="input" data-page-btn-url="${i}:${bi}" placeholder="https://... 또는 /downloads/... (비우면 안내만)" value="${esc(b.url||'')}">
               <button type="button" class="soft-btn" style="flex:0 0 66px" data-action="pages-btn-remove" data-idx="${i}" data-bi="${bi}">삭제</button>
             </div>`).join('')}
             ${pg.buttons.length<6?`<button type="button" class="soft-btn" data-action="pages-btn-add" data-idx="${i}">+ 버튼 추가</button>`:''}
@@ -9766,7 +9998,7 @@
     p.innerHTML=`<div id="landingForm">
       <div class="admin-card"><h3>기본 설정</h3>
         <p class="desc">로그인하기 전에 처음 보이는 소개 페이지예요. 끄면 지금처럼 로그인 화면이 바로 나와요.</p>
-        <div class="setting-row"><div class="setting-label"><strong>소개 페이지 사용</strong><span>위쪽 메뉴와 오른쪽 위 로그인 버튼이 스크롤해도 계속 보여요.</span></div><label class="choice ${L.enabled?'active':''}"><input type="checkbox" data-landing="enabled" ${L.enabled?'checked':''}> 사용</label></div>
+        <div class="setting-row"><div class="setting-label"><strong>소개 페이지 사용</strong></div><label class="choice ${L.enabled?'active':''}"><input type="checkbox" data-landing="enabled" ${L.enabled?'checked':''}> 사용</label></div>
         <div class="admin-grid">
           <div class="field"><label>로고 글자 (1~2자 · E면 말풍선 로고)</label><input class="input" data-landing="brandMark" maxlength="2" value="${esc(L.brandMark||'E')}" placeholder="E"></div>
           <div class="field"><label>로그인 버튼 글자</label><input class="input" data-landing="login" maxlength="16" value="${esc(L.loginLabel)}"></div>
@@ -9814,7 +10046,7 @@
       </div>
       <div class="admin-card"><h3>채팅 미리보기</h3>
         <p class="desc">첫 화면 오른쪽의 채팅창이에요. 프리셋을 2개 이상 두면 지정한 간격마다 스르륵 바뀌어요.</p>
-        <div class="setting-row"><div class="setting-label"><strong>채팅창 표시</strong><span>끄면 채팅창 없이 소개 문구만 보여요.</span></div><label class="choice ${L.mock.enabled?'active':''}"><input type="checkbox" data-landing="mockEnabled" ${L.mock.enabled?'checked':''}> 사용</label></div>
+        <div class="setting-row"><div class="setting-label"><strong>채팅창 표시</strong></div><label class="choice ${L.mock.enabled?'active':''}"><input type="checkbox" data-landing="mockEnabled" ${L.mock.enabled?'checked':''}> 사용</label></div>
         <div class="admin-grid">
           <div class="field"><label>방 이름</label><input class="input" data-landing="mockTitle" maxlength="24" value="${esc(L.mock.title)}"></div>
           <div class="field"><label>채팅창 밑 글자</label><input class="input" data-landing="mockCaption" maxlength="120" value="${esc(L.mock.caption||'')}" placeholder="예: 실제 화면과 똑같이 써 보세요"></div>
@@ -10002,11 +10234,11 @@
     const s=ed.data||{}; const grades=Array.isArray(s.grades)?s.grades.map(Number).sort((a,b)=>a-b):[];
     const panel=openModal(`<h2>${esc(s.name||'학교 설정')}</h2><p class="desc">${esc(s.atpt||'')}${s.kind?` · ${esc(s.kind)}`:''}</p>
       <form id="schoolForm" data-sid="${esc(ed.id)}">
-        <div class="setting-row"><div class="setting-label"><strong>가입 코드</strong><span>학생에게 이 코드를 알려 주세요. 코드가 있어야 가입할 수 있어요.</span></div><div style="display:flex;gap:8px;align-items:center"><b id="schoolCodeValue" style="font-size:18px;letter-spacing:2px">${esc(ed.code||'없음')}</b><button type="button" class="soft-btn" style="flex:0 0 72px" data-action="regen-school-code" data-sid="${esc(ed.id)}">재발급</button></div></div>
+        <div class="setting-row"><div class="setting-label"><strong>가입 코드</strong></div><div style="display:flex;gap:8px;align-items:center"><b id="schoolCodeValue" style="font-size:18px;letter-spacing:2px">${esc(ed.code||'없음')}</b><button type="button" class="soft-btn" style="flex:0 0 72px" data-action="regen-school-code" data-sid="${esc(ed.id)}">재발급</button></div></div>
         <div class="field" style="margin-top:14px"><label>학년</label><div class="check-grid" id="schoolGradeChips">${Array.from({length:6},(_,i)=>i+1).map(g=>`<button type="button" class="check-chip ${grades.includes(g)?'on':''}" data-school-grade="${g}">${g}학년</button>`).join('')}</div></div>
         <div class="admin-grid" id="schoolCounts"></div>
         ${isAdmin()?`<div class="field"><label>교육청 이메일 도메인 (교사 인증용 · 한 줄에 하나)</label><textarea class="input" name="eduDomains" rows="3" style="min-height:70px;resize:vertical" placeholder="예: sen.go.kr">${esc(Array.isArray(s.eduDomains)?s.eduDomains.join('\n'):'')}</textarea></div><div class="field"><label>파일 보관 기한 (일 · 0이면 영구 보관)</label><input class="input" type="number" min="0" max="3650" name="fileRetentionDays" value="${Number(s.fileRetentionDays||0)}"></div>`:''}
-        <div class="setting-row" style="margin-top:8px"><div class="setting-label"><strong>사용</strong><span>끄면 이 학교로 새로 가입할 수 없어요.</span></div><label class="choice ${s.active!==false?'active':''}"><input type="checkbox" name="schoolActive" ${s.active!==false?'checked':''}> 사용</label></div>
+        <div class="setting-row" style="margin-top:8px"><div class="setting-label"><strong>사용</strong></div><label class="choice ${s.active!==false?'active':''}"><input type="checkbox" name="schoolActive" ${s.active!==false?'checked':''}> 사용</label></div>
         <div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button><button class="confirm">저장하기</button></div>
       </form>
       <div class="divider"></div>
@@ -10095,8 +10327,8 @@
     const c=chatCfg();
     const allTo=Number(c.timeoutAllUntil||0)>Date.now();
     p.innerHTML=`<div class="admin-card"><h3>채팅 정지</h3><p class="desc">이용 정지와는 별개로, 메시지 보내기만 잠시 멈출 수 있어요. (선생님·관리자는 영향을 받지 않아요)</p>
-        <div class="setting-row"><div class="setting-label"><strong>전체 채팅 정지</strong><span>${c.chatOffAll?'지금 모든 채팅방에서 학생이 메시지를 보낼 수 없어요.':'학생들이 모든 채팅방에서 자유롭게 대화할 수 있어요.'}</span></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="chat-off-all">${c.chatOffAll?'정지 풀기':'전체 정지'}</button></div>
-        <div class="setting-row"><div class="setting-label"><strong>채팅방 하나만 정지</strong><span>'채팅방' 탭에서 방을 열고 <b>채팅방 설정 → 이 방 채팅 정지</b>를 누르면 돼요.</span></div></div>
+        <div class="setting-row"><div class="setting-label"><strong>전체 채팅 정지</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="chat-off-all">${c.chatOffAll?'정지 풀기':'전체 정지'}</button></div>
+        <div class="setting-row"><div class="setting-label"><strong>채팅방 하나만 정지</strong></div></div>
       </div>
       <div class="admin-card" style="margin-top:14px"><h3>전체 타임아웃</h3><p class="desc">정한 시간 동안 모든 학생이 메시지를 보낼 수 없어요. 채팅창에 남은 시간이 표시돼요.</p>
         ${allTo?`<div class="form-error" style="margin:0 0 10px">지금 전체 타임아웃 중이에요 · 남은 시간 ${esc(fmtDurationLeft(c.timeoutAllUntil))}${c.timeoutAllReason?` · 사유: ${esc(c.timeoutAllReason)}`:''}</div>`:''}
@@ -10220,7 +10452,7 @@
     if(toSelVal==='custom'&&!(toCustomMin>0)) return toast('직접 입력 칸에 분을 적어 주세요.');
     const ms=toSelVal==='custom'
       ? Math.min(10080*60000,Math.max(60000,toCustomMin*60000))
-      : Math.max(60000,Number(toSelVal||1800))*1000;
+      : Math.max(60,Number(toSelVal||1800))*1000;
     const reason=($('#toReason')?.value||'').trim();
     const ok=await countConfirm({title:`${targetName||'사용자'}님에게 타임아웃을 줄까요?`,desc:`${perm?'내가 풀어 줄 때까지 계속돼요.':fmtRemain(ms)+' 동안 메시지를 보낼 수 없어요.'}${reason?` 사유: ${reason}`:''}`,confirmLabel:'주기',seconds:5});
     if(!ok) return;
