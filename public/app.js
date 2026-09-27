@@ -5061,7 +5061,16 @@
       document.addEventListener('touchcancel',()=>{ tracking=false; if(wrap&&btn){ reset(btn); } wrap=null; btn=null; roomSwipe=null; },{passive:true});
     }catch(e){}
   }
-  try{ armRoomSwipe(); }catch(e){}
+  try{
+    armRoomSwipe();
+    // 밀기 기능 안내 (터치 기기에서 최초 1회)
+    try{
+      if(('ontouchstart' in window) && !localStorage.getItem('edutalk_swipe_hint')){
+        localStorage.setItem('edutalk_swipe_hint','1');
+        setTimeout(()=>toast('방을 옆으로 밀면 알림·설정·나가기가 나와요.'), 2500);
+      }
+    }catch(e){}
+  }catch(e){}
   // 방을 집은 채로 목록 위·아래 가장자리에 대면 일정 속도로 자동 스크롤 (100개 목록도 중간으로 옮길 수 있게)
   let edgeScrollTimer=null, edgeScrollDir=0, edgeScrollEl=null;
   function edgeScrollTick(){
