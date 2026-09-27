@@ -310,13 +310,35 @@ service cloud.firestore {
             )
           )
         );
-        // 남의 메시지는 절대 건드릴 수 없다. 공감(reactions)만 자기 몫으로 바꿀 수 있다.
-        // 모두의 화면에서 숨기는 처리는 그 방을 만든 사람(방장)이나 본인 메시지의 작성자만 할 수 있다.
-        // (본문(text) 수정은 허용하지 않아 남의 말을 바꿔치기할 수 없다)
+        // 공감(reactions)은 그 방을 볼 수 있는 사람이 자기 몫으로 바꾼다.
+        // 모두의 화면에서 숨기기(soft delete)는 방장·작성자·스태프(같은 학교 교사/관리자)만, 삭제 패치 키만 허용.
+        // 본문 수정은 작성자 본인만 (삭제된 메시지는 수정 불가 — 남의 말을 바꿔치기할 수 없다).
+        // 신고 블라인드 표시/복구는 선생님·관리자·방장만.
         allow update: if signedIn() && (
           (
-            (room().get('createdBy', '') == request.auth.uid || resource.data.get('senderId', '') == request.auth.uid)
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deleted_at','expire_at','deleted_by'])
+            (
+              room().get('createdBy', '') == request.auth.uid
+              || resource.data.get('senderId', '') == request.auth.uid
+              || isAdmin()
+              || (isTeacher() && schoolOk(room()))
+            )
+            && room().get('deleted', false) == false
+            && room().get('deleted_at', null) == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','deleted_at','expire_at','deleted_by','text','attachment','staffDeleted','deletedBy','deletedByName','deletedByRole'])
+            && request.resource.data.get('deleted', false) == true
+          )
+          || (
+            resource.data.get('senderId', '') == request.auth.uid
+            && resource.data.get('deleted', false) == false
+            && request.resource.data.get('deleted', false) == false
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','edited','editedAt','updatedAt'])
+          )
+          || (
+            (
+              isTeacherOrAdmin()
+              || room().get('createdBy', '') == request.auth.uid
+            )
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['blinded','reportCount','blindUpdatedAt'])
           )
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
@@ -327,6 +349,67 @@ service cloud.firestore {
           )
         );
         // 즉시 삭제하지 않는다 (soft delete → 30일 뒤 TTL 영구 파기)
+        allow delete: if false;
+
+        // 투표: 그 방을 볼 수 있는 멤버가 자기 문서(uid와 같은 번호)에 한 표만 쓰고 바꾼다
+        match /votes/{uid} {
+          allow read: if canReadMessages();
+          allow create, update: if signedIn()
+            && request.auth.uid == uid
+            && (
+              amMember(room()) ||
+              (roomOk() && room().get('visibility', '') == 'all')
+            );
+          allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
+        }
+      }
+
+      // 할 일: 그 방 멤버면 쓰고, 지우기는 만든 사람·방장·관리자만
+      match /todos/{todoId} {
+        function todoRoom() { return get(/databases/$(database)/documents/channels/$(channelId)).data; }
+        function canSeeTodo() {
+          return signedIn()
+            && todoRoom().get('deleted', false) == false
+            && (
+              amMember(todoRoom()) ||
+              (schoolOk(todoRoom()) && todoRoom().get('visibility', '') == 'all')
+            );
+        }
+        allow read: if canSeeTodo();
+        allow create: if canSeeTodo()
+          && request.resource.data.createdBy == request.auth.uid;
+        allow update: if canSeeTodo()
+          && (
+            request.auth.uid in todoRoom().get('memberIds', [])
+            || todoRoom().get('createdBy', '') == request.auth.uid
+            || isTeacherOrAdmin()
+          );
+        allow delete: if canSeeTodo()
+          && (
+            resource.data.get('createdBy', '') == request.auth.uid
+            || todoRoom().get('createdBy', '') == request.auth.uid
+            || isAdmin()
+          );
+      }
+
+      // 출석: 멤버·선생님·관리자가 열고 기록하고 닫는다 (즉시 삭제 없음)
+      match /attendance/{dayId} {
+        function attRoom() { return get(/databases/$(database)/documents/channels/$(channelId)).data; }
+        function canSeeAtt() {
+          return signedIn()
+            && attRoom().get('deleted', false) == false
+            && (
+              amMember(attRoom()) ||
+              (schoolOk(attRoom()) && attRoom().get('visibility', '') == 'all')
+            );
+        }
+        allow read: if canSeeAtt();
+        allow create, update: if canSeeAtt()
+          && (
+            request.auth.uid in attRoom().get('memberIds', [])
+            || attRoom().get('createdBy', '') == request.auth.uid
+            || isTeacherOrAdmin()
+          );
         allow delete: if false;
       }
 
@@ -539,6 +622,26 @@ service cloud.firestore {
           && request.resource.data.status in ['cancelled','pending']
         )
       );
+    }
+
+    // 메시지별 신고 집계 (신고 누적 N회 시 자동 블라인드).
+    // 신고는 그 방 멤버가, 초기화·복구는 선생님·관리자·방장이, 열람은 방 멤버·선생님·관리자가.
+    match /messageFlags/{fid} {
+      function flagRoomById(rid) { return get(/databases/$(database)/documents/channels/$(rid)).data; }
+      function canFlagRoom(rid) {
+        return signedIn() && (
+          isAdmin()
+          || (isTeacher() && schoolOk(flagRoomById(rid)))
+          || (request.auth.uid in flagRoomById(rid).get('memberIds', []))
+          || flagRoomById(rid).get('createdBy', '') == request.auth.uid
+        );
+      }
+      allow read: if canFlagRoom(resource.data.roomId);
+      allow create: if canFlagRoom(request.resource.data.roomId)
+        && request.resource.data.roomId is string
+        && request.resource.data.msgId is string;
+      allow update: if canFlagRoom(resource.data.roomId);
+      allow delete: if isAdmin();
     }
 
     // 신고: 신고 시점의 대화 30개 스냅샷을 함께 보관한다.
