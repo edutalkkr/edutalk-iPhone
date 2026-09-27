@@ -1350,10 +1350,17 @@
     ico.setAttribute('aria-hidden','true');
     ico.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>';
     const tx=document.createElement('span');
+    tx.className='toast-msg';
     tx.textContent=String(text??'');
-    toastEl.append(ico,tx);
+    const x=document.createElement('button');
+    x.type='button'; x.className='toast-x'; x.setAttribute('aria-label','알림 닫기');
+    x.textContent='✕';
+    x.onclick=(e)=>{ try{ e.stopPropagation(); }catch(_){} clearTimeout(toastEl._timer); toastEl.classList.remove('show'); };
+    toastEl.append(ico,tx,x);
+    // 리플로우 뒤에 내려오게 해야 모션이 생긴다 (없으면 그냥 나타남)
+    void toastEl.offsetHeight;
     toastEl.classList.remove('show');
-    requestAnimationFrame(() => toastEl.classList.add('show'));
+    requestAnimationFrame(() => requestAnimationFrame(() => toastEl.classList.add('show')));
     toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), 2600);
   };
   const errText = (e) => {
@@ -1527,12 +1534,7 @@
     try{
       const u=state.unread||{};
       let sum=0;
-      for(const v of Object.values(u)) sum+= Number(v)||0;
-      if(sum===0){
-        // fallback: count rooms with unread flag (some builds store 1 per room)
-        // also consider pendingInvites?
-        sum = Object.keys(u).length;
-      }
+      for(const v of Object.values(u)){ const n=Number(v)||0; if(n>0) sum+=n; }
       return sum;
     }catch(e){ return 0; }
   }
@@ -4007,25 +4009,43 @@
         }
       }catch(err){}
     },true);
-    // 오프라인 감지 (순간 깜빡임에 반응하지 않고 2.5초 지속될 때만 오프라인으로 확정)
+    // 오프라인 감지 (OS 오보 방지: 6초 지속 + 실제 요청 실패 + 2회 연속 확인)
     try{
-      let netTimer=null;
+      let netTimer=null, netProbes=0, netAnnounce=false;
+      const goOffline=()=>{
+        if(state.netOffline) return;
+        state.netOffline=true;
+        document.body.classList.add('offline');
+        if(netAnnounce) toast('인터넷 연결이 끊겼어요. 메시지는 연결된 뒤에 보내 주세요.');
+      };
+      const confirmOffline=async()=>{
+        netTimer=null;
+        if(navigator.onLine!==false){ netProbes=0; return; }
+        // 네이티브가 아니면 실제 요청으로 한 번 더 확인한다 (OS가 끊겼다고 오보해도 요청이 되면 온라인 유지)
+        if(!isNativeApp()){
+          try{
+            const ctl=new AbortController();
+            const t=setTimeout(()=>ctl.abort(),5000);
+            await fetch(location.origin,{method:'HEAD',cache:'no-store',signal:ctl.signal});
+            clearTimeout(t); netProbes=0; return;
+          }catch(e){}
+        }
+        netProbes++;
+        if(netProbes<2){ netTimer=setTimeout(confirmOffline,4000); return; }
+        netProbes=0;
+        if(navigator.onLine===false) goOffline();
+      };
       const updateOnlineUI=(announce)=>{
+        netAnnounce=!!announce;
         const online=navigator.onLine!==false;
         if(!online){
           if(state.netOffline) return;
           if(netTimer) return;
-          netTimer=setTimeout(()=>{
-            netTimer=null;
-            if(navigator.onLine===false){
-              state.netOffline=true;
-              document.body.classList.add('offline');
-              if(announce) toast('인터넷 연결이 끊겼어요. 메시지는 연결된 뒤에 보내 주세요.');
-            }
-          },2500);
+          netTimer=setTimeout(confirmOffline,6000);
           return;
         }
         if(netTimer){ clearTimeout(netTimer); netTimer=null; }
+        netProbes=0;
         const wasOff=!!state.netOffline;
         state.netOffline=false;
         document.body.classList.remove('offline');
@@ -5258,9 +5278,10 @@
         const keepUnread={...(state.unread||{})};
         const candidates=state.rooms.filter(r=>r.id!==state.room?.id && docTs(r.lastCreatedAt)>docTs(reads[r.id]) && docTs(r.lastCreatedAt)>(prevUnreadCut.get(r.id)||0) && r.lastSenderId!==uid() && !summaryBlocked(r));
         const counts=await Promise.all(candidates.slice(0,30).map(async r=>{try{const s=await db.collection('channels').doc(r.id).collection('messages').orderBy('createdAt','desc').limit(80).get();const cut=docTs(reads[r.id])||0;return [r.id,s.docs.filter(d=>{const m=d.data();return !m.deleted&&m.senderId!==uid()&&docTs(m.createdAt)>cut&&!isBlockedMessage(m)}).length];}catch{return [r.id,1];}}));
-        state.unread={};counts.forEach(([id,c])=>{state.unread[id]=c; const rr=state.rooms.find(x=>x.id===id); prevUnreadCut.set(id,docTs(rr?.lastCreatedAt)||0);});
+        state.unread={};counts.forEach(([id,c])=>{ if(Number(c)>0) state.unread[id]=c; const rr=state.rooms.find(x=>x.id===id); prevUnreadCut.set(id,docTs(rr?.lastCreatedAt)||0); });
         for(const [id,c] of Object.entries(keepUnread)){
           if(id in state.unread) continue;
+          if(!(Number(c)>0)) continue;
           const r=state.rooms.find(x=>x.id===id);
           if(r&&r.id!==state.room?.id&&docTs(r.lastCreatedAt)>docTs(reads[r.id])&&r.lastSenderId!==uid()&&!summaryBlocked(r)) state.unread[id]=c;
         }
@@ -5827,7 +5848,7 @@
     }
     if(token!==roomOpenToken) return;   // 그 사이 다른 방을 열었으면 이 호출은 버린다
     try{ const prevTa=document.getElementById('composerText'); if(prevTa && state.room?.id) saveDraft(state.room.id, prevTa.value); }catch(e){}
-    state.room=room; state.unread[id]=0; try{ renderUnreadSummary(); }catch(e){} state.replyText=null; state.selectMode=false; state.selected=new Set(); state.revealedAttach=new Set(); closeDrawer(); closeFloatMenu();
+    state.room=room; try{ if(state.unread) delete state.unread[id]; }catch(e){} try{ renderUnreadSummary(); }catch(e){} state.replyText=null; state.selectMode=false; state.selected=new Set(); state.revealedAttach=new Set(); closeDrawer(); closeFloatMenu();
     state.editingId=null; state.sending=false;
     if(window.innerWidth<=820) document.body.classList.add('m-chat-open');
     stopTyping(); state.typingCooldownUntil=0; state.mentionTriedKey='';

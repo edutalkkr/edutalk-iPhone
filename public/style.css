@@ -49,7 +49,8 @@ body.font-sm{font-size:14px}body.font-lg{font-size:17px}body.font-xl{font-size:1
 .room-swipe .room.active{background:var(--brand-soft)}
 html.dark .room-swipe .room.active{background:var(--blue-soft)}
 .room-swipe.swiping .room{transition:none}
-.room-swipe-bg{position:absolute;top:2px;bottom:2px;display:flex;align-items:stretch;z-index:0}
+.room-swipe-bg{position:absolute;top:2px;bottom:2px;display:flex;align-items:stretch;z-index:0;opacity:0;transition:opacity .15s ease}
+.room-swipe.open .room-swipe-bg,.room-swipe.swiping .room-swipe-bg{opacity:1}
 .room-swipe-bg.left{left:2px}
 .room-swipe-bg.right{right:2px}
 .room-swipe-bg.left button:first-child{border-radius:10px 0 0 10px}
@@ -228,10 +229,14 @@ body.offline .composer-inner{border-style:dashed}
 }
 
 /* ?�스??*/
-.toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translate(-50%,-26px);z-index:900;max-width:min(560px,calc(100vw - 32px));padding:12px 18px 12px 13px;border-radius:14px;background:#101828;color:#fff;font-size:14px;line-height:1.5;text-align:left;box-shadow:0 14px 36px rgba(25,31,40,.45),0 0 0 1.5px rgba(52,211,153,.85);opacity:0;pointer-events:none;display:flex;align-items:center;gap:10px;transition:opacity .22s ease,transform .28s cubic-bezier(.2,.8,.2,1),top .2s ease}
-.toast.show{opacity:1;transform:translate(-50%,0)}
-.toast-ico{flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:#34D399;color:#06281C;display:grid;place-items:center}
-.toast-ico svg{width:13px;height:13px;display:block}
+.toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translate(-50%,-140%);z-index:900;width:min(560px,calc(100vw - 24px));padding:13px 14px 13px 16px;border-radius:14px;background:#101828;color:#fff;font-size:14px;font-weight:600;line-height:1.5;box-shadow:0 14px 36px rgba(25,31,40,.45),0 0 0 1.5px rgba(52,211,153,.85);opacity:1;pointer-events:none;display:flex;align-items:center;gap:10px;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.toast.show{transform:translate(-50%,0);pointer-events:auto}
+.toast-ico{flex:0 0 auto;width:22px;height:22px;display:grid;place-items:center;color:#fff}
+.toast-ico svg{width:15px;height:15px;display:block}
+.toast-msg{flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast-x{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:transparent;color:rgba(255,255,255,.75);font-size:12px;display:grid;place-items:center}
+.toast-x:hover{background:rgba(255,255,255,.14);color:#fff}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
 
 /* ?�원가??로그???�면 반응??*/
 @media(max-width:880px){
