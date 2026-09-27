@@ -142,6 +142,13 @@ service cloud.firestore {
       allow delete: if self(uid) || isAdmin();
     }
 
+    // 개인 보관 문서 (키워드 알림·앱 잠금 동기화 — 본인만 쓰고 읽는다, 관리자는 열람만)
+    match /userPrivate/{uid} {
+      allow read: if self(uid) || isAdmin();
+      allow create, update: if self(uid);
+      allow delete: if self(uid) || isAdmin();
+    }
+
     match /publicProfiles/{uid} {
       allow read: if signedIn() && (isAdmin() || self(uid) || schoolOk(resource.data));
       // 자기 프로필은 만들거나 고칠 수 있다. 단, 역할(role)은 실제 내 역할과 같아야 한다

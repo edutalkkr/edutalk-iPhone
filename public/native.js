@@ -151,9 +151,31 @@
     try {
       const H = getPlugin('Haptics');
       if (H && H.notification) { await H.notification({ type: 'ERROR' }); return; }
-      if (H && H.vibrate) { await H.vibrate({ duration: 80 }); return; }
+      if (H && H.impact) { await H.impact({ style: 'MEDIUM' }); return; }
     } catch (e) {}
     try { if (navigator.vibrate) navigator.vibrate([60, 30, 60]); } catch (e) {}
+  }
+
+  // 가벼운 틱(드래그 중 반복용) + 툭툭 두 번(성공 확정용)
+  async function hapticTick() {
+    if (!isNative()) return;
+    try {
+      const H = getPlugin('Haptics');
+      if (H && H.impact) { await H.impact({ style: 'LIGHT' }); return; }
+    } catch (e) {}
+  }
+
+  async function hapticDouble() {
+    if (!isNative()) return;
+    try {
+      const H = getPlugin('Haptics');
+      if (H && H.impact) {
+        await H.impact({ style: 'MEDIUM' });
+        await new Promise(r => setTimeout(r, 95));
+        await H.impact({ style: 'HEAVY' });
+        return;
+      }
+    } catch (e) {}
   }
 
   // ---------- Push Notifications (FCM) ----------
@@ -250,11 +272,15 @@
     hapticImpactMedium,
     hapticSuccess,
     hapticError,
+    hapticTick,
+    hapticDouble,
     // alias for spec mapping
     haptic: {
       medium: hapticImpactMedium,
       success: hapticSuccess,
-      error: hapticError
+      error: hapticError,
+      tick: hapticTick,
+      double: hapticDouble
     },
     // push
     registerPush,

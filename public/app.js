@@ -128,6 +128,9 @@
     }catch(e){ return btoa(String(pw||'')); }
   }
   function isLockEnabled(){ try{ return localStorage.getItem('edutalk_lock_enabled')==='1' && !!localStorage.getItem('edutalk_lock_hash'); }catch(e){ return false; } }
+  // 생체 인증 자동 시도 (잠금 화면에서 버튼 안 눌러도 Face ID가 바로 뜬다)
+  function isBioAuto(){ try{ return localStorage.getItem('edutalk_bio_auto')!=='0'; }catch(e){ return true; } }
+  function setBioAuto(on){ try{ localStorage.setItem('edutalk_bio_auto', on?'1':'0'); }catch(e){} }
   function isLockSyncEnabled(){ try{ return localStorage.getItem('edutalk_lock_sync')==='1'; }catch(e){ return false; } }
   function getLockHash(){ try{ return localStorage.getItem('edutalk_lock_hash')||''; }catch(e){ return ''; } }
   async function setAppLock(pw, sync){
@@ -223,7 +226,7 @@
                 try{
                   const ok = await window.EdutalkNative.verifyBiometric('앱 잠금을 해제합니다');
                   if(ok){
-                    try{ if(window.EdutalkNative?.hapticSuccess) await window.EdutalkNative.hapticSuccess(); }catch(e){}
+                    try{ await hapticDouble(); }catch(e){}
                     clearLockFail();
                     wrap.classList.remove('show'); setTimeout(()=>{ wrap.remove(); if(onSuccess) onSuccess(); },260);
                   } else {
@@ -231,18 +234,22 @@
                   }
                 }catch(e){}
               };
-              // 앱 진입 시 자동 생체 인증 시도 (1회)
-              setTimeout(async()=>{
-                try{
-                  if(document.hasFocus && !document.hasFocus()) return; // 포커스 없을 때만 자동
-                  const ok = await window.EdutalkNative.verifyBiometric();
-                  if(ok){
-                    try{ if(window.EdutalkNative?.hapticSuccess) await window.EdutalkNative.hapticSuccess(); }catch(e){}
-                    clearLockFail();
-                    wrap.classList.remove('show'); setTimeout(()=>{ wrap.remove(); if(onSuccess) onSuccess(); },260);
-                  }
-                }catch(e){}
-              }, 400);
+              // 잠금 화면이 뜨면 버튼 안 눌러도 Face ID가 저절로 뜬다 (설정에서 끌 수 있음, 1회)
+              if(isBioAuto()){
+                setTimeout(async()=>{
+                  try{
+                    if(!document.body.contains(wrap)) return;
+                    if(getLockUntil() > Date.now()) return;
+                    const ok = await window.EdutalkNative.verifyBiometric('앱 잠금을 해제합니다');
+                    if(ok){
+                      try{ await hapticDouble(); }catch(e){}
+                      clearLockFail();
+                      if(!document.body.contains(wrap)) return;
+                      wrap.classList.remove('show'); setTimeout(()=>{ wrap.remove(); if(onSuccess) onSuccess(); },260);
+                    }
+                  }catch(e){}
+                }, 500);
+              }
             }
           }
         }
@@ -1493,6 +1500,23 @@
   async function hapticMedium(){ try{ if(window.EdutalkNative?.isNative()) await window.EdutalkNative.hapticImpactMedium(); else if(navigator.vibrate) navigator.vibrate(40); }catch(e){} }
   async function hapticSuccess(){ try{ if(window.EdutalkNative?.isNative()) await window.EdutalkNative.hapticSuccess(); else if(navigator.vibrate) navigator.vibrate([30,50,30]); }catch(e){} }
   async function hapticError(){ try{ if(window.EdutalkNative?.isNative()) await window.EdutalkNative.hapticError(); else if(navigator.vibrate) navigator.vibrate([60,30,60]); }catch(e){} }
+  // 툭툭 두 번 (Face ID 성공·확정용 체크 느낌)
+  async function hapticDouble(){ try{ if(window.EdutalkNative?.isNative() && window.EdutalkNative.hapticDouble) await window.EdutalkNative.hapticDouble(); else if(navigator.vibrate) navigator.vibrate([25,70,40]); }catch(e){} }
+  // 드래그 중 우웅(반복 틱) → 놓으면 타닥(확정 두 번)
+  let dragHapticTimer=null;
+  function startDragHaptic(){
+    stopDragHaptic(false);
+    const tick=()=>{ try{
+      if(window.EdutalkNative?.isNative() && window.EdutalkNative.hapticTick) window.EdutalkNative.hapticTick().catch(()=>{});
+      else if(navigator.vibrate) navigator.vibrate(15);
+    }catch(e){} };
+    tick();
+    dragHapticTimer=setInterval(tick, 120);
+  }
+  function stopDragHaptic(ok){
+    try{ if(dragHapticTimer){ clearInterval(dragHapticTimer); dragHapticTimer=null; } }catch(e){ dragHapticTimer=null; }
+    if(ok) hapticDouble();
+  }
   // ---------- 설정 dirty 체크 ----------
   let settingsDirty=false;
   function markSettingsDirty(){
@@ -2500,7 +2524,8 @@
       if(state.logoutZoom){
         state.logoutZoom=false;
         zoomTransition('#app .app', ()=>{
-          if (landingEnabled()){ renderLanding(); }
+          // 모바일(좁은 화면)은 소개를 건너뛰고 로그인으로 바로 간다
+          if (landingEnabled() && !(window.innerWidth<=820 && !state.landingRequested)){ renderLanding(); }
           else { loadSchoolList(true).catch(()=>{}); renderAuth(); }
           if(!prefersReducedMotion()){
             const el=document.querySelector('#app .landing')||document.querySelector('#app .auth');
@@ -2509,7 +2534,8 @@
         }, null);
         return;
       }
-      if (landingEnabled()) { renderLanding(); return; }
+      // 모바일(좁은 화면)은 소개를 건너뛰고 로그인으로 바로 간다 (소개는 로그인 화면의 소개 보기로)
+      if (landingEnabled() && !(window.innerWidth<=820 && !state.landingRequested)) { renderLanding(); return; }
       await loadSchoolList(true);
       renderAuth();
       return;
@@ -3213,7 +3239,7 @@
         <button class="primary">${state.authMode === 'login' ? '로그인' : '가입하기'}</button>
       </form>
       <button class="google-btn" data-action="google"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg><span>Google 계정으로 ${state.authMode === 'login' ? '로그인' : '가입하기'}</span></button>
-      ${isLogin?`<div class="auth-foot"><button class="text-btn" data-action="toggle-auth">회원가입</button><button class="text-btn" data-action="forgot">비밀번호 찾기</button></div>`:''}
+      ${isLogin?`<div class="auth-foot"><button class="text-btn" data-action="toggle-auth">회원가입</button><button class="text-btn" data-action="forgot">비밀번호 찾기</button>${landingEnabled()?`<button class="text-btn" data-action="landing-show">소개 보기</button>`:''}</div>`:''}
     </div></div></div></div>`;
     }
     if (!page && state.authMode === 'signup') {
@@ -3655,7 +3681,7 @@
       <div id="bannerPager"></div>
       <div id="unreadSummary" class="unread-summary hidden" role="button" tabindex="0" data-action="unread-summary-go" aria-label="안읽은 방으로 이동" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); this.click(); }"></div>
       <div class="side-body">${listSecs}</div>
-      <div class="side-bottom"><button class="soft-btn manage-btn" data-action="chat-manage"><span>💬</span> 채팅 관리</button><div class="row"><button class="soft-btn" data-action="settings">설정</button><button class="soft-btn" data-action="logout">로그아웃</button></div></div>`;
+      <div class="side-bottom"><button class="soft-btn manage-btn" data-action="chat-manage"><span>💬</span> 채팅 관리</button><div class="row"><button class="soft-btn" data-action="logout">로그아웃</button></div></div>`;
   }
   // 큰 탭(채팅·친구·일정 등) 순서 — 꾹 눌러 바꾸고 저장한다 (채팅방 순서 바꾸기와 동일한 모션)
   const SIDE_DEFAULT_ORDER=['chat','friends','sched','meal','suggest','admin','invite'];
@@ -3688,7 +3714,7 @@
     secs.forEach((s,i)=>{ const b=sideBody(s); if(b) b.style.transitionDelay=(i*45)+'ms'; s.classList.add('collapsed'); });
     el.classList.add('side-lift');
     setTimeout(()=>{ secs.forEach(s=>{ const b=sideBody(s); if(b) b.style.transitionDelay='0ms'; }); }, secs.length*45+260);
-    try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+    startDragHaptic();
     return true;
   }
   function moveSideDrag(y){
@@ -3703,6 +3729,7 @@
   async function endSideDrag(){
     const d=sideDrag; if(!d) return;
     sideDrag=null;
+    try{ stopDragHaptic(true); }catch(e){}
     document.body.classList.remove('side-dragging');
     d.el.classList.remove('side-lift');
     const secs=sideSectionEls();
@@ -3986,6 +4013,7 @@
       if(a==='landing-login')return enterAuth('login');
       if(a==='landing-signup')return enterAuth('signup');
       if(a==='landing-home'){state.landingRequested=false;state.authPage='';return zoomTransition('#app .auth', ()=>renderLanding(), '#app .landing');}
+      if(a==='landing-show'){state.landingRequested=true;state.authPage='';return zoomTransition('#app .auth', ()=>renderLanding(), '#app .landing');}
       if(a==='landing-page'){state.landingRequested=true;state.authPage=el.dataset.page||'';return paintAuth();}
       if(a==='landing-scroll')return landingScroll(el.dataset.target);
       if(a==='landing-open-url'){
@@ -4811,6 +4839,7 @@
     try{ roomDrag.el?.classList.remove('drag-src'); }catch(e){}
     $$('.room-group.drop-over').forEach(g=>g.classList.remove('drop-over'));
     document.body.classList.remove('room-dragging');
+    try{ stopDragHaptic(false); }catch(e){}
     roomDrag=null;
   }
   function beginRoomDrag(el,x,y){
@@ -4828,7 +4857,7 @@
     el.classList.add('drag-src');
     document.body.classList.add('room-dragging');
     moveRoomDrag(x,y);
-    try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+    startDragHaptic();
   }
   function moveRoomDrag(x,y){
     if(!roomDrag?.clone) return;
@@ -4846,6 +4875,7 @@
   async function endRoomDrag(){
     const d=roomDrag; if(!d) return;
     const id=d.id, over=d.over;
+    try{ stopDragHaptic(true); }catch(e){}
     clearRoomDrag();
     if(!id) return;
     state.suppressRoomClick=true;
@@ -4890,6 +4920,12 @@
     });
   }
   wireRoomDrag();
+  // 드래그 중(iOS 포함) 목록 스크롤이 끼어들지 않게 touch 스크롤을 잠근다
+  try{
+    document.addEventListener('touchmove', (e)=>{
+      try{ if(roomDrag?.active||sideDrag||catDrag) e.preventDefault(); }catch(_){}
+    }, {passive:false});
+  }catch(e){}
 
   // ---------- 탭(카테고리)을 꾹 눌러 순서 바꾸기 ----------
   let catDrag=null;
@@ -4906,7 +4942,7 @@
     groups.forEach((g,i)=>{ const b=catBody(g); if(b) b.style.transitionDelay=(i*55)+'ms'; g.classList.add('collapsed'); });
     el.classList.add('cat-lift');
     setTimeout(()=>{ groups.forEach(g=>{ const b=catBody(g); if(b) b.style.transitionDelay='0ms'; }); }, groups.length*55+300);
-    try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+    startDragHaptic();
     return true;
   }
   function moveCatDrag(y){
@@ -4921,6 +4957,7 @@
   async function endCatDrag(){
     const d=catDrag; if(!d) return;
     catDrag=null;
+    try{ stopDragHaptic(true); }catch(e){}
     document.body.classList.remove('cat-dragging');
     d.el.classList.remove('cat-lift');
     const groups=catGroupEls();
@@ -8444,7 +8481,7 @@
     } else if(state.settingsTab==='security'){
       html=`
       <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><circle cx="12" cy="15" r="1"/></svg></span> 보안</h3>
-        ${isNativeApp() ? `<div class="setting-row"><div class="setting-label"><strong>앱 잠금</strong></div><label class="choice ${lockOn?'active':''}"><input type="checkbox" id="lockEnableToggle" ${lockOn?'checked':''}> ${lockOn?'켜짐':'꺼짐'}</label></div>` : `<div class="setting-row" style="opacity:.6"><div class="setting-label"><strong>앱 잠금</strong></div><span class="perm-badge">앱 전용</span></div>`}
+        ${isNativeApp() ? `<div class="setting-row"><div class="setting-label"><strong>앱 잠금</strong></div><label class="choice ${lockOn?'active':''}"><input type="checkbox" id="lockEnableToggle" ${lockOn?'checked':''}> ${lockOn?'켜짐':'꺼짐'}</label></div><div class="setting-row"><div class="setting-label"><strong>생체 인증으로 바로 해제</strong><div class="meta" style="font-size:12px;color:var(--sub);margin-top:2px">잠금 화면에서 버튼 안 눌러도 Face ID가 저절로 떠요</div></div><label class="choice ${isBioAuto()?'active':''}"><input type="checkbox" id="bioAutoToggle" ${isBioAuto()?'checked':''}> ${isBioAuto()?'켜짐':'꺼짐'}</label></div>` : `<div class="setting-row" style="opacity:.6"><div class="setting-label"><strong>앱 잠금</strong></div><span class="perm-badge">앱 전용</span></div>`}
         <div class="field" id="lockPwField" style="${lockOn?'':'display:none'}"><label>새 비밀번호 (4자리)</label><input id="lockPwInput" class="input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="4자리 숫자" style="letter-spacing:8px;text-align:center;font-size:16px"><input id="lockPwConfirm" class="input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="한 번 더 입력" style="margin-top:8px;letter-spacing:8px;text-align:center;font-size:16px"><label class="consent" style="margin-top:8px"><input type="checkbox" id="lockSyncToggle" ${isLockSyncEnabled()?'checked':''}><span><b>다른 기기에서도 잠그기</b> — 켜면 계정에 저장되어 모든 기기에서 잠금이 필요해요. 끄면 이 기기에서만 잠겨요.</span></label><div class="row" style="margin-top:8px"><button type="button" class="soft-btn" data-action="save-lock" style="flex:1">저장</button><button type="button" class="soft-btn" data-action="disable-lock" style="flex:1">잠금 해제</button></div><p id="lockMsg" class="reset-msg"></p></div>
         <div class="setting-row"><div class="setting-label"><strong>차단한 사용자</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="blocked-users">보기</button></div>
         <div class="setting-row"><div class="setting-label"><strong>약관 및 정책</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="open-policies">보기</button></div>
@@ -8531,6 +8568,14 @@
     const bt=p.querySelector('[data-browser-toggle]'); if(bt) bt.onchange=async()=>{
       if(!bt.checked){ bt.closest('.choice')?.classList.remove('active'); return; }
       if(DESKTOP){ bt.closest('.choice')?.classList.add('active'); return; }
+      // 네이티브 앱(iOS/Android)은 브라우저 Notification이 없어도 FCM으로 알림이 온다
+      if(isNativeApp()){
+        bt.closest('.choice')?.classList.add('active');
+        try{ await window.EdutalkNative.registerPush(); }catch(e){}
+        try{ if(window.EdutalkNative.flushPushToken) window.EdutalkNative.flushPushToken(); }catch(e){}
+        toast('앱 알림을 켰어요. 새 메시지가 오면 알림이 와요.');
+        return;
+      }
       if(notificationPermission()==='granted'){ bt.closest('.choice')?.classList.add('active'); return; }
       if(notificationPermission()==='unsupported'){ bt.checked=false; bt.closest('.choice')?.classList.remove('active'); return toast('이 브라우저는 기기 알림을 지원하지 않아요.'); }
       try{
@@ -8548,6 +8593,8 @@
     const lockToggle=p.querySelector('#lockEnableToggle');
     const lockField=p.querySelector('#lockPwField');
     if(lockToggle){ lockToggle.onchange=()=>{ if(lockField) lockField.style.display=lockToggle.checked?'':'none'; if(!lockToggle.checked){ disableAppLock(); toast('앱 잠금을 껐어요.'); } } }
+    const bioAuto=p.querySelector('#bioAutoToggle');
+    if(bioAuto){ bioAuto.onchange=()=>{ setBioAuto(bioAuto.checked); bioAuto.closest('.choice')?.classList.toggle('active',bioAuto.checked); markSettingsDirty(); }; }
     // tabs already handled via delegation, but also ensure panel animation
     if(!prefersReducedMotion()){
       p.style.opacity='0'; p.style.transform='translateY(6px)';
