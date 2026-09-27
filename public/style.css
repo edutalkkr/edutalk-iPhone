@@ -42,9 +42,11 @@ body.font-sm{font-size:14px}body.font-lg{font-size:17px}body.font-xl{font-size:1
 .landing-nav{padding-top:env(safe-area-inset-top)}
 /* 카톡??�?밀�?(?�른�? ?�림·?�정 / ?�쪽: ?��?�? */
 .room-swipe{position:relative;overflow:hidden;border-radius:12px}
-.room-swipe .room{position:relative;z-index:1;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.room-swipe .room{position:relative;z-index:1;background:var(--surface);transition:transform .2s cubic-bezier(.2,.8,.2,1),background .16s}
+.room-swipe .room:hover{background:var(--hover)}
+.room-swipe .room.active{background:var(--brand-soft)}
+html.dark .room-swipe .room.active{background:var(--blue-soft)}
 .room-swipe.swiping .room{transition:none}
-.room-swipe.open .room,.room-swipe.swiping .room{background:var(--surface)}
 .room-swipe-bg{position:absolute;top:0;bottom:0;display:flex;align-items:stretch;z-index:0}
 .room-swipe-bg.left{left:0}
 .room-swipe-bg.right{right:0}
@@ -222,8 +224,10 @@ body.offline .composer-inner{border-style:dashed}
 }
 
 /* ?�스??*/
-.toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translate(-50%,-26px);z-index:900;max-width:min(560px,calc(100vw - 32px));padding:13px 18px;border-radius:14px;background:#191f28;color:#fff;font-size:14px;line-height:1.5;text-align:center;box-shadow:0 14px 36px rgba(25,31,40,.28);opacity:0;pointer-events:none;transition:opacity .22s ease,transform .28s cubic-bezier(.2,.8,.2,1),top .2s ease}
+.toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translate(-50%,-26px);z-index:900;max-width:min(560px,calc(100vw - 32px));padding:12px 18px 12px 13px;border-radius:14px;background:#101828;color:#fff;font-size:14px;line-height:1.5;text-align:left;box-shadow:0 14px 36px rgba(25,31,40,.45),0 0 0 1.5px rgba(52,211,153,.85);opacity:0;pointer-events:none;display:flex;align-items:center;gap:10px;transition:opacity .22s ease,transform .28s cubic-bezier(.2,.8,.2,1),top .2s ease}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+.toast-ico{flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:#34D399;color:#06281C;display:grid;place-items:center}
+.toast-ico svg{width:13px;height:13px;display:block}
 
 /* ?�원가??로그???�면 반응??*/
 @media(max-width:880px){
@@ -1224,10 +1228,11 @@ html.dark .bp-ico.warn{background:#2A1215;color:#FF6B6B}
 .side-section.collapsed .side-caret{transform:rotate(-90deg)}
 .side-section.collapsed .side-caret-btn{color:var(--sub)}
 
-/* ---------- 배너 ?�기 ---------- */
-.banner-pager.collapsed .bp-main{opacity:.7}
-.banner-pager.collapsed .bp-main .title{font-size:14px}
-.banner-pager.collapsed .bp-main .meta{font-size:12px}
+/* ---------- 배너 접기: 채팅 탭처럼 바짝 접어 얇은 띠만 남긴다 ---------- */
+.banner-pager.mini{padding:3px 12px;border-bottom:1px solid var(--line)}
+.bp-mini{width:100%;height:26px;border-radius:8px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:13px;gap:6px}
+.bp-mini:hover{background:var(--hover);color:var(--sub)}
+.bp-mini .bp-mini-bar{width:44px;height:4px;border-radius:2px;background:var(--line)}
 
 /* ---------- ???�금 ---------- */
 .lock-screen{position:fixed;inset:0;z-index:9999;background:rgba(246,248,252,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .28s ease}

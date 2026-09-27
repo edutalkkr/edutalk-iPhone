@@ -861,7 +861,7 @@
     if(isBannerCollapsed()){
       hosts.forEach(host=>{
         host.classList.remove('hidden');
-        host.innerHTML=`<div class="banner-pager collapsed"><button type="button" class="bp-main" data-action="banner-expand"><span class="grow"><span class="title">📢 배너 숨김</span><span class="meta">접힌 배너를 펴려면 눌러주세요</span></span><span class="bp-ico">⌄</span></button></div>`;
+        host.innerHTML=`<div class="banner-pager mini"><button type="button" class="bp-mini" data-action="banner-expand" aria-label="배너 펴기" title="배너 펴기"><span class="bp-mini-bar"></span><span>📢</span></button></div>`;
       });
       return;
     }
@@ -1331,7 +1331,14 @@
   };
   const toast = (text) => {
     clearTimeout(toastEl._timer);
-    toastEl.textContent = text;
+    toastEl.innerHTML='';
+    const ico=document.createElement('span');
+    ico.className='toast-ico';
+    ico.setAttribute('aria-hidden','true');
+    ico.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>';
+    const tx=document.createElement('span');
+    tx.textContent=String(text??'');
+    toastEl.append(ico,tx);
     toastEl.classList.remove('show');
     requestAnimationFrame(() => toastEl.classList.add('show'));
     toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), 2600);
@@ -4336,7 +4343,7 @@
       if(a==='ext-link'){ e.preventDefault(); return openExternalLinkConfirm(el.dataset.url||''); }
       if(a==='go-license-renew'){ closeDrawer(); return openAdmin('license'); }
       if(a==='banner-prev')return bannerPageMove(-1); if(a==='banner-next')return bannerPageMove(1);
-      if(a==='banner-collapse')return setBannerCollapsed(true); if(a==='banner-expand')return setBannerCollapsed(false);
+      if(a==='banner-collapse'){ setBannerCollapsed(true); toast('배너를 숨겼어요. 설정에서 다시 켤 수 있어요.'); return; } if(a==='banner-expand')return setBannerCollapsed(false);
       if(a==='unread-summary-go'){ const nid=Object.keys(state.unread||{})[0]; if(nid) openRoom(nid); return; }
       if(a==='open-palette'){ try{ openCmdPalette(); }catch(e){} return; }
       if(a==='close-room-settings')return closeRoomSettings();
@@ -8638,6 +8645,7 @@
         <div class="setting-row"><div class="setting-label"><strong>새 메시지 알림음</strong></div><label class="choice ${nt.sound?'active':''}"><input type="checkbox" name="notifySound" ${nt.sound?'checked':''} data-sound-toggle> 사용</label></div>
         <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px"><div class="setting-label"><strong>알림음 고르기</strong></div><div class="sound-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">${SOUNDS.map(s=>`<button type="button" class="sound-item ${s.id===nt.soundId?'on':''}" data-sound="${s.id}"><div class="grow"><div class="title">${esc(s.name)}</div></div><span>▶</span></button>`).join('')}</div></div>
         ${isNativeApp() ? `<div class="setting-row"><div class="setting-label"><strong>푸시 알림</strong></div><div class="notify-row"><span class="perm-badge ${permCls}">${permText}</span><label class="choice ${nt.browser?'active':''}"><input type="checkbox" name="notifyBrowser" ${nt.browser?'checked':''} data-browser-toggle> 사용</label></div></div>` : `<div class="setting-row"><div class="setting-label"><strong>기기 알림</strong></div><div class="notify-row"><span class="perm-badge ${permCls}">${permText}</span><label class="choice ${nt.browser?'active':''}"><input type="checkbox" name="notifyBrowser" ${nt.browser?'checked':''} data-browser-toggle> 사용</label></div></div>`}
+        <div class="setting-row"><div class="setting-label"><strong>상단 배너</strong></div><label class="choice ${!isBannerCollapsed()?'active':''}"><input type="checkbox" data-banner-toggle ${!isBannerCollapsed()?'checked':''}> 표시</label></div>
         ${DESKTOP?'<div class="setting-row"><div class="setting-label"><strong>알림창 위치</strong></div><div class="choice-row">'+NOTIFY_POSITIONS.map(([v,l])=>'<button type="button" class="choice" data-notify-pos="'+v+'">'+l+'</button>').join('')+'</div></div>':''}
         <div class="setting-row"><div class="setting-label"><strong>입력 중 표시</strong></div><label class="choice ${state.settings.typingIndicator!==false?'active':''}"><input type="checkbox" name="typingIndicator" ${state.settings.typingIndicator!==false?'checked':''} data-typing-toggle> 사용</label></div>
         <div class="setting-row"><div class="setting-label"><strong>읽음 표시</strong></div><label class="choice ${state.settings.readReceipts!==false?'active':''}"><input type="checkbox" name="readReceipts" ${state.settings.readReceipts!==false?'checked':''} data-read-toggle> 사용</label></div>
@@ -8739,6 +8747,8 @@
       if(state.rxDraft.has(e)){ if(state.rxDraft.size<=1) return toast('1개는 남겨 주세요.'); state.rxDraft.delete(e); b.classList.remove('on'); }
       else { if(state.rxDraft.size>=8) return toast('최대 8개까지 고를 수 있어요.'); state.rxDraft.add(e); b.classList.add('on'); }
     });
+    const bannerTg=p.querySelector('[data-banner-toggle]');
+    if(bannerTg){ bannerTg.onchange=()=>{ setBannerCollapsed(!bannerTg.checked); bannerTg.closest('.choice')?.classList.toggle('active',bannerTg.checked); toast(bannerTg.checked?'배너를 다시 켰어요.':'배너를 숨겼어요. 설정에서 다시 켤 수 있어요.'); }; }
     const persistBrowserPref=async()=>{
       // 토글은 누르는 즉시 저장된다 (저장 버튼을 안 눌러도 유지)
       try{
