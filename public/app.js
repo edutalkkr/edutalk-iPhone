@@ -856,8 +856,21 @@
     try{ localStorage.setItem('edutalk_banner_collapsed', v?'1':'0'); }catch(e){}
     renderBannerPager();
   }
+  // X로 완전히 숨기기 (띠도 안 남김 · 설정에서만 다시 켬)
+  function isBannerHidden(){
+    try{ return localStorage.getItem('edutalk_banner_hidden')==='1'; }catch(e){ return !!state.bannerHidden; }
+  }
+  function setBannerHidden(v){
+    state.bannerHidden=!!v;
+    try{ localStorage.setItem('edutalk_banner_hidden', v?'1':'0'); }catch(e){}
+    renderBannerPager();
+  }
   function renderBannerPager(dir){
     const hosts=$$('#bannerPager'); if(!hosts.length) return;
+    if(isBannerHidden()){
+      hosts.forEach(host=>{ host.innerHTML=''; host.classList.add('hidden'); });
+      return;
+    }
     if(isBannerCollapsed()){
       hosts.forEach(host=>{
         host.classList.remove('hidden');
@@ -872,7 +885,7 @@
       const i=Math.min(state.bannerPage||0,pages.length-1);
       const p=pages[i];
       const anim=dir&&!prefersReducedMotion()?` bp-slide-${dir}`:'';
-      host.innerHTML=`<div class="banner-pager${anim}"><button type="button" class="bp-main" ${p.action?`data-action="${p.action}"`:''}><span class="grow"><span class="title">${p.titleHtml||''}</span><span class="meta">${p.metaHtml||''}</span></span><span class="bp-ico ${p.iconCls||''}">${esc(p.icon||'!')}</span></button><div class="bp-foot"><button type="button" class="bp-arrow" data-action="banner-prev" aria-label="이전" ${pages.length<2?'disabled':''}>‹</button><span class="bp-count">${i+1}/${pages.length}</span><button type="button" class="bp-arrow" data-action="banner-next" aria-label="다음" ${pages.length<2?'disabled':''}>›</button><button type="button" class="bp-arrow" data-action="banner-collapse" aria-label="배너 접기" title="배너 접기">—</button></div></div>`;
+      host.innerHTML=`<div class="banner-pager${anim}"><button type="button" class="bp-main" ${p.action?`data-action="${p.action}"`:''}><span class="grow"><span class="title">${p.titleHtml||''}</span><span class="meta">${p.metaHtml||''}</span></span><span class="bp-ico ${p.iconCls||''}">${esc(p.icon||'!')}</span></button><div class="bp-foot"><button type="button" class="bp-arrow" data-action="banner-prev" aria-label="이전" ${pages.length<2?'disabled':''}>‹</button><span class="bp-count">${i+1}/${pages.length}</span><button type="button" class="bp-arrow" data-action="banner-next" aria-label="다음"  ${pages.length<2?'disabled':''}>›</button><button type="button" class="bp-arrow" data-action="banner-collapse" aria-label="배너 접기" title="배너 접기">—</button></div><button type="button" class="bp-x" data-action="banner-hide" aria-label="배너 숨기기" title="배너 숨기기">✕</button></div>`;
     });
     startBannerAuto();
   }
@@ -4343,7 +4356,7 @@
       if(a==='ext-link'){ e.preventDefault(); return openExternalLinkConfirm(el.dataset.url||''); }
       if(a==='go-license-renew'){ closeDrawer(); return openAdmin('license'); }
       if(a==='banner-prev')return bannerPageMove(-1); if(a==='banner-next')return bannerPageMove(1);
-      if(a==='banner-collapse'){ setBannerCollapsed(true); toast('배너를 숨겼어요. 설정에서 다시 켤 수 있어요.'); return; } if(a==='banner-expand')return setBannerCollapsed(false);
+      if(a==='banner-collapse'){ setBannerCollapsed(true); toast('배너를 접었어요.'); return; } if(a==='banner-expand'){ setBannerCollapsed(false); toast('배너를 펼쳤어요.'); return; } if(a==='banner-hide'){ setBannerHidden(true); toast('배너를 숨겼어요.'); return; }
       if(a==='unread-summary-go'){ const nid=Object.keys(state.unread||{})[0]; if(nid) openRoom(nid); return; }
       if(a==='open-palette'){ try{ openCmdPalette(); }catch(e){} return; }
       if(a==='close-room-settings')return closeRoomSettings();
@@ -8645,7 +8658,7 @@
         <div class="setting-row"><div class="setting-label"><strong>새 메시지 알림음</strong></div><label class="choice ${nt.sound?'active':''}"><input type="checkbox" name="notifySound" ${nt.sound?'checked':''} data-sound-toggle> 사용</label></div>
         <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px"><div class="setting-label"><strong>알림음 고르기</strong></div><div class="sound-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">${SOUNDS.map(s=>`<button type="button" class="sound-item ${s.id===nt.soundId?'on':''}" data-sound="${s.id}"><div class="grow"><div class="title">${esc(s.name)}</div></div><span>▶</span></button>`).join('')}</div></div>
         ${isNativeApp() ? `<div class="setting-row"><div class="setting-label"><strong>푸시 알림</strong></div><div class="notify-row"><span class="perm-badge ${permCls}">${permText}</span><label class="choice ${nt.browser?'active':''}"><input type="checkbox" name="notifyBrowser" ${nt.browser?'checked':''} data-browser-toggle> 사용</label></div></div>` : `<div class="setting-row"><div class="setting-label"><strong>기기 알림</strong></div><div class="notify-row"><span class="perm-badge ${permCls}">${permText}</span><label class="choice ${nt.browser?'active':''}"><input type="checkbox" name="notifyBrowser" ${nt.browser?'checked':''} data-browser-toggle> 사용</label></div></div>`}
-        <div class="setting-row"><div class="setting-label"><strong>상단 배너</strong></div><label class="choice ${!isBannerCollapsed()?'active':''}"><input type="checkbox" data-banner-toggle ${!isBannerCollapsed()?'checked':''}> 표시</label></div>
+        <div class="setting-row"><div class="setting-label"><strong>상단 배너</strong></div><label class="choice ${!isBannerHidden()?'active':''}"><input type="checkbox" data-banner-toggle ${!isBannerHidden()?'checked':''}> 표시</label></div>
         ${DESKTOP?'<div class="setting-row"><div class="setting-label"><strong>알림창 위치</strong></div><div class="choice-row">'+NOTIFY_POSITIONS.map(([v,l])=>'<button type="button" class="choice" data-notify-pos="'+v+'">'+l+'</button>').join('')+'</div></div>':''}
         <div class="setting-row"><div class="setting-label"><strong>입력 중 표시</strong></div><label class="choice ${state.settings.typingIndicator!==false?'active':''}"><input type="checkbox" name="typingIndicator" ${state.settings.typingIndicator!==false?'checked':''} data-typing-toggle> 사용</label></div>
         <div class="setting-row"><div class="setting-label"><strong>읽음 표시</strong></div><label class="choice ${state.settings.readReceipts!==false?'active':''}"><input type="checkbox" name="readReceipts" ${state.settings.readReceipts!==false?'checked':''} data-read-toggle> 사용</label></div>
@@ -8748,7 +8761,7 @@
       else { if(state.rxDraft.size>=8) return toast('최대 8개까지 고를 수 있어요.'); state.rxDraft.add(e); b.classList.add('on'); }
     });
     const bannerTg=p.querySelector('[data-banner-toggle]');
-    if(bannerTg){ bannerTg.onchange=()=>{ setBannerCollapsed(!bannerTg.checked); bannerTg.closest('.choice')?.classList.toggle('active',bannerTg.checked); toast(bannerTg.checked?'배너를 다시 켰어요.':'배너를 숨겼어요. 설정에서 다시 켤 수 있어요.'); }; }
+    if(bannerTg){ bannerTg.onchange=()=>{ if(bannerTg.checked){ setBannerHidden(false); setBannerCollapsed(false); } else { setBannerHidden(true); } bannerTg.closest('.choice')?.classList.toggle('active',bannerTg.checked); toast(bannerTg.checked?'배너를 다시 켰어요.':'배너를 숨겼어요. 설정에서 다시 켤 수 있어요.'); }; }
     const persistBrowserPref=async()=>{
       // 토글은 누르는 즉시 저장된다 (저장 버튼을 안 눌러도 유지)
       try{
