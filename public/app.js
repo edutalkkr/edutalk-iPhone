@@ -865,6 +865,49 @@
     try{ localStorage.setItem('edutalk_banner_hidden', v?'1':'0'); }catch(e){}
     renderBannerPager();
   }
+  // 배너 접힘/펼침 모션 (접을 땐 바짝 쪼그라들고, 펼 땐 스르륵 벌어진다)
+  let bannerAnimToken=0;
+  function animateBannerFold(done){
+    try{
+      const hosts=$$('#bannerPager').filter(h=>h && !h.classList.contains('hidden') && h.querySelector('.banner-pager:not(.mini)'));
+      if(!hosts.length || prefersReducedMotion()){ done(); return; }
+      const my=++bannerAnimToken;
+      let pending=hosts.length;
+      const fin=()=>{ if(my!==bannerAnimToken) return; if(--pending===0) done(); };
+      hosts.forEach(host=>{
+        const cur=host.querySelector('.banner-pager:not(.mini)');
+        if(!cur){ fin(); return; }
+        const h=cur.offsetHeight||120;
+        cur.style.overflow='hidden';
+        cur.style.height=h+'px';
+        void cur.offsetHeight;
+        cur.style.transition='height .26s cubic-bezier(.2,.8,.2,1),opacity .2s ease,padding-top .26s ease,padding-bottom .26s ease';
+        cur.style.opacity='0';
+        cur.style.paddingTop='0'; cur.style.paddingBottom='0';
+        cur.style.height='30px';
+        setTimeout(fin,290);
+      });
+    }catch(e){ try{ done(); }catch(_){} }
+  }
+  function animateBannerUnfold(){
+    if(prefersReducedMotion()) return;
+    try{
+      bannerAnimToken++;
+      $$('#bannerPager').forEach(host=>{
+        const n=host.querySelector('.banner-pager:not(.mini)');
+        if(!n) return;
+        const full=n.scrollHeight||160;
+        n.style.overflow='hidden';
+        n.style.height='30px';
+        n.style.opacity='0';
+        void n.offsetHeight;
+        n.style.transition='height .3s cubic-bezier(.2,.8,.2,1),opacity .22s ease';
+        n.style.height=full+'px';
+        n.style.opacity='1';
+        setTimeout(()=>{ try{ n.style.height=''; n.style.overflow=''; n.style.opacity=''; n.style.transition=''; n.style.paddingTop=''; n.style.paddingBottom=''; }catch(e){} },330);
+      });
+    }catch(e){}
+  }
   function renderBannerPager(dir){
     const hosts=$$('#bannerPager'); if(!hosts.length) return;
     if(isBannerHidden()){
@@ -4376,7 +4419,7 @@
       if(a==='ext-link'){ e.preventDefault(); return openExternalLinkConfirm(el.dataset.url||''); }
       if(a==='go-license-renew'){ closeDrawer(); return openAdmin('license'); }
       if(a==='banner-prev')return bannerPageMove(-1); if(a==='banner-next')return bannerPageMove(1);
-      if(a==='banner-collapse'){ setBannerCollapsed(true); toast('배너를 접었어요.'); return; } if(a==='banner-expand'){ setBannerCollapsed(false); toast('배너를 펼쳤어요.'); return; } if(a==='banner-hide'){ setBannerHidden(true); toast('배너를 숨겼어요.'); return; }
+      if(a==='banner-collapse'){ animateBannerFold(()=>{ setBannerCollapsed(true); toast('배너를 접었어요.'); }); return; } if(a==='banner-expand'){ setBannerCollapsed(false); animateBannerUnfold(); toast('배너를 펼쳤어요.'); return; } if(a==='banner-hide'){ setBannerHidden(true); toast('배너를 숨겼어요.'); return; }
       if(a==='unread-summary-go'){ const nid=Object.keys(state.unread||{})[0]; if(nid) openRoom(nid); return; }
       if(a==='open-palette'){ try{ openCmdPalette(); }catch(e){} return; }
       if(a==='close-room-settings')return closeRoomSettings();
@@ -8782,7 +8825,7 @@
       else { if(state.rxDraft.size>=8) return toast('최대 8개까지 고를 수 있어요.'); state.rxDraft.add(e); b.classList.add('on'); }
     });
     const bannerTg=p.querySelector('[data-banner-toggle]');
-    if(bannerTg){ bannerTg.onchange=()=>{ if(bannerTg.checked){ setBannerHidden(false); setBannerCollapsed(false); } else { setBannerHidden(true); } bannerTg.closest('.choice')?.classList.toggle('active',bannerTg.checked); toast(bannerTg.checked?'배너를 다시 켰어요.':'배너를 숨겼어요. 설정에서 다시 켤 수 있어요.'); }; }
+    if(bannerTg){ bannerTg.onchange=()=>{ if(bannerTg.checked){ setBannerHidden(false); setBannerCollapsed(false); animateBannerUnfold(); } else { setBannerHidden(true); } bannerTg.closest('.choice')?.classList.toggle('active',bannerTg.checked); toast(bannerTg.checked?'배너를 다시 켰어요.':'배너를 숨겼어요. 설정에서 다시 켤 수 있어요.'); }; }
     const persistBrowserPref=async()=>{
       // 토글은 누르는 즉시 저장된다 (저장 버튼을 안 눌러도 유지)
       try{
