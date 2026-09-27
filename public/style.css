@@ -229,13 +229,13 @@ body.offline .composer-inner{border-style:dashed}
 }
 
 /* ?�스??*/
-.toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translate(-50%,-140%);z-index:900;width:min(560px,calc(100vw - 24px));padding:13px 14px 13px 16px;border-radius:14px;background:#101828;color:#fff;font-size:14px;font-weight:600;line-height:1.5;box-shadow:0 14px 36px rgba(25,31,40,.45),0 0 0 1.5px rgba(52,211,153,.85);opacity:1;pointer-events:none;display:flex;align-items:center;gap:10px;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translate(-50%,-140%);z-index:900;max-width:min(560px,calc(100vw - 24px));padding:12px 16px;border-radius:14px;background:#101828;color:#fff;font-size:14px;font-weight:600;line-height:1.5;box-shadow:0 14px 36px rgba(25,31,40,.45),0 0 0 1.5px rgba(52,211,153,.85);opacity:1;pointer-events:none;display:inline-flex;align-items:center;gap:9px;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
 .toast.show{transform:translate(-50%,0);pointer-events:auto}
-.toast-ico{flex:0 0 auto;width:22px;height:22px;display:grid;place-items:center;color:#fff}
+.toast-ico{flex:0 0 auto;display:grid;place-items:center;color:#34D399}
 .toast-ico svg{width:15px;height:15px;display:block}
-.toast-msg{flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.toast-x{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:transparent;color:rgba(255,255,255,.75);font-size:12px;display:grid;place-items:center}
-.toast-x:hover{background:rgba(255,255,255,.14);color:#fff}
+.toast-msg{flex:0 1 auto;text-align:center;word-break:keep-all}
+.toast-x{flex:0 0 auto;background:transparent;border:0;color:rgba(255,255,255,.7);font-size:12px;line-height:1;padding:2px}
+.toast-x:hover{color:#fff}
 @media(prefers-reduced-motion:reduce){.toast{transition:none}}
 
 /* ?�원가??로그???�면 반응??*/
