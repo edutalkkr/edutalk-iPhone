@@ -3675,13 +3675,13 @@
     else if(layout==='friends-top') keys=[...keys.filter(k=>k==='friends'),...keys.filter(k=>k!=='friends'&&k!=='invite'),...keys.filter(k=>k==='invite')];
     const listSecs=keys.map(k=>secs[k]).join('');
     const paletteHint=`<button class="icon-btn" data-action="open-palette" aria-label="빠른 실행" title="빠른 실행 (Ctrl+K)" style="margin-right:4px">⌕</button>`;
-    return `<div class="side-top"><div class="brand"><div class="brand-mark">${brandMarkHtml()}</div><span class="brand-name" data-brand-roll>${esc(brandNames()[0]||'에듀톡')}</span></div>${paletteHint}<button class="icon-btn" data-action="settings" aria-label="설정">⚙</button></div>
+    return `<div class="side-top"><div class="brand"><div class="brand-mark">${brandMarkHtml()}</div><span class="brand-name" data-brand-roll>${esc(brandNames()[0]||'에듀톡')}</span></div>${paletteHint}</div>
       <div class="profile-card"><div class="profile-row"><button type="button" class="avatar-dot profile-open" data-action="profile" aria-label="내 프로필 보기">${avatarHtml(state.profile)}</button><div class="grow"><button type="button" class="profile-name profile-open" data-action="profile">${esc(state.profile?.displayName||'사용자')}</button><div class="profile-meta-line"><span class="profile-meta">${gradeClassPrefix(state.profile)}${roleLabel(state.profile?.role)}</span><span class="presence-dot inline ${myPresenceState()||'hidden'}" data-my-presence-dot aria-hidden="true"></span><button type="button" class="presence-menu-btn" data-action="presence-menu" aria-haspopup="menu" aria-label="접속 상태 변경"><span class="presence-text" data-my-presence-label>${esc(myPresenceLabel())}</span><span class="presence-caret" aria-hidden="true">⌄</span></button></div></div></div></div>
       <div id="licenseBanner" class="license-banner hidden"></div>
       <div id="bannerPager"></div>
       <div id="unreadSummary" class="unread-summary hidden" role="button" tabindex="0" data-action="unread-summary-go" aria-label="안읽은 방으로 이동" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); this.click(); }"></div>
       <div class="side-body">${listSecs}</div>
-      <div class="side-bottom"><button class="soft-btn manage-btn" data-action="chat-manage"><span>💬</span> 채팅 관리</button><div class="row"><button class="soft-btn" data-action="logout">로그아웃</button></div></div>`;
+      <div class="side-bottom"><button class="soft-btn manage-btn" data-action="chat-manage"><span>💬</span> 채팅 관리</button><div class="row"><button class="soft-btn" data-action="settings">전체 설정</button><button class="soft-btn" data-action="logout">로그아웃</button></div></div>`;
   }
   // 큰 탭(채팅·친구·일정 등) 순서 — 꾹 눌러 바꾸고 저장한다 (채팅방 순서 바꾸기와 동일한 모션)
   const SIDE_DEFAULT_ORDER=['chat','friends','sched','meal','suggest','admin','invite'];
@@ -3725,11 +3725,13 @@
     const parent=sideDrag.el.parentNode;
     if(target) parent.insertBefore(sideDrag.el, target);
     else parent.appendChild(sideDrag.el);
+    updateEdgeScroll(y);
   }
   async function endSideDrag(){
     const d=sideDrag; if(!d) return;
     sideDrag=null;
     try{ stopDragHaptic(true); }catch(e){}
+    try{ stopEdgeScroll(); }catch(e){}
     document.body.classList.remove('side-dragging');
     d.el.classList.remove('side-lift');
     const secs=sideSectionEls();
@@ -4205,7 +4207,8 @@
       if(a==='cal-del')return deleteCalEvent(el.dataset.id);
       if(a==='cal-neis')return importNeisSchedule();
       if(a==='cal-reload')return (async()=>{ await loadCalEvents(true); paintCalendar(); })();
-      if(a==='chat-groups'){closeAllModals();return openGroupManager();} if(a==='chat-manage')return openChatManager(); if(a==='blocked-users')return openBlockedUsers(); if(a==='open-policies')return openPolicies(); if(a==='view-policy')return viewPolicy(el.dataset.page||el.dataset.id||''); if(a==='attach-file'){const fi=$('#chatFileInput');if(fi)fi.click();return;}
+      if(a==='chat-groups'){closeAllModals();return openGroupManager();} if(a==='chat-manage')return openChatManager(); if(a==='blocked-users')return openBlockedUsers(); if(a==='open-policies')return openPolicies(); if(a==='view-policy')return viewPolicy(el.dataset.page||el.dataset.id||'');       if(a==='attach-file'){const fi=$('#chatFileInput');if(fi)fi.click();return;}
+      if(a==='download-attach')return;
       if(a==='view-attach'){const m=state.messages.find(x=>x.id===el.dataset.msg);if(!m?.attachment) return;const data=attachDataOf(m);if(data){const src=esc(safeImgSrc(data));const href=esc(safeFileHref(data));if(src)openModal(`<h2>${esc(m.attachment.name||'사진')}</h2><img class="attach-view" src="${src}" alt=""><div class="modal-actions"><button class="cancel" data-close-modal>닫기</button>${href?`<a class="confirm" style="text-decoration:none;display:grid;place-items:center" href="${href}" download="${esc(m.attachment.name||'사진')}" data-close-modal>내려받기</a>`:''}</div>`);}else openModal(`<h2>${esc(m.attachment.name||'파일')}</h2><div class="empty-side">파일을 불러오는 중이에요…</div><div data-chunkview="${esc(m.id)}"></div><div class="modal-actions"><button class="cancel" data-close-modal>닫기</button></div>`);return;}
       if(a==='mute-room')return toggleRoomMute(el.dataset.roomId||state.room?.id);
       if(a==='room-chat-off')return toggleRoomChatOff(el.dataset.roomId||state.room?.id);
@@ -4840,6 +4843,7 @@
     $$('.room-group.drop-over').forEach(g=>g.classList.remove('drop-over'));
     document.body.classList.remove('room-dragging');
     try{ stopDragHaptic(false); }catch(e){}
+    try{ stopEdgeScroll(); }catch(e){}
     roomDrag=null;
   }
   function beginRoomDrag(el,x,y){
@@ -4871,6 +4875,7 @@
     $$('.room-group.drop-over').forEach(g=>{ if(g!==group) g.classList.remove('drop-over'); });
     if(group) group.classList.add('drop-over');
     roomDrag.over=group?.dataset.group||null;
+    updateEdgeScroll(y);
   }
   async function endRoomDrag(){
     const d=roomDrag; if(!d) return;
@@ -4926,6 +4931,33 @@
       try{ if(roomDrag?.active||sideDrag||catDrag) e.preventDefault(); }catch(_){}
     }, {passive:false});
   }catch(e){}
+  // 방을 집은 채로 목록 위·아래 가장자리에 대면 일정 속도로 자동 스크롤 (100개 목록도 중간으로 옮길 수 있게)
+  let edgeScrollTimer=null, edgeScrollDir=0, edgeScrollEl=null;
+  function edgeScrollTick(){
+    try{
+      if(!edgeScrollEl || !edgeScrollDir || !document.body.contains(edgeScrollEl)){ stopEdgeScroll(); return; }
+      edgeScrollEl.scrollTop += edgeScrollDir*10;
+    }catch(e){ stopEdgeScroll(); }
+  }
+  function updateEdgeScroll(y){
+    try{
+      const cands=[...document.querySelectorAll('.side-body')].filter(el=>{ try{ const r=el.getBoundingClientRect(); return r.height>80 && r.width>0; }catch(e){ return false; } });
+      const container=cands[0];
+      if(!container){ stopEdgeScroll(); return; }
+      const r=container.getBoundingClientRect(), M=72;
+      let dir=0;
+      if(y < r.top+M) dir=-1; else if(y > r.bottom-M) dir=1;
+      if(dir===0){ stopEdgeScroll(); return; }
+      if(edgeScrollEl!==container || edgeScrollDir!==dir){
+        edgeScrollEl=container; edgeScrollDir=dir;
+        if(!edgeScrollTimer) edgeScrollTimer=setInterval(edgeScrollTick, 16);
+      }
+    }catch(e){}
+  }
+  function stopEdgeScroll(){
+    try{ if(edgeScrollTimer){ clearInterval(edgeScrollTimer); edgeScrollTimer=null; } }catch(e){ edgeScrollTimer=null; }
+    edgeScrollEl=null; edgeScrollDir=0;
+  }
 
   // ---------- 탭(카테고리)을 꾹 눌러 순서 바꾸기 ----------
   let catDrag=null;
@@ -4953,11 +4985,13 @@
     const parent=catDrag.el.parentNode;
     if(target) parent.insertBefore(catDrag.el,target);
     else parent.appendChild(catDrag.el);
+    updateEdgeScroll(y);
   }
   async function endCatDrag(){
     const d=catDrag; if(!d) return;
     catDrag=null;
     try{ stopDragHaptic(true); }catch(e){}
+    try{ stopEdgeScroll(); }catch(e){}
     document.body.classList.remove('cat-dragging');
     d.el.classList.remove('cat-lift');
     const groups=catGroupEls();
