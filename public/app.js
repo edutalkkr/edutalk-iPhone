@@ -131,13 +131,12 @@
   // 생체 인증 자동 시도 (잠금 화면에서 버튼 안 눌러도 Face ID가 바로 뜬다)
   function isBioAuto(){ try{ return localStorage.getItem('edutalk_bio_auto')!=='0'; }catch(e){ return true; } }
   function setBioAuto(on){ try{ localStorage.setItem('edutalk_bio_auto', on?'1':'0'); }catch(e){} }
-  function isLockSyncEnabled(){ try{ return localStorage.getItem('edutalk_lock_sync')==='1'; }catch(e){ return false; } }
   function getLockHash(){ try{ return localStorage.getItem('edutalk_lock_hash')||''; }catch(e){ return ''; } }
-  async function setAppLock(pw, sync){
+  // 앱 잠금은 이 기기에만 저장한다 (재설치하면 풀린다)
+  async function setAppLock(pw){
     if(!pw || String(pw).length<4) return false;
     const h=await hashLockPw(pw);
-    const wantSync = typeof sync==='boolean' ? sync : isLockSyncEnabled();
-    try{ localStorage.setItem('edutalk_lock_hash', h); localStorage.setItem('edutalk_lock_enabled','1'); localStorage.setItem('edutalk_lock_len', String(pw.length)); localStorage.setItem('edutalk_lock_sync', wantSync?'1':'0'); }catch(e){}
+    try{ localStorage.setItem('edutalk_lock_hash', h); localStorage.setItem('edutalk_lock_enabled','1'); localStorage.setItem('edutalk_lock_len', String(pw.length)); localStorage.removeItem('edutalk_lock_sync'); }catch(e){}
     // Native: SecureStorage (Keychain)에도 저장 — 캐시 삭제에도 유지
     try{
       if(window.EdutalkNative?.isNative()){
@@ -145,15 +144,10 @@
         EdutalkNative.secureSet('edutalk_lock_hash', h).catch(()=>{});
         EdutalkNative.secureSet('edutalk_lock_enabled','1').catch(()=>{});
         EdutalkNative.secureSet('edutalk_lock_len', String(pw.length)).catch(()=>{});
-        EdutalkNative.secureSet('edutalk_lock_sync', wantSync?'1':'0').catch(()=>{});
         // 생체 인증용 credential도 저장 (username=lock, password=hash)
         EdutalkNative.setBiometricCredentials?.('edutalk_lock', h).catch(()=>{});
       }
     }catch(e){}
-    try{
-      if(wantSync && uid()) await db.collection('userPrivate').doc(uid()).set({appLockHash:h, appLockEnabled:true, appLockSync:true, appLockLen:String(pw.length), updatedAt:ts()}, {merge:true});
-      else if(!wantSync && uid()) await db.collection('userPrivate').doc(uid()).set({appLockHash: firebase.firestore.FieldValue.delete(), appLockEnabled:false, appLockSync:false, updatedAt:ts()}, {merge:true}).catch(()=>{});
-    }catch(e){ console.warn('appLock save private', e); }
     return true;
   }
 
@@ -169,20 +163,7 @@
       }
     }catch(e){}
   }
-  async function restoreAppLockFromServer(){
-    try{
-      if(isLockEnabled()) return;
-      if(!uid()) return;
-      const s=await db.collection('userPrivate').doc(uid()).get();
-      if(s.exists){
-        const d=s.data()||{};
-        // 서버에 동기화 잠금이 있을 때만 복원 (기기별 잠금은 복원하지 않음)
-        if(d.appLockEnabled && d.appLockSync && d.appLockHash){
-          try{ localStorage.setItem('edutalk_lock_hash', d.appLockHash); localStorage.setItem('edutalk_lock_enabled','1'); localStorage.setItem('edutalk_lock_sync','1'); if(d.appLockLen) localStorage.setItem('edutalk_lock_len', String(d.appLockLen)); }catch(e){}
-        }
-      }
-    }catch(e){}
-  }
+
 
   function getLockFail(){ try{ return parseInt(localStorage.getItem('edutalk_lock_fail')||'0',10)||0; }catch(e){ return 0; } }
   function getLockUntil(){ try{ return parseInt(localStorage.getItem('edutalk_lock_until')||'0',10)||0; }catch(e){ return 0; } }
@@ -196,10 +177,78 @@
         EdutalkNative.secureRemove('edutalk_lock_len').catch(()=>{});
         EdutalkNative.secureRemove('edutalk_lock_sync').catch(()=>{});
       }
-    }catch(e){} try{ if(uid()) db.collection('userPrivate').doc(uid()).set({appLockHash: firebase.firestore.FieldValue.delete(), appLockEnabled:false, appLockSync:false, updatedAt:ts()}, {merge:true}).catch(()=>{}); }catch(e){} }
+    }catch(e){} }
   async function verifyLockPw(pw){
     const h=await hashLockPw(pw);
     return h===getLockHash() && h!=='';
+  }
+  // 아이폰식 왼쪽 가장자리 밀기 → 채팅에서 목록으로 뒤로 가기 (모바일 채팅 화면에서만)
+  let swipeBackArmed=false;
+  function armSwipeBack(){
+    if(swipeBackArmed) return; swipeBackArmed=true;
+    let sx=0, sy=0, on=false;
+    try{
+      document.addEventListener('touchstart',(e)=>{
+        try{
+          if(window.innerWidth>820) return;
+          try{ if(!document.body.classList.contains('m-chat-open') && !state.roomManageOpen) return; }catch(_){ return; }
+          const t=e.touches&&e.touches[0]; if(!t) return;
+          if(t.clientX>28) return;
+          if(e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
+          sx=t.clientX; sy=t.clientY; on=true;
+        }catch(_){ on=false; }
+      },{passive:true});
+      document.addEventListener('touchmove',(e)=>{
+        if(!on) return;
+        try{
+          const t=e.touches&&e.touches[0]; if(!t) return;
+          const dx=t.clientX-sx, dy=t.clientY-sy;
+          if(Math.abs(dy)>Math.abs(dx)*1.4+12){ on=false; return; }
+          if(dx>90){
+            on=false;
+            try{ if(navigator.vibrate) navigator.vibrate(10); }catch(_){}
+            try{ if(window.EdutalkNative?.hapticTick) window.EdutalkNative.hapticTick().catch(()=>{}); }catch(_){}
+            try{
+              if(state.roomManageOpen){ closeRoomSettings(); return; }
+            }catch(_){}
+            document.body.classList.remove('m-chat-open');
+            try{ openDrawer(); }catch(_){}
+          }
+        }catch(_){}
+      },{passive:true});
+      document.addEventListener('touchend',()=>{ on=false; },{passive:true});
+    }catch(e){}
+  }
+  // 앱을 나갔다 들어오면 즉시 다시 잠근다 (꺼야 잠기던 것을 진입 즉시 잠금으로)
+  let relockArmed=false, wentAwayAt=0;
+  function armInstantRelock(){
+    if(relockArmed) return; relockArmed=true;
+    const relock=()=>{
+      try{
+        if(!state.user||!isLockEnabled()) return;
+        if(document.getElementById('lockScreen')) return;
+        if(getLockUntil()>Date.now()) return;
+        showLockScreen(()=>{});
+      }catch(e){}
+    };
+    try{
+      const AppPlugin=(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App)||null;
+      if(AppPlugin&&AppPlugin.addListener){
+        AppPlugin.addListener('appStateChange',(st)=>{
+          if(st&&!st.isActive){ wentAwayAt=Date.now(); return; }
+          wentAwayAt=0;
+          setTimeout(relock,350);
+        });
+      }
+    }catch(e){}
+    try{
+      document.addEventListener('visibilitychange',()=>{
+        if(document.hidden){ wentAwayAt=Date.now(); return; }
+        // 웹은 탭을 스치듯 오갈 때를 고려해 20초 이상 나갔다 온 경우만 잠근다 (앱은 위에서 즉시 잠금)
+        const away=wentAwayAt?Date.now()-wentAwayAt:0; wentAwayAt=0;
+        if(away>20000) setTimeout(relock,350);
+      });
+    }catch(e){}
   }
   function showLockScreen(onSuccess){
     const prev=document.getElementById('lockScreen');
@@ -2584,7 +2633,6 @@
       startSchedTimer();
       // 앱 잠금이 켜져 있으면 비밀번호를 먼저 묻는다 - SecureStorage/Keychain 및 서버에 저장된 잠금이 있으면 로컬로 복원
       try{ await restoreAppLockFromSecure(); }catch(e){}
-      try{ await restoreAppLockFromServer(); }catch(e){}
       if(isLockEnabled()){
         state.shellZoomEnter=false;
         await new Promise(res=> showLockScreen(res));
@@ -2624,6 +2672,8 @@
   }
 
   setupGlobalHandlers();
+  try{ armInstantRelock(); }catch(e){}
+  try{ armSwipeBack(); }catch(e){}
   auth.onAuthStateChanged(handleUser);
 
   // 데스크톱 알림창을 누르면 그 채팅방을 바로 연다.
@@ -2653,8 +2703,7 @@
       <div class="auth-hero-body"><h2>학교 안에서<br><span class="roll"><span class="roll-track" id="heroRoll">${items}</span></span></h2>
       <p>선생님이 알려준 <b>학교 코드</b>로 가입하고, 우리 학교 친구들과 안전하게 이야기해요.</p>
       <div class="auth-hero-mobile" id="heroFadeBox"><span id="heroFade">${esc(HERO_POINTS[0].text)}</span></div>
-      <ul class="auth-points">${HERO_POINTS.map(p=>`<li><span class="pt-ico">${p.icon}</span>${esc(p.text)}</li>`).join('')}</ul></div>
-      <div class="auth-hero-foot"><div class="auth-links">${authLinkButtons()}</div></div></aside>`;
+      <ul class="auth-points">${HERO_POINTS.map(p=>`<li><span class="pt-ico">${p.icon}</span>${esc(p.text)}</li>`).join('')}</ul></div></aside>`;
   }
   // 안내 페이지 링크 (관리자 도구 → 안내 페이지에서 켜고 끌 수 있어요)
   function authLinkButtons(){
@@ -3215,7 +3264,7 @@
       ${authHeroHtml()}
       <div class="auth-card"><div class="auth-card-inner${anim?' auth-anim-'+anim:''}">
       ${isLogin
-        ? (landingEnabled()?`<button type="button" class="back-btn" data-action="landing-home" aria-label="소개 페이지로 돌아가기">←</button>`:'')
+        ? (landingEnabled()&&state.landingRequested?`<button type="button" class="back-btn" data-action="landing-home" aria-label="소개 페이지로 돌아가기">←</button>`:'')
         : `<button type="button" class="back-btn" data-action="toggle-auth" aria-label="로그인으로 돌아가기">←</button>`}
       <h1 class="auth-title">${state.authMode === 'login' ? '다시 만나서 반가워요' : '새 계정을 만들어봐요'}</h1>
       <p class="auth-desc">${state.authMode === 'login' ? '학교 코드로 만든 계정으로 로그인해 주세요.' : '학교 코드와 학급 정보를 입력하면 바로 시작할 수 있어요.'}</p>
@@ -3240,6 +3289,7 @@
       </form>
       <button class="google-btn" data-action="google"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg><span>Google 계정으로 ${state.authMode === 'login' ? '로그인' : '가입하기'}</span></button>
       ${isLogin?`<div class="auth-foot"><button class="text-btn" data-action="toggle-auth">회원가입</button><button class="text-btn" data-action="forgot">비밀번호 찾기</button>${landingEnabled()?`<button class="text-btn" data-action="landing-show">소개 보기</button>`:''}</div>`:''}
+      <div class="auth-links under-card">${authLinkButtons()}</div>
     </div></div></div></div>`;
     }
     if (!page && state.authMode === 'signup') {
@@ -3427,7 +3477,18 @@
       if(!Number(state.school.classCounts?.[grade]||0)||classNum>Number(state.school.classCounts[grade])) return showAuthError('반 정보를 확인해 주세요.');
       setPendingSignup({displayName:'',grade,classNum,schoolId,schoolName:state.selectedSchool?.name||'',schoolCode,consentPrivacy:true,consentTerms:true,consentAge14:true,consentedAt:Date.now()});
     }
-    try{const provider=new firebase.auth.GoogleAuthProvider();await auth.signInWithPopup(provider);}catch(e){setPendingSignup(null);console.error(e);showAuthError(errText(e));}
+    try{
+      const provider=new firebase.auth.GoogleAuthProvider();
+      try{ await auth.signInWithPopup(provider); }
+      catch(e){
+        // 팝업이 막힌 환경(인앱 웹뷰·아이폰 등)은 리다이렉트로 이어간다 (가입 정보는 sessionStorage에 유지)
+        const code=e?.code||'';
+        if(code==='auth/popup-blocked'||code==='auth/popup-closed-by-user'||code==='auth/cancelled-popup-request'||code==='auth/operation-not-supported-in-this-environment'||code==='auth/unauthorized-domain'){
+          try{ await auth.signInWithRedirect(provider); return; }catch(e2){ console.error(e2); showAuthError(errText(e2)); return; }
+        }
+        setPendingSignup(null); console.error(e); showAuthError(errText(e));
+      }
+    }catch(e){ console.error(e); showAuthError(errText(e)); }
   }
   async function forgot(){
     openModal(`<h2>비밀번호를 다시 설정해 볼까요?</h2><p class="desc">가입한 이메일로 재설정 링크를 보내드릴게요.</p><div class="field"><input id="resetEmail" class="input" type="email" placeholder="이메일을 입력해 주세요."></div><p id="resetMsg" class="reset-msg"></p><div class="modal-actions"><button class="cancel" data-close-modal>취소</button><button class="confirm" data-action="send-reset">보내기</button></div>`,true);
@@ -4324,13 +4385,12 @@
         (async()=>{
           const pw=document.getElementById('lockPwInput')?.value||'';
           const cp=document.getElementById('lockPwConfirm')?.value||'';
-          const sync=document.getElementById('lockSyncToggle')?.checked||false;
           const msg=document.getElementById('lockMsg');
           if(!pw||pw.length<4){ if(msg){msg.textContent='비밀번호는 4자 이상으로 해주세요.';msg.className='reset-msg warn';} return; }
           if(pw!==cp){ if(msg){msg.textContent='확인이 달라요.';msg.className='reset-msg warn';} return; }
-          await setAppLock(pw, sync);
-          if(msg){msg.textContent= sync ? '앱 잠금을 설정했어요. 모든 기기에서 잠금이 걸려요.' : '앱 잠금을 설정했어요. 이 기기에서만 잠겨요.';msg.className='reset-msg ok';}
-          toast(sync ? '앱 잠금을 켰어요. 모든 기기에서 비밀번호를 물어봐요.' : '앱 잠금을 켰어요. 이 기기에서만 잠겨요.');
+          await setAppLock(pw);
+          if(msg){msg.textContent='앱 잠금을 설정했어요. 이 기기에서만 잠겨요.';msg.className='reset-msg ok';}
+          toast('앱 잠금을 켰어요. 이 기기에서만 잠겨요.');
         })(); return;
       }
       if(a==='disable-lock'){ disableAppLock(); const msg=document.getElementById('lockMsg'); if(msg){msg.textContent='앱 잠금을 해제했어요.';msg.className='reset-msg ok';} const tg=document.getElementById('lockEnableToggle'); if(tg) tg.checked=false; const f=document.getElementById('lockPwField'); if(f) f.style.display='none'; toast('앱 잠금을 해제했어요.'); return; }
@@ -4376,6 +4436,7 @@
     const closeBtn=e.target.closest('[data-close-modal]'); if(closeBtn)return closeModal();
     const tab=e.target.closest('[data-tab]'); if(tab&&$('#adminPanel')){renderAdminPanel(tab.dataset.tab);$$('.tab',tab.closest('.overlay')||document).forEach(x=>x.classList.toggle('active',x===tab));setTimeout(()=>{ try{ const t=tab.closest('.admin-tabs')||document.querySelector('.admin-tabs'); if(t) updateTabsIndicator(t); }catch(e){} },30);return;}
     if(e.target.matches('.select-option'))return;
+    const swAct=e.target.closest('[data-swipe-act]'); if(swAct){ const wrap=swAct.closest('[data-room-id]'); const rid2=wrap?.dataset.roomId; if(!rid2) return; const k=swAct.dataset.swipeAct; closeRoomSwipe(); if(k==='mute') return toggleRoomMute(rid2); if(k==='manage'){ closeAllModals(); return openRoomManage(rid2); } if(k==='leave') return leaveRoom(rid2); return; }
     const room=e.target.closest('[data-room-id]'); if(room){ if(state.suppressRoomClick) return; return openRoom(room.dataset.roomId); }
   }
 
@@ -4814,7 +4875,7 @@
     if((r.memberIds||[]).includes(uid())) items.push(`<button type="button" class="danger" data-action="leave-room" data-room-id="${esc(roomId)}">채팅방 나가기</button>`);
     showFloatMenu(x,y,`<div class="float-title">${esc(r.name||'채팅방')}</div>${items.join('')}`);
   }
-  function roomHtml(r){const unread=state.unread[r.id]?1:0;const lock=isRoomMuted(r.id)?'<span class="share-dot" style="background:#9aa4b2" title="알림을 꺼 둔 채팅방이에요"></span>':'';const pin=isRoomPinned(r.id)?'<span class="pin-mark" title="위로 고정">📌</span>':'';return `<button class="room ${state.room?.id===r.id?'active':''}${unread?' has-unread':''}" data-room-id="${esc(r.id)}"><div class="room-icon">${roomIconHtml(r)}</div><div class="room-main"><div class="room-name">${pin}${esc(r.name||'이름 없는 채팅방')}${shareDot(roomShare(r))}${lock}</div><div class="room-sub">${esc(r.lastText || (r.type==='notice'?'선생님이 안내를 올려요.':'메시지가 아직 없어요.'))}</div></div><div class="room-right">${state.unread[r.id]?`<span class="unread">${Math.min(99,state.unread[r.id])}</span>`:''}</div></button>`;}
+  function roomHtml(r){const unread=state.unread[r.id]?1:0;const lock=isRoomMuted(r.id)?'<span class="share-dot" style="background:#9aa4b2" title="알림을 꺼 둔 채팅방이에요"></span>':'';const pin=isRoomPinned(r.id)?'<span class="pin-mark" title="위로 고정">📌</span>':'';const muted=isRoomMuted(r.id);return `<div class="room-swipe" data-room-id="${esc(r.id)}"><div class="room-swipe-bg left"><button type="button" data-swipe-act="mute">${muted?'🔔 알림 켜기':'🔕 알림 끄기'}</button><button type="button" data-swipe-act="manage">⚙ 설정</button></div><div class="room-swipe-bg right"><button type="button" data-swipe-act="leave">🚪 나가기</button></div><button class="room ${state.room?.id===r.id?'active':''}${unread?' has-unread':''}" data-room-id="${esc(r.id)}"><div class="room-icon">${roomIconHtml(r)}</div><div class="room-main"><div class="room-name">${pin}${esc(r.name||'이름 없는 채팅방')}${shareDot(roomShare(r))}${lock}</div><div class="room-sub">${esc(r.lastText || (r.type==='notice'?'선생님이 안내를 올려요.':'메시지가 아직 없어요.'))}</div></div><div class="room-right">${state.unread[r.id]?`<span class="unread">${Math.min(99,state.unread[r.id])}</span>`:''}</div></button></div>`;}
 
   // ---------- 탭(카테고리) 저장 ----------
   async function persistGroups(){
@@ -4848,6 +4909,8 @@
   }
   function beginRoomDrag(el,x,y){
     if(!roomDrag) return;
+    try{ if(roomSwipe) return; }catch(e){}
+    try{ if(document.querySelector('.room-swipe.open')) closeRoomSwipe(); }catch(e){}
     const rect=el.getBoundingClientRect();
     roomDrag.active=true;
     roomDrag.id=el.dataset.roomId;
@@ -4931,6 +4994,74 @@
       try{ if(roomDrag?.active||sideDrag||catDrag) e.preventDefault(); }catch(_){}
     }, {passive:false});
   }catch(e){}
+  // 카톡식 방 밀기: 오른쪽으로 밀면 알림·설정, 왼쪽으로 밀면 나가기
+  let roomSwipe=null;
+  function closeRoomSwipe(){
+    try{
+      document.querySelectorAll('.room-swipe.open').forEach(w=>{
+        w.classList.remove('open');
+        const b=w.querySelector(':scope > .room'); if(b) b.style.transform='';
+      });
+    }catch(e){}
+    if(roomSwipe){ roomSwipe=null; }
+  }
+  function armRoomSwipe(){
+    let sx=0, sy=0, wrap=null, btn=null, dx=0, tracking=false;
+    const reset=(el)=>{ if(el){ el.style.transform=''; el.closest('.room-swipe')?.classList.remove('open'); } };
+    try{
+      document.addEventListener('touchstart',(e)=>{
+        try{
+          if(e.touches.length>1) return;
+          const t=e.touches[0];
+          const w=t.target.closest?.('.room-swipe'); 
+          // 다른 방이 열려 있으면 먼저 닫는다
+          const opened=document.querySelector('.room-swipe.open');
+          if(opened && (!w || opened!==w)){ closeRoomSwipe(); }
+          if(!w) return;
+          if(t.target.closest?.('[data-swipe-act]')) return;
+          sx=t.clientX; sy=t.clientY; wrap=w; btn=w.querySelector(':scope > .room'); dx=0; tracking=true;
+        }catch(_){ tracking=false; }
+      },{passive:true});
+      document.addEventListener('touchmove',(e)=>{
+        if(!tracking||!wrap||!btn) return;
+        try{
+          if(roomDrag?.active){ tracking=false; reset(btn); wrap=null; btn=null; return; }
+          const t=e.touches[0];
+          const mx=t.clientX-sx, my=t.clientY-sy;
+          if(!roomSwipe){
+            if(Math.abs(my)>Math.abs(mx)*1.3+10){ tracking=false; wrap=null; btn=null; return; }
+            if(Math.abs(mx)<12) return;
+            roomSwipe={wrap};
+            wrap.classList.add('swiping');
+          }
+          dx=Math.max(-88,Math.min(160,mx));
+          btn.style.transform=`translateX(${dx}px)`;
+          if(Math.abs(mx)>10) e.preventDefault();
+        }catch(_){}
+      },{passive:false});
+      const finish=(e)=>{
+        if(!tracking) return;
+        tracking=false;
+        try{
+          if(!wrap||!btn){ roomSwipe=null; return; }
+          const w=wrap, b=btn, d=dx;
+          wrap=null; btn=null; roomSwipe=null;
+          w.classList.remove('swiping');
+          if(d>64){ b.style.transform='translateX(160px)'; w.classList.add('open'); }
+          else if(d<-44){ b.style.transform='translateX(-88px)'; w.classList.add('open'); }
+          else { b.style.transform=''; w.classList.remove('open'); }
+          if(Math.abs(d)>10){
+            state.suppressRoomClick=true;
+            setTimeout(()=>{ state.suppressRoomClick=false; },400);
+            try{ if(navigator.vibrate) navigator.vibrate(10); }catch(_){}
+          }
+        }catch(_){}
+      };
+      document.addEventListener('touchend',finish,{passive:true});
+      document.addEventListener('touchcancel',()=>{ tracking=false; if(wrap&&btn){ reset(btn); } wrap=null; btn=null; roomSwipe=null; },{passive:true});
+    }catch(e){}
+  }
+  try{ armRoomSwipe(); }catch(e){}
   // 방을 집은 채로 목록 위·아래 가장자리에 대면 일정 속도로 자동 스크롤 (100개 목록도 중간으로 옮길 수 있게)
   let edgeScrollTimer=null, edgeScrollDir=0, edgeScrollEl=null;
   function edgeScrollTick(){
@@ -8516,7 +8647,7 @@
       html=`
       <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><circle cx="12" cy="15" r="1"/></svg></span> 보안</h3>
         ${isNativeApp() ? `<div class="setting-row"><div class="setting-label"><strong>앱 잠금</strong></div><label class="choice ${lockOn?'active':''}"><input type="checkbox" id="lockEnableToggle" ${lockOn?'checked':''}> ${lockOn?'켜짐':'꺼짐'}</label></div><div class="setting-row"><div class="setting-label"><strong>생체 인증으로 바로 해제</strong><div class="meta" style="font-size:12px;color:var(--sub);margin-top:2px">잠금 화면에서 버튼 안 눌러도 Face ID가 저절로 떠요</div></div><label class="choice ${isBioAuto()?'active':''}"><input type="checkbox" id="bioAutoToggle" ${isBioAuto()?'checked':''}> ${isBioAuto()?'켜짐':'꺼짐'}</label></div>` : `<div class="setting-row" style="opacity:.6"><div class="setting-label"><strong>앱 잠금</strong></div><span class="perm-badge">앱 전용</span></div>`}
-        <div class="field" id="lockPwField" style="${lockOn?'':'display:none'}"><label>새 비밀번호 (4자리)</label><input id="lockPwInput" class="input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="4자리 숫자" style="letter-spacing:8px;text-align:center;font-size:16px"><input id="lockPwConfirm" class="input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="한 번 더 입력" style="margin-top:8px;letter-spacing:8px;text-align:center;font-size:16px"><label class="consent" style="margin-top:8px"><input type="checkbox" id="lockSyncToggle" ${isLockSyncEnabled()?'checked':''}><span><b>다른 기기에서도 잠그기</b> — 켜면 계정에 저장되어 모든 기기에서 잠금이 필요해요. 끄면 이 기기에서만 잠겨요.</span></label><div class="row" style="margin-top:8px"><button type="button" class="soft-btn" data-action="save-lock" style="flex:1">저장</button><button type="button" class="soft-btn" data-action="disable-lock" style="flex:1">잠금 해제</button></div><p id="lockMsg" class="reset-msg"></p></div>
+        <div class="field" id="lockPwField" style="${lockOn?'':'display:none'}"><label>새 비밀번호 (4자리)</label><input id="lockPwInput" class="input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="4자리 숫자" style="letter-spacing:8px;text-align:center;font-size:16px"><input id="lockPwConfirm" class="input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="한 번 더 입력" style="margin-top:8px;letter-spacing:8px;text-align:center;font-size:16px"><p class="desc" style="margin:8px 0 0;font-size:12px">이 기기에서만 잠겨요. 앱을 지웠다가 다시 깔면 잠금이 풀려요.</p><div class="row" style="margin-top:8px"><button type="button" class="soft-btn" data-action="save-lock" style="flex:1">저장</button><button type="button" class="soft-btn" data-action="disable-lock" style="flex:1">잠금 해제</button></div><p id="lockMsg" class="reset-msg"></p></div>
         <div class="setting-row"><div class="setting-label"><strong>차단한 사용자</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="blocked-users">보기</button></div>
         <div class="setting-row"><div class="setting-label"><strong>약관 및 정책</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="open-policies">보기</button></div>
         <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px"><div class="setting-label"><strong>키워드 알림</strong></div><textarea name="keywords" class="input word-box" maxlength="200" rows="3" placeholder="예: 시험&#10;급식" style="width:100%;font-size:16px">${esc((state.settings.keywords||[]).join('\n'))}</textarea></div>
@@ -8599,23 +8730,40 @@
       if(state.rxDraft.has(e)){ if(state.rxDraft.size<=1) return toast('1개는 남겨 주세요.'); state.rxDraft.delete(e); b.classList.remove('on'); }
       else { if(state.rxDraft.size>=8) return toast('최대 8개까지 고를 수 있어요.'); state.rxDraft.add(e); b.classList.add('on'); }
     });
+    const persistBrowserPref=async()=>{
+      // 토글은 누르는 즉시 저장된다 (저장 버튼을 안 눌러도 유지)
+      try{
+        const nt2={...(state.settings.notify||{}), browser:bt.checked};
+        state.settings.notify=nt2;
+        if(state.profile) state.profile.settings={...(state.profile.settings||{}), notify:nt2};
+        await db.collection('users').doc(uid()).update({['settings.notify']:nt2, updatedAt:ts()});
+      }catch(e){ console.error('notify pref', e); }
+    };
     const bt=p.querySelector('[data-browser-toggle]'); if(bt) bt.onchange=async()=>{
-      if(!bt.checked){ bt.closest('.choice')?.classList.remove('active'); return; }
-      if(DESKTOP){ bt.closest('.choice')?.classList.add('active'); return; }
+      if(!bt.checked){ bt.closest('.choice')?.classList.remove('active'); persistBrowserPref(); return; }
+      if(DESKTOP){ bt.closest('.choice')?.classList.add('active'); persistBrowserPref(); return; }
       // 네이티브 앱(iOS/Android)은 브라우저 Notification이 없어도 FCM으로 알림이 온다
       if(isNativeApp()){
-        bt.closest('.choice')?.classList.add('active');
         try{ await window.EdutalkNative.registerPush(); }catch(e){}
         try{ if(window.EdutalkNative.flushPushToken) window.EdutalkNative.flushPushToken(); }catch(e){}
+        const st=String(window.__edutalkPushPerm||'');
+        if(st==='denied'){
+          bt.checked=false; bt.closest('.choice')?.classList.remove('active');
+          persistBrowserPref();
+          toast('알림이 차단되어 있어요. 아이폰 설정 → 에듀톡 → 알림에서 허용해 주세요.');
+          return;
+        }
+        bt.closest('.choice')?.classList.add('active');
+        persistBrowserPref();
         toast('앱 알림을 켰어요. 새 메시지가 오면 알림이 와요.');
         return;
       }
-      if(notificationPermission()==='granted'){ bt.closest('.choice')?.classList.add('active'); return; }
+      if(notificationPermission()==='granted'){ bt.closest('.choice')?.classList.add('active'); persistBrowserPref(); return; }
       if(notificationPermission()==='unsupported'){ bt.checked=false; bt.closest('.choice')?.classList.remove('active'); return toast('이 브라우저는 기기 알림을 지원하지 않아요.'); }
       try{
         const r=await Notification.requestPermission();
-        if(r==='granted'){ bt.closest('.choice')?.classList.add('active'); toast('기기 알림을 켰어요.'); }
-        else { bt.checked=false; bt.closest('.choice')?.classList.remove('active'); toast('브라우저에서 알림이 차단되어 있어요.'); }
+        if(r==='granted'){ bt.closest('.choice')?.classList.add('active'); persistBrowserPref(); toast('기기 알림을 켰어요.'); }
+        else { bt.checked=false; bt.closest('.choice')?.classList.remove('active'); persistBrowserPref(); toast('브라우저에서 알림이 차단되어 있어요.'); }
       }catch(e){ bt.checked=false; bt.closest('.choice')?.classList.remove('active'); }
     };
     if(DESKTOP && window.edutalkDesktop?.getNotificationPosition){

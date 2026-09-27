@@ -186,6 +186,7 @@
     try {
 
       const perm = await PushNotifications.requestPermissions();
+      try { window.__edutalkPushPerm = perm.receive || ''; } catch (e) {}
       if (perm.receive !== 'granted') {
         console.log('push permission not granted', perm);
         return null;
