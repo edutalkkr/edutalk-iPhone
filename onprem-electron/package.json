@@ -1,0 +1,70 @@
+{
+  "name": "breeze-server-gui",
+  "version": "1.0.0",
+  "description": "브리즈 학내망 서버 GUI (검은창 없음, 트레이 상주)",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:hidden": "electron . --hidden",
+    "build:win": "electron-builder --win"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.breeze.server",
+    "productName": "브리즈 서버",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../onprem/server.js",
+        "to": "onprem/server.js"
+      },
+      {
+        "from": "../onprem/db.js",
+        "to": "onprem/db.js"
+      },
+      {
+        "from": "../onprem/auth.js",
+        "to": "onprem/auth.js"
+      },
+      {
+        "from": "../onprem/license.js",
+        "to": "onprem/license.js"
+      },
+      {
+        "from": "../onprem/admin.html",
+        "to": "onprem/admin.html"
+      },
+      {
+        "from": "../onprem/package.json",
+        "to": "onprem/package.json"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "브리즈 서버",
+      "artifactName": "Breeze-Server-Setup.${ext}"
+    }
+  }
+}

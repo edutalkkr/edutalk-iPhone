@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Breeze",
+  "version": "1.0.0",
+  "identifier": "com.breeze.school",
+  "build": {
+    "frontendDist": "../public",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "echo static public folder, no build needed"
+  },
+  "app": {
+    "windows": [{ "title": "브리즈", "width": 1200, "height": 820, "minWidth": 380, "minHeight": 400 }],
+    "security": { "csp": "default-src 'self'; script-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net" }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.png"],
+    "resources": { "public/*": "public/" }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "브리즈",
+  "version": "0.1.0",
+  "identifier": "kr.breeze.school",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "브리즈",
+        "width": 400,
+        "height": 860,
+        "minWidth": 360,
+        "minHeight": 600,
+        "decorations": false,
+        "transparent": true
+      }
+    ],
+      "security": {
+        "csp": "default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost https://firestore.googleapis.com"
+      }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico", "icons/icon.icns"],
+    "shortDescription": "학교 교직원 전용 하이브리드 메신저 브리즈",
+    "longDescription": "서버 없이 교내망에서 직접 통하고, 외부망에서는 전송 전에 이 PC 안에서 검사하는 학교 전용 메신저"
+  }
+}

@@ -1,6 +1,6 @@
 {
-  "appId": "com.edutalk.messenger",
-  "appName": "에듀톡",
+  "appId": "com.breeze.school",
+  "appName": "브리즈",
   "webDir": "public",
   "server": {
     "androidScheme": "https",

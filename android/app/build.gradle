@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.edutalk.messenger"
+    namespace "com.breeze.school"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.edutalk.messenger"
+        applicationId "com.breeze.school"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

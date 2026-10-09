@@ -1,4 +1,4 @@
-/* Edutalk Native Bridge — Capacitor 전용 기능 (웹에서는 자동 스킵) */
+/* Breeze Native Bridge — Capacitor 전용 기능 (웹에서는 자동 스킵) */
 (function () {
   'use strict';
 
@@ -100,7 +100,7 @@
     try {
       const opts = {
         reason: reason || '앱 잠금을 해제합니다',
-        title: '에듀톡 잠금 해제',
+        title: '브리즈 잠금 해제',
         subtitle: '본인 확인',
         description: 'Face ID / Touch ID / PIN으로 인증해 주세요',
         negativeButtonText: '취소',
@@ -231,7 +231,7 @@
           console.log('push received', notification);
           // 앱이 포그라운드일 때 인앱 토스트로 표시
           try {
-            const title = notification.title || '에듀톡';
+            const title = notification.title || '브리즈';
             const body = notification.body || '';
             // 기존 알림 시스템 재사용
             if (window.showToast) window.showToast(body || title);

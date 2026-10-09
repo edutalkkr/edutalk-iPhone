@@ -1,4 +1,4 @@
-/* EduTalk Firebase client config
+/* Breeze Firebase client config
  * 아래 값은 Firebase '웹 앱'의 공개 식별자입니다(비밀 키가 아님). 정적 호스팅에는 빌드 단계가 없어
  * .env 를 주입할 수 없으므로 클라이언트에 그대로 둡니다.
  * 실제 보안 경계는 ① firestore.rules 의 접근 제어, ② Firebase Console 에서 이 API 키에 걸어 둔

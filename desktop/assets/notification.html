@@ -42,7 +42,7 @@
     width: 42px;
     height: 42px;
     border-radius: 13px;
-    background: #3F9BFF;
+    background: linear-gradient(145deg,#0082C8,#0069A8);
     color: #fff;
     font-size: 20px;
     font-weight: 800;
@@ -100,9 +100,9 @@
 </head>
 <body>
   <div class="card" id="card">
-    <div class="mark">E</div>
+    <div class="mark">B</div>
     <div class="grow">
-      <div class="title" id="title">에듀톡</div>
+      <div class="title" id="title">브리즈</div>
       <div class="body" id="body"></div>
     </div>
     <button class="x" id="close" type="button" aria-label="닫기">✕</button>
@@ -119,7 +119,7 @@
 
       function show(payload) {
         currentRoomId = (payload && payload.roomId) || '';
-        titleEl.textContent = (payload && payload.title) || '에듀톡';
+        titleEl.textContent = (payload && payload.title) || '브리즈';
         bodyEl.textContent = (payload && payload.body) || '';
         card.classList.remove('out');
         void card.offsetWidth; // 애니메이션이 다시 재생되도록 강제로 다시 그린다

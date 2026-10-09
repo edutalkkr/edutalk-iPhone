@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>브리즈 내부망 서버 설치 방법</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif; margin: 0; background: #f1f5f9; color: #0f172a; line-height: 1.7; }
+  header { background: linear-gradient(152deg, #3AA9E0 0%, #0082C8 46%, #0A3A5A 100%); color: #fff; padding: 34px 20px; text-align: center; }
+  header h1 { margin: 0; font-size: 24px; letter-spacing: -.5px; }
+  header p { margin: 8px 0 0; font-size: 14px; opacity: .9; }
+  main { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; display: grid; gap: 14px; }
+  .step { background: #fff; border-radius: 16px; padding: 18px; box-shadow: 0 2px 12px rgba(15,23,42,.07); display: grid; grid-template-columns: 44px 1fr; gap: 12px; }
+  .num { width: 44px; height: 44px; border-radius: 50%; background: #0082C8; color: #fff; font-weight: 800; font-size: 19px; display: grid; place-items: center; }
+  .step h2 { margin: 2px 0 8px; font-size: 17px; }
+  .step p { margin: 6px 0; font-size: 14px; color: #334155; }
+  .step code { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1px 7px; font-size: 13px; word-break: break-all; }
+  .pic { background: #0f172a; color: #a5f3fc; border-radius: 10px; padding: 12px 14px; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; white-space: pre-wrap; word-break: break-all; margin: 8px 0; }
+  .tip { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin: 8px 0; }
+  .warn { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+  th, td { border: 1px solid #e2e8f0; padding: 7px 8px; text-align: left; }
+  th { background: #f8fafc; }
+  footer { text-align: center; color: #94a3b8; font-size: 12px; padding-bottom: 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏫 브리즈 내부망 서버 설치 방법</h1>
+  <p>학교 PC 1대에 설치하면 학내망 전용 메신저가 열립니다 (약 10분)</p>
+</header>
+<main>
+  <div class="step"><div class="num">1</div><div>
+    <h2>준비물 챙기기</h2>
+    <p>① 항상 켜져 있는 <b>학교 PC (Windows)</b> 1대 ② <code>breeze-server.exe</code> 파일 (용량이 커서 USB에 복사해서 가져가세요) ③ <code>license.key</code> (유료 구독을 샀다면 함께, 없으면 30일 무료 체험으로 시작됩니다)</p>
+    <div class="tip">💡 학교 PC는 절전 모드가 꺼져 있어야 휴대폰에서 항상 접속됩니다.</div>
+  </div></div>
+  <div class="step"><div class="num">2</div><div>
+    <h2>서버 실행하기</h2>
+    <p>① exe 파일을 더블클릭합니다. ② 검은 창(콘솔)에 아래처럼 표시되면 성공입니다.</p>
+    <div class="pic">==============================================
+  Breeze 학내망 서버가 켜졌어요.
+ 관리 페이지: http://localhost:3000/admin
+ 학교 안에서 접속할 주소:
+  - http://192.168.0.100:3000  (이더넷)
+ 라이선스: 무료 체험 30일 남았어요.
+==============================================</div>
+    <p>③ 처음 실행 때 <b>Windows 방화벽 허용 팝업</b>이 뜨면 <b>[액세스 허용]</b>을 꼭 눌러 주세요. 안 누르면 휴대폰에서 접속이 안 됩니다.</p>
+    <div class="warn">⛔ 이 검은 창을 닫으면 서버가 꺼집니다. 창은 그대로 두세요.</div>
+  </div></div>
+  <div class="step"><div class="num">3</div><div>
+    <h2>관리 페이지 열기</h2>
+    <p>학교 PC의 브라우저(Edge·크롬)에서 <code>http://localhost:3000/admin</code> 으로 들어갑니다.</p>
+    <p>맨 위 <b>관리자 토큰</b> 칸에 검은 창에 1회 표시된 토큰을 입력하고 [저장] → [상태 불러오기]를 누릅니다. (토큰을 잊었으면 서버 폴더의 <code>data/.admin_token</code> 파일을 메모장으로 열면 됩니다)</p>
+  </div></div>
+  <div class="step"><div class="num">4</div><div>
+    <h2>교직원·학생 명단 올리기 (엑셀)</h2>
+    <p>[교직원 엑셀 일괄 등록]에서 엑셀 파일을 올리면 계정이 자동으로 만들어집니다. 첫 줄(제목 행)은 아래 이름으로 적어 주세요.</p>
+    <table><tr><th>username</th><th>real_name</th><th>password</th><th>department</th><th>role</th><th>is_paid_dual_network</th></tr>
+    <tr><td>사번·학번 (예: t001)</td><td>이름</td><td>초기 비번 (비우면 사번)</td><td>부서 (예: 교무부&gt;1학년부)</td><td>TEACHER·STAFF·ADMIN</td><td>유료 여부 (1 또는 예)</td></tr></table>
+  </div></div>
+  <div class="step"><div class="num">5</div><div>
+    <h2>라이선스 등록 (유료일 때만)</h2>
+    <p>[유료 구독 관리]에 <code>license.key</code> 파일 내용을 통째로 붙여넣고 [라이선스 저장]을 누릅니다. 상태에 "유료 듀얼 네트워크가 켜져 있어요"가 뜨면 끝입니다. 없으면 4단계까지만 해도 내부망 메신저는 바로 쓸 수 있습니다.</p>
+  </div></div>
+  <div class="step"><div class="num">6</div><div>
+    <h2>앱에서 연결하기</h2>
+    <p>① 휴대폰·PC 앱에서 <b>전체 설정 → 네트워크</b>로 들어갑니다. ② 서버 주소에 2단계 검은 창에 나온 주소(예: <code>http://192.168.0.100:3000</code>)를 입력하고 [주소 저장]. ③ 사번과 초기 비밀번호로 [연결하기]. ④ 모드에서 <b>학교 내부망 전용</b>(또는 유료면 <b>유료 듀얼 모드</b>)을 고르면 끝입니다.</p>
+    <div class="tip">💡 학교 Wi-Fi에 연결된 상태에서만 내부망 방이 열립니다. 집·데이터에서는 외부망 방만 보입니다.</div>
+  </div></div>
+  <div class="step"><div class="num">?</div><div>
+    <h2>안 될 때 확인하기</h2>
+    <p>· <b>주소가 안 열려요</b> → 휴대폰이 학교 Wi-Fi에 연결됐는지, 서버 PC의 방화벽 허용을 눌렀는지 확인해 주세요.<br>· <b>로그인이 안 돼요</b> → 엑셀의 사번·초기 비번(비웠다면 사번)을 확인해 주세요.<br>· <b>포트를 바꾸고 싶어요</b> → 서버를 끄고 <code>EDUTALK_PORT=8080</code> 환경변수를 준 뒤 다시 켜면 됩니다.</p>
+  </div></div>
+</main>
+<footer>브리즈 내부망 서버 설치 안내 · 웹 기본(문자형) / 교사 풀버전은 Windows 설치판 전용(교내망 직접연결·시간표·대강·감사)</footer>
+</body>
+</html>

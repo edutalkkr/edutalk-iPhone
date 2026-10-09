@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">에듀톡</string>
-    <string name="title_activity_main">에듀톡</string>
-    <string name="package_name">com.edutalk.messenger</string>
-    <string name="custom_url_scheme">com.edutalk.messenger</string>
+    <string name="app_name">브리즈</string>
+    <string name="title_activity_main">브리즈</string>
+    <string name="package_name">com.breeze.school</string>
+    <string name="custom_url_scheme">com.breeze.school</string>
 </resources>

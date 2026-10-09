@@ -488,9 +488,9 @@
     return true;
   }
   const AVATAR_EMOJIS = ['', '🙂', '😎', '🐱', '🐶', '🦊', '🐼', '🐧', '🐸', '🦉', '🌱', '⭐', '🍀'];
-  const AVATAR_COLORS = ['', '#3F9BFF', '#10B981', '#f04452', '#8b5cf6', '#f59e0b', '#0ea5e9', '#ec4899'];
+  const AVATAR_COLORS = ['', '#0082C8', '#10B981', '#f04452', '#8b5cf6', '#f59e0b', '#0ea5e9', '#ec4899'];
   const DEFAULT_SITE_NOTICE = {
-    banner: { enabled: false, html: '', align: 'left', fontSize: 14, textColor: '#3F9BFF', bgColor: '#EAF4FF', linkText: '', linkUrl: '' },
+    banner: { enabled: false, html: '', align: 'left', fontSize: 14, textColor: '#0082C8', bgColor: '#EAF4FF', linkText: '', linkUrl: '' },
     popup: { enabled: false, title: '', html: '', align: 'left', fontSize: 15, textColor: '#191f28', primaryText: '확인', primaryUrl: '', secondaryText: '닫기', secondaryUrl: '' },
     // 7번: 메인 하단(채팅 입력창 위) 관리자 한마디 — 글자 크기 조절 가능
     bottom: { enabled: false, html: '', align: 'center', fontSize: 13, textColor: '#5B6472', bgColor: '#F1F2F7' }
@@ -498,7 +498,7 @@
   // 로그인 화면에서 여는 안내 페이지 (관리자 도구 → 안내 페이지에서 수정)
   const DEFAULT_AUTH_PAGES = [
     { id:'privacy', label:'개인정보 처리방침', enabled:true, title:'개인정보 처리방침', html:
-      '<div style="text-align:center;margin-bottom:18px"><strong>에듀톡(이하 ‘서비스’)은 「개인정보 보호법」 등 관련 법령을 준수하며, 이용자의 개인정보 및 사생활을 보호하고 관련 고충을 신속하게 처리하기 위해 다음과 같이 개인정보 처리방침을 수립·공개합니다.</strong><br><span style="color:var(--sub);font-size:13px">시행 일자: 2026년 9월 17일 &nbsp;|&nbsp; 공고 일자: 2026년 9월 17일</span></div>'+
+      '<div style="text-align:center;margin-bottom:18px"><strong>브리즈(이하 ‘서비스’)은 「개인정보 보호법」 등 관련 법령을 준수하며, 이용자의 개인정보 및 사생활을 보호하고 관련 고충을 신속하게 처리하기 위해 다음과 같이 개인정보 처리방침을 수립·공개합니다.</strong><br><span style="color:var(--sub);font-size:13px">시행 일자: 2026년 9월 17일 &nbsp;|&nbsp; 공고 일자: 2026년 9월 17일</span></div>'+
       '<p><b>제1조 (개인정보의 처리 목적)</b><br>서비스는 다음 목적을 위해 최소한의 개인정보를 처리합니다. 처리 목적이 변경될 시에는 사전 동의를 구할 예정입니다.<br>· 회원가입 및 관리: 본인 식별, 학교/학년/반 검증 및 소속 확인, 서비스 이용 자격 유지, 부정 이용 방지<br>· 메신저 및 커뮤니티 서비스 제공: 학교/학급 기반 채팅방 제공, 대화 전달, 파일·이미지 전송 및 미리보기 제공, 신고 접수 및 조치<br>· 서비스 보안 및 환경 개선: 금지어 및 부적절 콘텐츠 자동 감지, 서비스 이용 기록 분석, 시스템 오류 개선 및 보안 유지<br>· 민원 처리 및 분쟁 대응: 신고건 처리, 학교폭력 예방 및 법적 수사 협조</p>'+
       '<p><b>제2조 (처리하는 개인정보 항목)</b><br>서비스는 이용 과정에서 아래와 같은 개인정보를 수집 및 처리합니다.<br><b>① 회원가입 시 수집 항목</b><br>· 일반 회원가입: 이메일 주소, 비밀번호(암호화 저장), 닉네임, 학교명, 학년, 반, 학교 고유 코드<br>· Google 로그인: Google 계정 식별값(UID), 이메일 주소, 프로필 이름, 프로필 사진, 학교명, 학년, 반, 학교 고유 코드<br><b>② 메신저 서비스 이용 시 수집 항목</b><br>· 채팅 대화 내용, 전송된 이미지/첨부파일(파일명, 용량, 미리보기용 썸네일), 채팅방 생성·참여·삭제 시각, 신고 내역(신고 사유, 피신고자 정보, 관련 대화 로그 스냅샷 30개), 금지어 감지 기록<br>· 파일 보기 기능: 채팅방에서 전송된 이미지는 인라인 미리보기로 표시되며, 첨부파일은 다운로드 링크로 제공됩니다. 파일은 Firebase Security Rules에 따라 해당 채팅방 참여자만 조회할 수 있고, 유해 파일은 차단됩니다.<br><b>③ 서비스 이용 과정에서 자동 수집되는 정보</b><br>· IP 주소, 서비스 이용 및 접속 기록, 쿠키, 기기 정보(브라우저 종류, OS 정보), Firebase Authentication 식별값, 접속 시각</p>'+
       '<p><b>제3조 (개인정보의 처리 및 보유 기간)</b><br>이용자의 개인정보는 회원 탈퇴 시 즉시 파기하는 것을 원칙으로 합니다. 단, 관련 법령 준수 및 내부 방침에 따라 아래 정보는 명시한 기간 동안 보관 후 파기합니다.<br>· 삭제된 채팅 기록 및 대화 로그: 학교폭력 예방, 부적절한 콘텐츠 신고 처리 및 법적 분쟁 대응을 위해 삭제일로부터 30일간 보관(Soft Delete) 후 영구 파기<br>· 신고 처리 및 불량 이용 기록: 신고 조치 및 이의 신청 대응을 위해 해당 목적 달성 시까지 보관 (처리 완료 후 1년 이내 파기)<br>· 관계 법령에 따른 보관: 통신비밀보호법에 따른 로그인 기록(로그)은 3개월간 보관</p>'+
@@ -509,16 +509,16 @@
       '<p><b>제8조 (이용자 및 법정대리인의 권리와 행사 방법)</b><br>· 이용자는 언제든지 서비스 내 [프로필/계정 설정]을 통해 자신의 개인정보를 조회·수정하거나 탈퇴를 요청할 수 있습니다.<br>· 연령 제한: 본 서비스는 만 14세 이상을 대상으로 운영되며, 가입 시 연령 확인을 진행합니다.<br>· 사적인 대화의 비밀 보호를 위해 관리자 및 교사는 이용자의 대화를 임의로 열람하지 않으며, 이용자의 신고 접수, 자동 금지어 감지, 수사기관의 요청 시에 한해 최소한의 범위에서만 열람됩니다. 열람 시에는 신고 시점의 대화 30개 스냅샷에 한정합니다.</p>'+
       '<p><b>제9조 (개인정보의 안전성 확보 조치)</b><br>서비스는 개인정보의 유출 및 훼손을 막기 위해 다음과 같은 기술적·관리적 대책을 적용하고 있습니다.<br>· HTTPS 전송 구간 암호화 및 데이터 저장 시 암호화 적용<br>· Firebase Security Rules를 통한 접근 권한 제어 (채팅방 참여자만 메시지·파일 조회 가능, 파일 URL은 safeImgSrc/safeFileHref로 검증)<br>· 관리자 비밀번호 비인가 접근 차단 및 최소 권한 운영<br>· 금지어 자동 필터링 시스템을 통한 비속어 및 위협 요소 사전 조치<br>· 업로드된 이미지·파일은 유해 콘텐츠 자동 검열 후 블라인드 처리되며, 이의 신청 절차를 제공합니다.</p>'+
       '<p><b>제10조 (쿠키 및 저장소 이용)</b><br>서비스는 로그인 상태 유지 및 안전한 이용 환경을 제공하기 위해 브라우저의 쿠키(Cookie), LocalStorage, SessionStorage를 사용할 수 있습니다.<br>· 쿠키에는 로그인 세션, 테마 설정, 사이드바 너비 등이 저장될 수 있습니다.<br>· 이용자는 브라우저 설정을 통해 쿠키 저장을 거부할 수 있으나, 이 경우 소셜 로그인 등 일부 기능 이용에 어려움이 있을 수 있습니다.</p>'+
-      '<p><b>제11조 (개인정보 보호책임자 및 문의처)</b><br>· 서비스명: 에듀톡 (Edutalk)<br>· 보호책임자: 에듀톡 운영팀<br>· 문의 이메일: edutalkkr@gmail.com</p>'+
+      '<p><b>제11조 (개인정보 보호책임자 및 문의처)</b><br>· 서비스명: 브리즈 (Breeze)<br>· 보호책임자: 브리즈 운영팀<br>· 문의 이메일: edutalkkr@gmail.com</p>'+
       '<p><b>제12조 (권익침해 구제방법)</b><br>개인정보 침해에 대한 피해구제, 상담 등이 필요하신 경우 아래의 기관에 문의하실 수 있습니다.<br>· 개인정보 침해신고센터: (국번없이) 118 (privacy.kisa.or.kr)<br>· 개인정보 분쟁조정위원회: (국번없이) 1833-6972 (www.kopico.go.kr)<br>· 대검찰청 사이버수사과: (국번없이) 1301 (www.spo.go.kr)<br>· 경찰청 사이버수사국: (국번없이) 182 (ecrm.police.go.kr)</p>'+
       '<p><b>제13조 (개인정보 처리방침의 변경)</b><br>본 개인정보 처리방침은 법령 또는 서비스 변경에 따라 수정될 수 있으며, 개정 시 시행 최소 7일 전 서비스 공지사항을 통해 고지합니다.<br>· 공고 일자: 2026년 9월 17일<br>· 시행 일자: 2026년 9월 17일</p>',
       buttons: [] },
     { id:'contact', label:'문의하기', enabled:true, title:'문의하기', html:
-      '<p>에듀톡을 쓰다가 궁금한 점이나 불편한 점이 있으면 담당 선생님께 알려 주세요.</p>'+
+      '<p>브리즈을 쓰다가 궁금한 점이나 불편한 점이 있으면 담당 선생님께 알려 주세요.</p>'+
       '<p>학교 이름, 학년·반, 닉네임을 함께 적어 주시면 더 빠르게 확인할 수 있어요.</p>',
       buttons: [] },
     { id:'school', label:'학교 등록', enabled:true, title:'학교 등록 안내', html:
-      '<p>에듀톡은 담당 선생님이 학교를 먼저 등록한 뒤, 그 학교의 <b>학교 코드</b>로 학생들이 가입할 수 있어요.</p>'+
+      '<p>브리즈은 담당 선생님이 학교를 먼저 등록한 뒤, 그 학교의 <b>학교 코드</b>로 학생들이 가입할 수 있어요.</p>'+
       '<p><b>등록 순서</b><br>1) 담당 선생님이 관리자 계정을 만듭니다.<br>2) 관리자 도구 → 학교 관리에서 학교를 등록합니다.<br>3) 발급된 학교 코드를 학생들에게 알려 줍니다.</p>'+
       '<p>이미 학교가 등록되어 있다면 선생님께 학교 코드를 받아 회원가입해 주세요.</p>',
       buttons: [] },
@@ -543,8 +543,8 @@
       '<p><b>3. 환불</b><br>· 코드 미사용 + 구매 후 7일 이내면 전액 환불됩니다.<br>· 환불 요청(코드·금액·사유)은 사람이 직접 확인합니다.<br>· 이미 쓰인 이용권은 환불되지 않습니다.<br>· 환불된 코드는 폐기되어 다시 쓸 수 없습니다.<br>· 등록 직후 등 특별한 사유는 총관리자가 학교 권한을 직접 회수하고 환불할 수 있습니다.</p>',
       buttons: [] },
     { id:'terms', label:'서비스 이용약관', enabled:true, title:'서비스 이용약관', html:
-      '<div style="text-align:center;margin-bottom:18px"><strong>에듀톡 서비스 이용약관</strong><br><span style="color:var(--sub);font-size:13px">시행 일자: 2026년 9월 17일 &nbsp;|&nbsp; 공고 일자: 2026년 9월 17일</span></div>'+
-      '<p><b>제1조 (목적)</b><br>이 약관은 에듀톡(이하 “서비스”)이 제공하는 학교 전용 메신저 및 커뮤니티 서비스의 이용과 관련하여 서비스와 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.</p>'+
+      '<div style="text-align:center;margin-bottom:18px"><strong>브리즈 서비스 이용약관</strong><br><span style="color:var(--sub);font-size:13px">시행 일자: 2026년 9월 17일 &nbsp;|&nbsp; 공고 일자: 2026년 9월 17일</span></div>'+
+      '<p><b>제1조 (목적)</b><br>이 약관은 브리즈(이하 “서비스”)이 제공하는 학교 전용 메신저 및 커뮤니티 서비스의 이용과 관련하여 서비스와 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.</p>'+
       '<p><b>제2조 (정의)</b><br>① “서비스”란 학교 코드를 기반으로 학급·모둠·동아리 채팅, 파일 전송 및 미리보기, 학교 일정, 익명 건의함, 급식·시간표 조회 등을 제공하는 학교 전용 플랫폼을 말합니다.<br>② “회원”이란 이 약관에 동의하고 학교 코드를 통해 가입하여 서비스를 이용하는 학생, 교사, 학교 관리자, 운영자를 말합니다.<br>③ “채팅방”이란 회원이 생성·참여하는 대화 공간을 말하며, 공개범위에 따라 전체(학교 전체), 멤버(초대) 등으로 구분됩니다.<br>④ “첨부파일”이란 채팅방에서 전송되는 이미지, 문서, 기타 파일을 말하며, 미리보기 및 다운로드 기능이 제공될 수 있습니다.<br>⑤ “운영자”란 서비스를 운영하는 총관리자 및 위탁 운영 주체를 말합니다.</p>'+
       '<p><b>제3조 (약관의 게시와 개정)</b><br>① 서비스는 이 약관을 초기 화면 또는 연결 화면에 게시합니다.<br>② 서비스는 「약관의 규제에 관한 법률」, 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」 등 관련 법령을 위배하지 않는 범위에서 이 약관을 개정할 수 있습니다.<br>③ 약관을 개정할 경우에는 적용일자 및 개정사유를 명시하여 현행 약관과 함께 서비스 내 공지사항을 통해 그 적용일자 7일 전부터 공지합니다. 다만, 이용자에게 불리한 개정의 경우에는 30일 전부터 공지하고 이메일 등으로 통지합니다.<br>④ 이용자가 개정 약관에 동의하지 않을 경우 이용계약을 해지할 수 있습니다.</p>'+
       '<p><b>제4조 (회원가입 및 계정 관리)</b><br>① 회원가입은 학교 코드, 이메일, 비밀번호, 닉네임, 학년·반을 입력하고 만 14세 이상 및 개인정보 처리방침·이용약관에 동의함으로써 성립합니다. 만 14세 미만 사용자의 경우, 학교 코드를 통해 가입함으로써 소속 학교/기관을 통해 법정대리인의 동의가 사전에 완료되었음을 전제로 합니다. Google 로그인을 이용하는 경우에도 동일한 학교 정보 입력이 필요합니다.<br>② 회원은 1인 1계정을 원칙으로 하며, 타인 명의 도용, 허위 학급 기재, 학교 코드 부정 사용 시 서비스 이용이 제한될 수 있습니다.<br>③ 계정 및 비밀번호 관리 책임은 회원에게 있으며, 부정 사용이 발견된 경우 즉시 운영자에게 알려야 합니다.</p>'+
@@ -563,11 +563,11 @@
       '<p style="text-align:center;color:var(--sub);font-size:13px;margin-top:18px"><b>부칙</b><br>이 약관은 2026년 9월 17일부터 시행합니다.</p>',
       buttons: [] },
     { id:'youth', label:'청소년 보호정책', enabled:true, title:'청소년 보호정책', html:
-      '<div style="text-align:center;margin-bottom:18px"><strong>에듀톡 청소년 보호정책</strong><br><span style="color:var(--sub);font-size:13px">시행 일자: 2026년 9월 17일 | 공고 일자: 2026년 9월 17일</span></div>'+
-      '<p><b>제1조 (목적)</b><br>이 정책은 에듀톡(이하 “서비스”)이 청소년이 유해한 환경으로부터 보호받고, 안전하고 건전한 학교 소통 환경에서 서비스를 이용할 수 있도록 「청소년 보호법」 및 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」에 의거하여 수립·시행하는 청소년 보호 대책을 규정함을 목적으로 합니다.</p>'+
+      '<div style="text-align:center;margin-bottom:18px"><strong>브리즈 청소년 보호정책</strong><br><span style="color:var(--sub);font-size:13px">시행 일자: 2026년 9월 17일 | 공고 일자: 2026년 9월 17일</span></div>'+
+      '<p><b>제1조 (목적)</b><br>이 정책은 브리즈(이하 “서비스”)이 청소년이 유해한 환경으로부터 보호받고, 안전하고 건전한 학교 소통 환경에서 서비스를 이용할 수 있도록 「청소년 보호법」 및 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」에 의거하여 수립·시행하는 청소년 보호 대책을 규정함을 목적으로 합니다.</p>'+
       '<p><b>제2조 (유해정보에 대한 청소년 접근제한 및 관리조치)</b><br>① 서비스는 비속어, 혐오 표현, 성적 유해 단어 등을 사전에 필터링하는 자동 금지어 감지 및 차단 시스템을 운영합니다.<br>② 교사 회원 및 관리자는 부적절한 메시지, 게시물 또는 미디어 파일에 대해 사전 통보 없이 즉시 가림(블라인드) 또는 삭제 처리를 할 수 있습니다.<br>③ 동일 메시지 누적 신고 시 자동 블라인드 처리 및 신고 당시의 대화 스냅샷 보관을 통해 신속한 유해 콘텐츠 조치를 진행합니다.</p>'+
       '<p><b>제3조 (유해정보로 인한 피해상담 및 고충처리)</b><br>① 서비스는 유해정보로 인한 피해 상담 및 고충 처리를 위해 청소년 보호담당자를 지정하여 운영합니다.<br>② 서비스 내 신고 접수 시 시스템 자동 제재 및 담당 교사의 1차 모더레이션이 진행됩니다.<br>③ 보호담당자는 이메일을 통해 접수된 청소년 유해정보 고충 및 계정 제재 요청에 대해 지체 없이 검토하여 이용 경고, 계정 일시정지, 영구정지 등의 필요한 조치를 취합니다.</p>'+
-      '<p><b>제4조 (청소년 보호책임자 및 담당자)</b><br>청소년 보호와 관련된 업무를 총괄하고 이용자의 고충을 처리하기 위한 보호책임자 및 담당자는 아래와 같습니다.<br>· 성명 / 직책: 이도현 대표 (에듀톡 운영팀장)<br>· 문의 이메일: edutalkkr@gmail.com</p>'+
+      '<p><b>제4조 (청소년 보호책임자 및 담당자)</b><br>청소년 보호와 관련된 업무를 총괄하고 이용자의 고충을 처리하기 위한 보호책임자 및 담당자는 아래와 같습니다.<br>· 성명 / 직책: 이도현 대표 (브리즈 운영팀장)<br>· 문의 이메일: edutalkkr@gmail.com</p>'+
       '<p style="text-align:center;color:var(--sub);font-size:13px;margin-top:18px"><b>부칙</b><br>이 정책은 2026년 9월 17일부터 시행합니다.</p>',
       buttons: [] }
   ];
@@ -676,13 +676,19 @@
   // 관리자 도구 → 소개 페이지에서 수정한다. 저장 위치: siteLanding/main
   const LANDING_TARGETS = [['top','맨 위'],['features','기능'],['steps','이용 방법'],['pricing','요금 안내'],['start','시작 안내']];
   // ---------- 이용권(라이선스) · 결제 구성 (실결제 전 틀) ----------
-  // 1년 단위 유료 + 개발자 무료 이용권. 16자리 고유코드+인증코드로 등록 후 이용개시일부터 기산.
+  // 통합 요금제 4종 + 구형/무료 호환. 16자리 고유코드+인증코드로 등록 후 이용개시일부터 기산.
+  // 단일망은 등록 시 외부/내부 1택 후 변경 불가. 소통 전용(chatOnly)은 시간표 사용 불가.
   const LICENSE_TYPES = [
-    { id:'paid_1y', label:'1년 이용권 (유료)', days:365 },
-    { id:'free_1d', label:'무료 1일', days:1 },
-    { id:'free_10d', label:'무료 10일', days:10 },
-    { id:'free_1y', label:'무료 1년', days:365 },
-    { id:'free_unlimited', label:'무제한', days:0 }
+    { id:'single_1y', label:'단일망 이용권 1년', days:365, network:'single', chatOnly:false },
+    { id:'dual_unified_1y', label:'듀얼망 이용권 1년', days:365, network:'dual', chatOnly:false },
+    { id:'single_chat_1y', label:'단일망 소통 전용 1년', days:365, network:'single', chatOnly:true },
+    { id:'dual_chat_1y', label:'듀얼망 소통 전용 1년', days:365, network:'dual', chatOnly:true },
+    { id:'paid_1y', label:'1년 이용권 (구 단일망)', days:365, network:'single', chatOnly:false },
+    { id:'dual_1y', label:'유료 듀얼 네트워크 1년 (구)', days:365, network:'dual', chatOnly:false },
+    { id:'free_1d', label:'무료 1일', days:1, network:'single', chatOnly:false },
+    { id:'free_10d', label:'무료 10일', days:10, network:'single', chatOnly:false },
+    { id:'free_1y', label:'무료 1년', days:365, network:'single', chatOnly:false },
+    { id:'free_unlimited', label:'무제한', days:0, network:'single', chatOnly:false }
   ];
   const LICENSE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   function genLicenseCode(len){
@@ -693,6 +699,29 @@
   }
   const licenseTypeLabel = (id) => (LICENSE_TYPES.find(t=>t.id===id)||{}).label || id || '-';
   const licenseDaysOf = (id) => { const t=LICENSE_TYPES.find(x=>x.id===id); return t ? t.days : 365; };
+  const licenseNetworkOf = (id) => (LICENSE_TYPES.find(x=>x.id===id)||{}).network || 'single';
+  const licenseChatOnlyOf = (id) => !!((LICENSE_TYPES.find(x=>x.id===id)||{}).chatOnly);
+  const licenseIsSingleNet = (id) => licenseNetworkOf(id) === 'single';
+  // 소통 전용 이용권이면 시간표 사용 금지 (우회 방지: 모든 시간표 진입점에서 이 함수로 차단)
+  function timetableAllowed(){
+    try{
+      if(isAdmin()) return { ok:true };
+      const s = state.schoolInfo || {};
+      const chatOnly = s.licenseChatOnly === true;
+      // 라이선스 타입으로도 2중 확인 (학교 문서가 오래됐을 때 대비)
+      const lt = String(s.licenseType || '');
+      const typeChatOnly = lt ? licenseChatOnlyOf(lt) : false;
+      if(chatOnly || typeChatOnly) return { ok:false, reason:'chat-only' };
+      return { ok:true };
+    }catch(e){ return { ok:true }; }
+  }
+  // 가격 문자열에서 숫자만 뽑기 (할인율 자동 계산용)
+  function parsePriceNum(s){ const n=Number(String(s||'').replace(/[^0-9]/g,'')); return Number.isFinite(n)&&n>0?n:0; }
+  function discountRateOf(orig, price){
+    const o=parsePriceNum(orig), p=parsePriceNum(price);
+    if(!(o>0&&p>=0&&p<o)) return 0;
+    return Math.round((o-p)/o*100);
+  }
   const DIGITAL_VOUCHER_NOTICE = '본 상품은 디지털 이용권으로, 관리자 계정에 코드를 등록하여 서비스 이용이 개시된 이후에는 전자상거래법에 따라 단순 변심으로 인한 청약철회(환불)가 제한됩니다. (단, 코드 미사용 상태에서는 구매 후 7일 이내 전액 환불 가능)';
   const LICENSE_REFUND_POLICY_HTML = '<p><b>이용권 환불 정책</b><br>· 코드 미사용 상태에서는 구매 후 7일 이내 전액 환불이 가능합니다.<br>· 코드를 등록하여 이용이 시작된 이후에는 단순 변심으로 인한 환불이 제한됩니다.<br>· 등록 직후(예: 10분 이내) 등 특별한 사유가 있으면 총관리자가 학교 권한을 직접 회수하고 환불할 수 있습니다.<br>· 환불된 코드는 폐기되어 다시 사용할 수 없습니다.<br>· 환불 요청은 사람이 직접 확인하며, 코드·금액·사유를 관리자 페이지에서 검증합니다.</p>';
   // ---------- 이용권 동결(만료/미등록) · 학교변경 · 링크미리보기 공용 헬퍼 ----------
@@ -717,8 +746,8 @@
   function licenseFrozenMessage(){
     const info = licenseActiveInfo();
     if(info.active) return '';
-    if(isSchoolAdmin()) return '에듀톡 이용권이 만료되어 서비스가 중지되었어요. 계속 사용하시려면 갱신해 주세요.';
-    return '학교의 에듀톡 이용권이 만료되어 서비스가 중지되었어요. 학교 관리자에게 문의해주세요.';
+    if(isSchoolAdmin()) return '브리즈 이용권이 만료되어 서비스가 중지되었어요. 계속 사용하시려면 갱신해 주세요.';
+    return '학교의 브리즈 이용권이 만료되어 서비스가 중지되었어요. 학교 관리자에게 문의해주세요.';
   }
   async function refreshSchoolLicense(){
     const sid = state.profile?.schoolId || '';
@@ -740,7 +769,9 @@
   async function refreshBanners(force){
     try{
       const now=Date.now();
-      if(!force&&state.bannersAt&&now-state.bannersAt<60000) { renderBannerPager(); return; }
+      // 과금 다이어트: 백그라운드에서는 쿼리 생략(화면 복귀 시 갱신), 쿼리 상한 축소
+      if(document.hidden) { renderBannerPager(); return; }
+      if(!force&&state.bannersAt&&now-state.bannersAt<300000) { renderBannerPager(); return; }
       state.bannersAt=now;
       const pages=[];
       // 1) 이용권
@@ -748,7 +779,7 @@
         if(isSchoolAdmin()){
           const info=licenseActiveInfo();
           if(!(info.active&&!(info.daysLeft!==Infinity&&info.daysLeft<=30))){
-            const label=info.active?`이용권 만료까지 ${info.daysLeft}일 남았어요. 계속 사용하시려면 갱신해 주세요.`:'에듀톡 이용권이 만료되어 서비스가 중지되었어요. 계속 사용하시려면 갱신해 주세요.';
+            const label=info.active?`이용권 만료까지 ${info.daysLeft}일 남았어요. 계속 사용하시려면 갱신해 주세요.`:'브리즈 이용권이 만료되어 서비스가 중지되었어요. 계속 사용하시려면 갱신해 주세요.';
             pages.push({id:'license',icon:'!',iconCls:'warn',action:'go-license-renew',titleHtml:esc(label),metaHtml:''});
           }
         }
@@ -771,7 +802,7 @@
           if(!state.schedCache||state.schedCache.day!==day){
             let items=[];
             try{
-              const s=await db.collection('scheduleItems').where('schoolId','==',sid).limit(200).get();
+              const s=await db.collection('scheduleItems').where('schoolId','==',sid).limit(100).get();
               items=s.docs.map(d=>({id:d.id,...d.data()}));
             }catch(e){ console.warn('sched banner',e?.code||e); }
             // 직접 조회가 비면 달력 캐시(같은 쿼리)를 그대로 쓴다
@@ -805,14 +836,14 @@
           const amHandler=handlerUid&&handlerUid===uid();
           if(amHandler||isSchoolAdmin()){
             try{
-              const s=await db.collection('suggestions').where('schoolId','==',sid).limit(200).get();
+              const s=await db.collection('suggestions').where('schoolId','==',sid).limit(100).get();
               const open=s.docs.map(d=>d.data()).filter(v=>v.status==='open'||v.status==='flagged').length;
               if(open>0) pages.push({id:'suggest',icon:'📒',iconCls:'duty',action:'suggest-go',titleHtml:`새 건의 ${open}건`,metaHtml:'익명 건의함에서 확인해 주세요.'});
             }catch(e){}
           }
           if(isAdmin()){
             try{
-              const s=await db.collection('teacherRequests').where('status','==','pending').limit(50).get();
+              const s=await db.collection('teacherRequests').where('status','==','pending').limit(20).get();
               if(!s.empty) pages.push({id:'teachers',icon:'📒',iconCls:'duty',action:'teachers-go',titleHtml:`교사 승인 대기 ${s.size}건`,metaHtml:'관리자 도구에서 심사해 주세요.'});
             }catch(e){}
           }
@@ -821,10 +852,10 @@
       // 4) 할 일 (내가 참여한 방 중 미완료 할 일) — 등록하면 배너로 바로 뜬다
       try{
         let todoCount=0; let sample=[];
-        const rooms=(state.rooms||[]).slice(0,10);
+        const rooms=(state.rooms||[]).slice(0,6);
         for(const r of rooms){
           try{
-            const qs=await db.collection('channels').doc(r.id).collection('todos').where('done','==',false).limit(6).get();
+            const qs=await db.collection('channels').doc(r.id).collection('todos').where('done','==',false).limit(3).get();
             if(!qs.empty){
               todoCount+=qs.size;
               if(sample.length<2){
@@ -967,14 +998,18 @@
     btn.disabled = true;
     btn.classList.add('countdown');
     const label = btn.dataset.label || btn.textContent || '확인';
+    // 구조는 한 번만 만들고, 매 초 같은 엘리먼트의 너비만 바꾼다 (transition이 스르륵 채운다)
+    btn.innerHTML = `<span class="cd-fill"></span><span class="cd-text"></span>`;
+    const tx = btn.querySelector('.cd-text');
     let left = total;
     const paint = () => {
       const p = ((total-left)/total)*100;
       btn.style.setProperty('--cd-p', p.toFixed(1)+'%');
-      btn.innerHTML = `<span class="cd-fill"></span><span class="cd-text">${esc(label)} (${left}초)</span>`;
+      if(tx) tx.textContent = `${label} (${left}초)`;
     };
     paint();
     const timer = setInterval(()=>{
+      if(!btn.isConnected){ clearInterval(timer); return; }
       left -= 1;
       if(left <= 0){
         clearInterval(timer);
@@ -1031,7 +1066,7 @@
     return [...new Set(out)].slice(0,3);
   }
   function linkifyChatText(t){
-    const safe = esc(t).replace(/@([^\s@<>&]{1,20})/g,'<span class="mention">@$1</span>');
+    const safe = esc(t).replace(/@([^\s@<>&]{1,20})/g,'<button type="button" class="mention" data-action="mention-profile" data-name="$1">@$1</button>');
     return safe.replace(/https?:\/\/[^\s<>"')\]]+/gi, (url)=>{
       const clean = String(url).replace(/[.,!?;:)\]]+$/,'');
       const trail = String(url).slice(clean.length);
@@ -1088,7 +1123,7 @@
   function openExternalLinkConfirm(url){
     const u = String(url||'').trim();
     if(!/^https?:\/\//i.test(u)) return toast('주소를 확인해 주세요.');
-    openModal(`<h2>외부 웹사이트로 이동해요</h2><p class="desc">다른 웹사이트로 이동하려 하고 있어요.<br>웹사이트로 이동하고 나서 생기는 일은 에듀톡이 책임지지 않아요.</p>
+    openModal(`<h2>외부 웹사이트로 이동해요</h2><p class="desc">다른 웹사이트로 이동하려 하고 있어요.<br>웹사이트로 이동하고 나서 생기는 일은 브리즈이 책임지지 않아요.</p>
       <div class="report-detail">${esc(u)}</div>
       <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="extGo">이동하기</button></div>`, {small:true});
     wireCountdownButton(document.getElementById('extGo'), 2, '이동하기');
@@ -1116,9 +1151,9 @@
   ];
   const DEFAULT_LANDING = {
     enabled: true,
-    brandName: '에듀톡',
-    brandMark: 'E',
-    brandTexts: ['에듀톡'],
+    brandName: '브리즈',
+    brandMark: 'B',
+    brandTexts: ['브리즈'],
     loginLabel: '로그인',
     signupLabel: '회원가입',
     nav: DEFAULT_LANDING_NAV,
@@ -1159,14 +1194,14 @@
       ]
     },
     featuresTitle: '이런 걸 할 수 있어요',
-    featuresDesc: '학교 생활에 필요한 대화 기능을 한 곳에 모았어요.',
+    featuresDesc: '메신저와 시간표가 하나로 합쳐진 학교 전용 플랫폼이에요.',
     features: [
+      { icon:'📚', title:'시간표·대강 합체', desc:'대강 요청을 쪽지로 보내고 상대가 수락하면 시간표가 저절로 바뀌어요.' },
+      { icon:'🏫', title:'교내연결로 가볍게', desc:'교내망 PC끼리 직접 연결돼요. 세로창으로 옆에 띄워두고 쓰세요.' },
+      { icon:'🛡️', title:'보내기 전 검사', desc:'주민번호·카드번호·성적 표현은 이 PC에서 먼저 걸러져요.' },
       { icon:'💬', title:'모둠·동아리 대화방', desc:'학급·모둠·동아리별로 방을 만들어 우리끼리만 대화해요.' },
-      { icon:'🙋', title:'선생님께 질문', desc:'개인 메시지로 담당 선생님께 편하게 질문할 수 있어요.' },
       { icon:'🔒', title:'학교 코드로 안전하게', desc:'학교 코드가 있어야 가입할 수 있어 우리 학교 학생만 들어와요.' },
-      { icon:'🖼️', title:'사진·파일 전송', desc:'과제 사진이나 학습 자료를 채팅방에서 바로 주고받아요.' },
-      { icon:'🔔', title:'새 메시지 알림', desc:'새 메시지가 오면 소리와 알림으로 바로 알려 줘요.' },
-      { icon:'🌐', title:'학교 간 대화 공유', desc:'선생님 승인을 받으면 다른 학교와도 함께 대화할 수 있어요.' }
+      { icon:'🖼️', title:'사진·파일 전송', desc:'과제 사진이나 학습 자료를 채팅방에서 바로 주고받아요.' }
     ],
     stepsTitle: '이렇게 시작해요',
     stepsDesc: '학교 코드만 있으면 1분이면 시작할 수 있어요.',
@@ -1176,15 +1211,17 @@
       { title:'대화 시작하기', desc:'방을 만들거나 초대를 받아 친구들과 이야기해요.' }
     ],
     pricingTitle: '요금 안내',
-    pricingDesc: '학교 단위로 1년씩 이용하는 디지털 이용권이에요. 실결제 연동 전이라 금액은 확정 후 공개돼요.',
+    pricingDesc: '학교 단위 연간 이용권이에요 (부가세 별도). 10월 베타 기간은 전 학교 무료예요.',
     pricing: [
-      { name:'학교 1년 이용권', period:'1년', price:'금액 미정', desc:'학교 전체가 1년간 쓰는 기본 이용권이에요. 고유코드+인증코드로 등록 후 이용개시일부터 1년.', cta:'구매 문의' },
-      { name:'무료 체험', period:'1일·10일', price:'0원', desc:'총관리자가 발급하는 체험용 이용권이에요. 필요하면 개발자에게 문의해 주세요.', cta:'문의하기' }
+      { name:'10월 베타 무료', period:'10월 한정', price:'0원', desc:'베타 기간 학교 전체 무료. 쓰는 느낌·불편한 점만 알려 주세요.', cta:'신청하기' },
+      { name:'소통 전용 1년', period:'1년', price:'99,000원', desc:'메신저만 쓰는 학교용. 시간표·대강은 제외돼요.', cta:'구매 문의' },
+      { name:'기본 1년', period:'1년', price:'198,000원', desc:'학교 전체 메신저+시간표·대강. 단일망 기준, 기존 학내 메신저 대비 약 40% 저렴.', cta:'구매 문의' },
+      { name:'듀얼 1년', period:'1년', price:'297,000원', desc:'교내+외부망 모두 지원. 외부에서도 웹 변경함으로 승인돼요.', cta:'구매 문의' }
     ],
-    ctaTitle: '우리 학교에서도 에듀톡을 써 보세요',
+    ctaTitle: '우리 학교에서도 브리즈을 써 보세요',
     ctaDesc: '선생님이 학교를 등록하면 학생들이 학교 코드로 바로 가입할 수 있어요.',
     ctaButton: '로그인 / 회원가입',
-    footerText: '에듀톡은 학교 안에서만 쓰는 전용 메신저예요.',    businessInfo: ''
+    footerText: '브리즈은 학교 안에서만 쓰는 전용 메신저예요.',    businessInfo: ''
   };
   const landingTargetOk = (t) => LANDING_TARGETS.some(([v]) => v === t);
   const cloneLanding = () => JSON.parse(JSON.stringify(DEFAULT_LANDING));
@@ -1265,7 +1302,8 @@
       steps: list(d.steps, b.steps, 4).map(f=>({ title:String(f?.title??'').trim().slice(0,40), desc:String(f?.desc??'').trim().slice(0,140) })),
       pricingTitle: opt(d.pricingTitle, b.pricingTitle, 40),
       pricingDesc: opt(d.pricingDesc, b.pricingDesc, 160),
-      pricing: list(d.pricing, b.pricing, 4).map(f=>({ name:String(f?.name??'').trim().slice(0,30), period:String(f?.period??'').trim().slice(0,20), price:String(f?.price??'').trim().slice(0,20), desc:String(f?.desc??'').trim().slice(0,160), cta:String(f?.cta??'').trim().slice(0,20) })),
+      pricing: list(d.pricing, b.pricing, 4).map(f=>({ name:String(f?.name??'').trim().slice(0,30), period:String(f?.period??'').trim().slice(0,20), price:String(f?.price??'').trim().slice(0,20), desc:String(f?.desc??'').trim().slice(0,160), cta:String(f?.cta??'').trim().slice(0,20), orig:String(f?.orig??'').trim().slice(0,20), discount:String(f?.discount??'').trim().slice(0,20) })),
+      pricingAnchor: (()=>{ const pa=(d.pricingAnchor&&typeof d.pricingAnchor==='object')?d.pricingAnchor:{}; return { enabled: pa.enabled!==false, originalPrice: String(pa.originalPrice||'700,000\uC6D0').slice(0,20), promoPrice: String(pa.promoPrice||'500,000\uC6D0').slice(0,20), note: String(pa.note||'').slice(0,120) }; })(),
       ctaTitle: req(d.ctaTitle, b.ctaTitle, 60),
       ctaDesc: opt(d.ctaDesc, b.ctaDesc, 140),
       ctaButton: req(d.ctaButton, b.ctaButton, 20),
@@ -1279,14 +1317,14 @@
 
   // ---------- 브랜드(로고 글자 · 이름) ----------
   // 관리자 도구 → 소개 페이지에서 수정한다. 이름을 2개 이상 넣으면 번갈아 나온다.
-  function brandMarkText(){ return String(landingCfg().brandMark||'E').slice(0,2)||'E'; }
+  function brandMarkText(){ return String(landingCfg().brandMark||'B').slice(0,2)||'B'; }
   // 기본값(E)이면 말풍선+학사모 SVG 로고, 관리자가 글자를 바꾸면 그 글자를 보여준다
-  // 흰 말풍선(채팅) 안에 남색 학사모(학교·에듀)를 넣어 길거리에서도 바로 에듀톡으로 읽히게 했다
-  const EDU_LOGO_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="edumark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3F9BFF"/><stop offset="1" stop-color="#2472CE"/></linearGradient></defs><rect width="48" height="48" rx="12" fill="url(#edumark)"/><rect x="8" y="11" width="32" height="22" rx="7" fill="#fff"/><path d="M14 33 L11.5 39.5 L19.5 33.2 Z" fill="#fff"/><path d="M24 15.5 L34.5 20 L24 24.5 L13.5 20 Z" fill="#2472CE"/><path d="M17.5 22.6 v3.1 c0 1.9 13 1.9 13 0 v-3.1 L24 25.4 Z" fill="#17538F"/><rect x="32.8" y="20" width="1.5" height="6" rx="0.75" fill="#17538F"/><circle cx="33.5" cy="27.2" r="1.4" fill="#17538F"/></svg>';
-  function brandMarkHtml(){ const t=brandMarkText(); return t==='E' ? EDU_LOGO_SVG : esc(t); }
+  // 흰 말풍선(채팅) 안에 남색 학사모(학교·에듀)를 넣어 길거리에서도 바로 브리즈으로 읽히게 했다
+  const EDU_LOGO_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="edumark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0082C8"/><stop offset="1" stop-color="#0069A8"/></linearGradient></defs><rect width="48" height="48" rx="12" fill="url(#edumark)"/><rect x="8" y="11" width="32" height="22" rx="7" fill="#fff"/><path d="M14 33 L11.5 39.5 L19.5 33.2 Z" fill="#fff"/><path d="M24 15.5 L34.5 20 L24 24.5 L13.5 20 Z" fill="#0069A8"/><path d="M17.5 22.6 v3.1 c0 1.9 13 1.9 13 0 v-3.1 L24 25.4 Z" fill="#17538F"/><rect x="32.8" y="20" width="1.5" height="6" rx="0.75" fill="#17538F"/><circle cx="33.5" cy="27.2" r="1.4" fill="#17538F"/></svg>';
+  function brandMarkHtml(){ const t=brandMarkText(); return (t==='B'||t==='E') ? EDU_LOGO_SVG : esc(t); }
   function brandNames(){
     const c=landingCfg();
-    const list=Array.isArray(c.brandTexts)&&c.brandTexts.length?c.brandTexts:[c.brandName||'에듀톡'];
+    const list=Array.isArray(c.brandTexts)&&c.brandTexts.length?c.brandTexts:[c.brandName||'브리즈'];
     return list.map(n=>String(n||'').trim()).filter(Boolean).slice(0,6);
   }
   let brandRollTimer=null, brandRollIdx=0;
@@ -1319,13 +1357,15 @@
   // 이미지 표시용 주소: 앱이 만든 data:image/* 또는 https 주소만 통과시킨다.
   // (javascript: · data:text/html 같은 실행 가능한 스킴을 원천 차단)
   const IMG_DATA_RE = /^data:image\/(?:png|jpe?g|gif|webp|bmp|avif);base64,[a-z0-9+/=\s]+$/i;
-  const safeImgSrc = (v) => { const s=String(v??'').trim(); if(IMG_DATA_RE.test(s)) return s; return /^https:\/\//i.test(s) ? s : ''; };
+  const safeImgSrc = (v) => { const s=String(v??'').trim(); if(IMG_DATA_RE.test(s)) return s; if(/^https:\/\//i.test(s)||LAN_HTTP_RE.test(s)) return s; return ''; };
   // 파일 내려받기용 주소: 실행 스킴과 문서형 data 는 막는다 (download 속성이 무시되고 렌더될 수 있어서)
   // 10번 강화: base64 없는 data: URL도 차단 (스크립트 인젝션 원천 차단)
   const BLOCKED_DATA_RE = /^data:(?:text\/html|image\/svg\+xml|application\/xhtml\+xml|text\/xml|application\/xml|text\/javascript|application\/javascript|application\/ecmascript)/i;
+  // 학내망 내부 서버 파일: 사설망 http만 허용 (외부는 여전히 https·안전한 data만)
+  const LAN_HTTP_RE = /^http:\/\/(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)(:\d+)?\//i;
   const safeFileHref = (v) => {
     const s=String(v??'').trim(); if(!s) return '';
-    if(/^https:\/\//i.test(s)) return s;
+    if(/^https:\/\//i.test(s)||LAN_HTTP_RE.test(s)) return s;
     if(/^data:/i.test(s)){
       if(BLOCKED_DATA_RE.test(s)) return '';
       if(!/;base64,/i.test(s)) return '';
@@ -1385,51 +1425,110 @@
     try{ Object.keys(patch||{}).forEach(k=>{ if(PUBLIC_PROFILE_KEYS.includes(k)) clean[k]=patch[k]; }); }catch(e){}
     return db.collection('publicProfiles').doc(uid()).set({...clean, role:state.profile?.role||'student'}, {merge:true});
   };
-  const toast = (text) => {
+  const inferToastKind = (text) => {
+    const t = String(text ?? '');
+    // 완료+안내가 함께 있으면 완료로 본다 (단, 명백한 실패 표현이 있으면 실패가 우선)
+    if (!/실패|못했|없습니다|찾을 수 없|찾지 못|불러오지 못|가져오지 못|보내지 못|처리하지 못|읽지 못|삭제하지 못|복사할 글자|완료된|불가|불가능|오류|문제가 생|연결이 끊|너무 빠르|너무 많이|많이 시도|차단|거부|지원하지|할 수 없|보낼 수 없|지울 수 없|받을 수 없|초대할 수 없|변경할 수 없|열 수 없|가입되지|사용 중|이미 (사용|가입|등록|있어요|접수|쓰인|준 |신고|교사)/.test(t)
+      && /보냈어요|보냈습니다|접수했|접수됐|승인했|승인됐|저장했|복사했|완료|성공|만들었어요|지웠어요|바꿨어요|걸었어요|풀었어요|끝났어요|제출했|신청했|예약했|복구했|복구됐|정지했/.test(t)) return 'success';
+    // 실패/검증 -> error (X), 성공 -> success (체크), 그냥 알림 -> info (아이콘 없음)
+    if (/주세요|확인해|고르세요|골라 주세요|적어 주세요|입력해|고르세|체크해|동의해|허용해|알려 주세요|기다려|잠시 뒤|다시 시도|먼저|아직|이미 (사용|가입|등록|있어요|접수|쓰인|준 |신고|교사)|지원하지|권한이 없|찾을 수 없|찾지 못|불러오지 못|가져오지 못|보내지 못|처리하지 못|읽지 못|실패|못했|없습니다|맞지 않|달라요|틀렸|정확|불안|끊겼|차단|정지|금지|초과|만료|거부|반려됐|반려된|취소했|빠를 수 없|할 수 없|보낼 수 없|지울 수 없|수정할 수 없|갈 수 없|받을 수 없|초대할 수 없|변경할 수 없|바꿀 수 없|열 수 없|불가|불가능|경고가|타임아웃|너무 빠르|너무 많이|많이 시도|오류|문제가 생|연결이 끊|연결이 불안|삭제하지 못|복사할 글자|남겨 주세요|고를 수 있|이상 남겨|이하 파일|초과|8MB|16자리/.test(t)) return 'error';
+    if (/했어요|됐어요|됐어요|완료로|완료됐|완료했|성공|복사했|저장했|보냈어요|보냈습니다|바꿨어|바뀌|바꿨어요|선택했|시작했|마감했|지웠어요|추가했|가져왔|접수됐|접수했|승인했|승인했어요|연결됐|복구했|복구됐|해제|고정했|풀었|풀었어요|넘겼|끝났|접었|펼쳤|숨겼|보관했|옮겼|내려받|예약했|수락했|거절했|끊었|환영|고마웠|표시할게요|숨겼어요|보낼게요|들어왔|들어갔|나왔어요|만들었어요|받을게요|올렸|켰어요|껐어요|불러왔|줬어요|읽었|알렸|회수했|회수됐/.test(t)) return 'success';
+    return 'info';
+  };
+  const toast = (text, kind = 'auto') => {
     clearTimeout(toastEl._timer);
     toastEl.innerHTML='';
-    const ico=document.createElement('span');
-    ico.className='toast-ico';
-    ico.setAttribute('aria-hidden','true');
-    ico.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>';
-    const tx=document.createElement('span');
-    tx.className='toast-msg';
-    tx.textContent=String(text??'');
-    const x=document.createElement('button');
-    x.type='button'; x.className='toast-x'; x.setAttribute('aria-label','알림 닫기');
-    x.textContent='✕';
-    x.onclick=(e)=>{ try{ e.stopPropagation(); }catch(_){} clearTimeout(toastEl._timer); toastEl.classList.remove('show'); };
-    toastEl.append(ico,tx,x);
+    let k = kind;
+    if (k === 'auto' || !k) k = inferToastKind(text);
+    if (k !== 'success' && k !== 'error') k = 'info';
+    toastEl.className = 'toast toast--' + k;
+    if (k === 'success' || k === 'error') {
+      const ico=document.createElement('span');
+      ico.className='toast-ico ' + (k === 'success' ? 'toast-ico--success' : 'toast-ico--error');
+      ico.setAttribute('aria-hidden','true');
+      ico.innerHTML = k === 'success'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      const tx=document.createElement('span');
+      tx.className='toast-msg';
+      tx.textContent=String(text??'');
+      const x=document.createElement('button');
+      x.type='button'; x.className='toast-x'; x.setAttribute('aria-label','알림 닫기');
+      x.textContent='✕';
+      x.onclick=(e)=>{ try{ e.stopPropagation(); }catch(_){} clearTimeout(toastEl._timer); toastEl.classList.remove('show'); };
+      toastEl.append(ico,tx,x);
+    } else {
+      const tx=document.createElement('span');
+      tx.className='toast-msg';
+      tx.textContent=String(text??'');
+      const x=document.createElement('button');
+      x.type='button'; x.className='toast-x'; x.setAttribute('aria-label','알림 닫기');
+      x.textContent='✕';
+      x.onclick=(e)=>{ try{ e.stopPropagation(); }catch(_){} clearTimeout(toastEl._timer); toastEl.classList.remove('show'); };
+      toastEl.append(tx,x);
+    }
     // 리플로우 뒤에 내려오게 해야 모션이 생긴다 (없으면 그냥 나타남)
     void toastEl.offsetHeight;
     toastEl.classList.remove('show');
     requestAnimationFrame(() => requestAnimationFrame(() => toastEl.classList.add('show')));
     toastEl._timer = setTimeout(() => toastEl.classList.remove('show'), 2600);
   };
-  const errText = (e) => {
+  const errText = (e, ctx) => {
+    const raw = e?.code || e?.message || '';
+    // [오류코드 체계] 토스트에는 항상 [E-XXX-000] 코드를 붙여 원인을 찾을 수 있게 한다.
+    // E-AUTH-001: Firestore permission-denied (규칙 차단)
+    // E-LIC-001: 이용권 조회 실패 (코드 오기재/읽기 권한 없음)
+    // E-LIC-002: 이용권 등록 권한 없음 (학교관리자 아님/함수 미배포)
+    // E-LIC-003: 학교 정보 없음, E-LIC-004: 코드 형식, E-LIC-005: 인증코드 불일치
+    // E-LIC-006: 이미 사용된 코드, E-LIC-007: 단일망 선택 누락, E-LIC-008: 망 변경 시도
+    // E-LIC-009: 이미 이용 중 이용권 있음(중복), E-LIC-000: 기타 등록 실패
+    // E-NET-001: 내부망 미연결, E-TT-001: 시간표 차단(소통전용)
+    const codeInMsg = /\[E-[A-Z]+-[0-9]{3}\]/.exec(String(raw));
+    if(codeInMsg) return String(raw).slice(0, 220);
     const c = e?.code || '';
+    const ctxHint = ctx ? ` (${ctx})` : '';
     const map = {
-      'auth/wrong-password':'비밀번호가 맞지 않아요.',
-      'auth/invalid-credential':'이메일이나 비밀번호를 다시 확인해 주세요.',
-      'auth/email-already-in-use':'이미 사용 중인 이메일이에요.',
-      'auth/invalid-email':'이메일 형식을 확인해 주세요.',
-      'auth/weak-password':'비밀번호를 조금 더 길게 만들어 주세요.',
-      'auth/popup-closed-by-user':'로그인을 취소했어요.',
-      'auth/popup-blocked':'팝업이 차단되고 있어요. 팝업 차단을 해제해 주세요.',
-      'auth/cancelled-popup-request':'다시 시도해 주세요.',
-      'auth/unauthorized-continue-uri':'이메일 인증 주소가 허용되지 않았어요. 총관리자에게 문의해 주세요. 재직증명서로도 신청할 수 있어요.',
-      'auth/operation-not-allowed':'이메일 인증 기능이 꺼져 있어요. 총관리자에게 문의해 주세요. 재직증명서로도 신청할 수 있어요.',
-      'auth/quota-exceeded':'요청이 많아요. 잠시 뒤에 다시 시도해 주세요.',
-      'auth/invalid-continue-uri':'이메일 인증 주소가 잘못됐어요. 총관리자에게 문의해 주세요.',
-      'auth/network-request-failed':'인터넷 연결이 불안정해요. 나중에 다시 시도해 주세요.',
-      'auth/user-not-found':'가입되지 않은 이메일이에요.',
-      'auth/too-many-requests':'너무 많이 시도했어요. 잠시 뒤에 다시 시도해 주세요.',
-      'unavailable':'인터넷 연결이 불안정해요. 나중에 다시 시도해 주세요.',
-      'deadline-exceeded':'인터넷 연결이 불안정해요. 나중에 다시 시도해 주세요.',
-      'permission-denied':'권한이 없어요.'
+      'auth/wrong-password':'[E-AUTH-100] 비밀번호가 맞지 않아요.',
+      'auth/invalid-credential':'[E-AUTH-101] 이메일이나 비밀번호를 다시 확인해 주세요.',
+      'auth/email-already-in-use':'[E-AUTH-102] 이미 사용 중인 이메일이에요.',
+      'auth/invalid-email':'[E-AUTH-103] 이메일 형식을 확인해 주세요.',
+      'auth/weak-password':'[E-AUTH-104] 비밀번호를 조금 더 길게 만들어 주세요.',
+      'auth/popup-closed-by-user':'[E-AUTH-105] 로그인을 취소했어요.',
+      'auth/popup-blocked':'[E-AUTH-106] 팝업이 차단되고 있어요. 팝업 차단을 해제해 주세요.',
+      'auth/cancelled-popup-request':'[E-AUTH-107] 다시 시도해 주세요.',
+      'auth/unauthorized-continue-uri':'[E-AUTH-108] 이메일 인증 주소가 허용되지 않았어요. 총관리자에게 문의해 주세요.',
+      'auth/operation-not-allowed':'[E-AUTH-109] 이메일 인증 기능이 꺼져 있어요. 총관리자에게 문의해 주세요.',
+      'auth/quota-exceeded':'[E-AUTH-110] 요청이 많아요. 잠시 뒤에 다시 시도해 주세요.',
+      'auth/invalid-continue-uri':'[E-AUTH-111] 이메일 인증 주소가 잘못됐어요. 총관리자에게 문의해 주세요.',
+      'auth/network-request-failed':'[E-AUTH-112] 인터넷 연결이 불안정해요. 나중에 다시 시도해 주세요.',
+      'auth/user-not-found':'[E-AUTH-113] 가입되지 않은 이메일이에요.',
+      'auth/too-many-requests':'[E-AUTH-114] 너무 많이 시도했어요. 잠시 뒤에 다시 시도해 주세요.',
+      'unavailable':'[E-NET-002] 인터넷 연결이 불안정해요. 나중에 다시 시도해 주세요.',
+      'deadline-exceeded':'[E-NET-003] 인터넷 연결이 불안정해요. 나중에 다시 시도해 주세요.',
+      'permission-denied':'[E-AUTH-001] 권한이 없어요.'
     };
-    return map[c] || (c === 'permission-denied' ? '권한이 없어요.' : '잠시 문제가 생겼어요.');
+    if(map[c]){
+      // permission-denied는 문맥별 해결 힌트를 뒤에 붙인다 (아래 permFixHint 참고)
+      if(c==='permission-denied' && ctx) return `${map[c]}${ctxHint} ${permFixHint(ctx)}`.trim().slice(0, 260);
+      return map[c];
+    }
+    return (c === 'permission-denied' ? '[E-AUTH-001] 권한이 없어요.' : '[E-COM-000] 잠시 문제가 생겼어요.') + ctxHint;
   };
+  // permission-denied가 난 위치별 원인/해결 힌트 (토스트 아래·모달에 함께 표시)
+  function permFixHint(ctx){
+    const m = {
+      'license-read':'원인: 미사용 코드는 학교관리자만 1건 조회 가능. 해결: 학교관리자 로그인·코드 16자리 확인.',
+      'license-activate':'원인: 직접 쓰기 금지(서버 경유만 가능). 해결: 이용권 등록 버튼으로 재시도·함수 배포 확인.',
+      'school-write':'원인: 학교 문서는 총관리자만 직접 수정. 해결: 서버 등록 기능으로 진행.',
+      'license-list':'원인: 목록은 본인 학교 것만 조회 가능.',
+      'timetable':'원인: 소통 전용 이용권은 시간표 차단.'
+    };
+    return m[ctx] || '원인: 역할·학교 불일치 가능. 해결: 로그인 역할·학교 확인 후 다시 시도.';
+  }
+  // 권한 오류 상세 박스 HTML (이용권 등록 화면 등에 인라인 표시)
+  function permErrorBox(code, reason, fix){
+    return `<div class="warn-box" style="margin-top:10px"><b>${esc(code)}</b><br>원인: ${esc(reason)}<br>해결: ${esc(fix)}</div>`;
+  }
 
   const safeColor = (c, fallback='') => /^#[0-9a-fA-F]{6}$/.test(String(c||'')) ? String(c) : fallback;
   const safeAlign = (a) => (a==='center'||a==='right') ? a : 'left';
@@ -1598,7 +1697,7 @@
         // 추가로 document.hidden이 false여도 포커스가 없으면 알림 (다른 창을 보고 있을 때)
         // hasFocus가 false면 백그라운드로 간주하고 알림
         const body=`안읽은 알림이 ${n}개 있어요.`;
-        showDesktopNotification('에듀톡', body, '');
+        showDesktopNotification('브리즈', body, '');
         if(cfg.sound){
           try{ playSound(cfg.soundId||'bell'); }catch(e){}
         }
@@ -1780,7 +1879,7 @@
   function showDesktopNotification(title,body,roomId){
     if(!notifySettings().browser) return;
     if(DESKTOP){
-      try{ window.edutalkDesktop.notify({ title:title||'에듀톡', body:body||'', roomId:roomId||'' }); }
+      try{ window.edutalkDesktop.notify({ title:title||'브리즈', body:body||'', roomId:roomId||'' }); }
       catch(e){ console.error('notify',e); }
       return;
     }
@@ -1788,7 +1887,7 @@
     try{
       // 크롬북/ChromeOS에서는 tag가 매번 다르면 알림이 쌓여 3개까지 동시에 뜬다.
       // 방당 고정 tag로 교체되게 해 가장 최근 1개만 보이게 한다.
-      const n=new Notification(title||'에듀톡',{ body:body||'', tag:'edutalk-'+String(roomId||'general'), renotify:true, silent:true });
+      const n=new Notification(title||'브리즈',{ body:body||'', tag:'edutalk-'+String(roomId||'general'), renotify:true, silent:true });
       n.onclick=()=>{ try{ window.focus(); }catch(e){} try{ n.close(); }catch(e){} };
     }catch(e){ console.error('notify',e); }
   }
@@ -1830,7 +1929,7 @@
     if(s.sound) playSound(s.soundId);
     const hidden=document.hidden;
     const otherRoom=state.room?.id!==roomId;
-    if(kw||hidden||otherRoom) showDesktopNotification(kw?`키워드 '${kw}'`:room?.name||'에듀톡', `${msg.senderName||'사용자'}: ${msg.text||''}`, roomId);
+    if(kw||hidden||otherRoom) showDesktopNotification(kw?`키워드 '${kw}'`:room?.name||'브리즈', `${msg.senderName||'사용자'}: ${msg.text||''}`, roomId);
   }
   function isRoomMuted(roomId){ return !!(state.settings?.mutedRooms||[]).includes(roomId); }
   function isDnd(){ return presenceModeSetting()==='dnd'; }
@@ -1997,8 +2096,8 @@
     stopPresence();
     pushPresence();
     let n=0;
-    // 15초마다 점 표시를 다시 계산하고, 45초마다 내 상태를 갱신한다
-    presenceTimer=setInterval(()=>{ n+=1; if(n%3===0) pushPresence(); tickPresence(); },15000);
+    // 15초마다 점 표시를 다시 계산하고, 120초마다 내 상태를 갱신한다 (과금 다이어트)
+    presenceTimer=setInterval(()=>{ n+=1; if(n%8===0) pushPresence(); tickPresence(); },15000);
     document.addEventListener('visibilitychange',onPresenceVisibility);
     window.addEventListener('pagehide',onPresenceVisibility);
   }
@@ -2153,6 +2252,10 @@
   // (프로필 구독 범위와 상관없이 그 방 하나만 구독하면 정확히 알 수 있다)
   function readReceiptsEnabled(){ return state.settings?.readReceipts !== false; }
   function readReceiptHtml(m){
+    if(state.room&&isInternalRoom(state.room)){
+      if(m.senderId===uid()&&!m.isRecalled) return `<button type="button" class="read-receipt clickable" data-action="internal-reads" data-msg="${esc(m.srvId||'')}">읽음 확인</button>`;
+      return '';
+    }
     if(m.senderId!==uid() || !readReceiptsEnabled()) return '';
     const map=state.roomReads; if(!(map instanceof Map) || !map.size) return '';
     const rt=docTs(m.createdAt)||0; if(!rt) return '';
@@ -2317,6 +2420,62 @@
     if(st.kind==='timeout') return st.to.permanent?'timeout-p':'timeout-'+Math.ceil(st.to.ms/1000);
     if(st.kind==='flood') return 'flood-'+Math.ceil(st.ms/1000);
     return st.kind;
+  }
+  // ---------- 타임아웃 중 서비스 이용 제한 (이용 정지相当) ----------
+  // 타임아웃 당한 이용자는 채팅방 나가기·거절·삭제 같은 정리 동작만 할 수 있고,
+  // 그 밖의 쓰기(전송·초대·참가·생성·수정·승인 등)는 모두 막고 토스트를 띄운다.
+  // 총관리자(isAdmin)는 해제·조치를 위해 예외로 둔다.
+  function chatLockActive(){
+    try{ return !!timeoutInfo(); }catch(e){ return false; }
+  }
+  function chatLockMessage(){
+    const to=timeoutInfo();
+    if(!to) return '';
+    if(to.permanent) return '이용 정지 중이에요. 선생님께 문의해 주세요.';
+    return '타임아웃이 끝난 뒤에 다시 시도해 주세요.';
+  }
+  function chatLockToast(){
+    const msg=chatLockMessage();
+    if(!msg) return false;
+    if(isAdmin()) return false;
+    toast(msg);
+    return true;
+  }
+  // 쓰기 함수 맨 앞에서 `if(!requireChatFree()) return;` 형태로 쓴다.
+  function requireChatFree(){
+    if(!chatLockActive()) return true;
+    return !chatLockToast();
+  }
+  // 중앙 클릭 가드용: 타임아웃 중에도 눌러도 되는(읽기·닫기·나가기·거절·정리) 액션만 허용 목록에 둔다.
+  const CHAT_LOCK_SAFE_ACTIONS=new Set([
+    // 닫기·이동·보기 (읽기 전용)
+    'close-modal','close-settings','close-admin','close-members','close-drawer','open-drawer',
+    'mobile-back','close-room-settings','retry','logout',
+    'jump-bottom','load-more-msgs','search','toggle-search','search-prev','search-next','search-close',
+    'members','file-box','view-attach','download-attach','reveal-attach','read-list','read-notice',
+    'open-report','open-report-detail','open-user-profile','user-profile','open-room','open-admin-room',
+    'mention-pick','mention-profile','read-more-msgs',
+    'copy-message','copy-join-code','copy-invite-link','copy-license','copy-code','copy-my-code',
+    'open-external','ext-link','notice-link','open-notice-link','auth-page','auth-page-back','auth-page-btn',
+    'landing-login','landing-signup','landing-home','landing-show','landing-page','landing-scroll','landing-open-url',
+    'landing-sheet-open','landing-sheet-close','landing-acc','landing-drop',
+    'toggle-auth','google','forgot','send-reset','gate-privacy','gate-terms',
+    'pick-school','pick-school-item','retry-profile','neis-search',
+    'settings','open-policies','view-policy','cal-prev','cal-next','cal-today','cal-pick',
+    'banner-prev','banner-next','banner-collapse','banner-expand','banner-hide',
+    'side-toggle','cat-toggle','toggle-pw','meal-refresh','neis-manual',
+    'internal-reads','internal-members','net-guide','org-toggle','org-user','org-refresh',
+    'open-palette','unread-summary-go','todos-go',
+    // 나가기·거절·끊기·회수·삭제 (정리 동작 — 타임아웃 중에도 허용)
+    'leave-room','leave-selected','decline-invite','friend-decline','friend-remove',
+    'join-req-no','delete-message','recall-message','cancel-edit','memo-del',
+    'delete-selected','hide-selected','report-message','report-user','block',
+    'mod-appeal','mod-appeal-send','send-appeal',
+    'withdraw-leave',
+  ]);
+  function isChatLockedAction(a){
+    if(!a) return false;
+    return !CHAT_LOCK_SAFE_ACTIONS.has(a);
   }
   function startLockTick(){
     if(lockTick) return;
@@ -2521,7 +2680,7 @@
 
   function bootError(err) {
     console.error(err);
-    app.innerHTML = `<div class="boot"><div class="boot-mark" style="background:#e5484d">E</div><div><strong>에듀톡을 불러오지 못했어요</strong><span>잠시 후 다시 시도해 주세요.</span><button class="primary" data-action="retry" style="margin-top:14px;padding:0 18px">다시 시도</button></div></div>`;
+    app.innerHTML = `<div class="boot"><div class="boot-mark" style="background:#e5484d">B</div><div><strong>브리즈을 불러오지 못했어요</strong><span>잠시 후 다시 시도해 주세요.</span><button class="primary" data-action="retry" style="margin-top:14px;padding:0 18px">다시 시도</button></div></div>`;
   }
 
   function schoolInfoFrom(d){ return { grades: Array.isArray(d?.grades) ? d.grades.map(Number).sort((a,b)=>a-b) : [], classCounts: d?.classCounts || {} }; }
@@ -2662,7 +2821,20 @@
       state.profile = await ensureProfile();
       if (!state.profile) { bootError(new Error('profile missing')); return; }
       // 관리자가 이용을 정지한 계정은 안내 화면만 보여준다
-      if (state.profile.suspended === true) { await renderSuspended(); return; }
+      if (state.profile.suspended === true) {
+        try{
+          const __until=suspendUntilMs(state.profile.suspendedUntil);
+          if(__until>0&&__until<=Date.now()){
+            await db.collection('users').doc(uid()).update({suspended:false,suspendReason:'',suspendedAt:null,suspendedUntil:null,updatedAt:ts()});
+            state.profile={...state.profile,suspended:false,suspendReason:'',suspendedAt:null,suspendedUntil:null};
+          } else {
+            if(__until>0){
+              setTimeout(()=>{ try{ const __box=document.querySelector('.suspend-box'); if(__box&&!__box.dataset.until){ __box.dataset.until='1'; __box.insertAdjacentHTML('beforeend', `<div class="suspend-meta">\uC790\uB3D9 \uD574\uC81C: ${esc(new Date(__until).toLocaleString('ko-KR'))}</div>`); } }catch(e){} },0);
+            }
+            await renderSuspended(); return;
+          }
+        }catch(e){ await renderSuspended(); return; }
+      }
       // 탈퇴한 계정으로 다시 로그인한 경우
       if (state.profile.deleted === true) { await auth.signOut(); toast('탈퇴한 계정이에요. 다시 가입해 주세요.'); return; }
       await loadSchool();
@@ -2718,6 +2890,7 @@
       attachSiteNoticeListener();
       attachRoleListeners();
       attachDutyListeners();
+      try{ fetchInternalRooms(); }catch(e){}
       watchSuspension();
       backfillPublicProfile().catch(e=>console.error('public profile',e));
       recordLoginInfo().catch(e=>console.error('login info',e));
@@ -2764,7 +2937,7 @@
     const order=shuffled(HERO_WORDS);
     const items = order.concat([order[0]]).map(w=>`<i>${esc(w)}</i>`).join('');
     return `<aside class="auth-hero"><span class="auth-blob b1"></span><span class="auth-blob b2"></span><span class="auth-blob b3"></span>
-      <div class="auth-hero-top"><div class="brand-mark">${brandMarkHtml()}</div><strong>${esc(brandNames()[0]||'에듀톡')}</strong></div>
+      <div class="auth-hero-top"><div class="brand-mark">${brandMarkHtml()}</div><strong>${esc(brandNames()[0]||'브리즈')}</strong></div>
       <div class="auth-hero-body"><h2>학교 안에서<br><span class="roll"><span class="roll-track" id="heroRoll">${items}</span></span></h2>
       <p>선생님이 알려준 <b>학교 코드</b>로 가입하고, 우리 학교 친구들과 안전하게 이야기해요.</p>
       <div class="auth-hero-mobile" id="heroFadeBox"><span id="heroFade">${esc(HERO_POINTS[0].text)}</span></div>
@@ -2858,6 +3031,14 @@
       if(!s.exists) return;
       const d=s.data()||{};
       if(d.suspended===true){
+        try{
+          const __until=suspendUntilMs(d.suspendedUntil);
+          if(__until>0&&__until<=Date.now()){
+            db.collection('users').doc(uid()).update({suspended:false,suspendReason:'',suspendedAt:null,suspendedUntil:null,updatedAt:ts()}).catch(()=>{});
+            state.profile={...(state.profile||{}),...d,suspended:false,suspendReason:'',suspendedAt:null,suspendedUntil:null};
+            return;
+          }
+        }catch(e){}
         state.profile={...(state.profile||{}),...d};
         closeAllModals();
         clearListeners();
@@ -3024,9 +3205,19 @@
         <div class="landing-steps">${stepList.map((s,i)=>`<article class="landing-step"><div class="num">${i+1}</div><h3>${esc(s.title)}</h3>${s.desc?`<p>${esc(s.desc)}</p>`:''}</article>`).join('')}</div>
       </section>` : '';
     const priceList=Array.isArray(c.pricing)?c.pricing.filter(x=>x&&(x.name||x.desc)):[];
+    const __pa=(c.pricingAnchor&&typeof c.pricingAnchor==='object')?c.pricingAnchor:{enabled:false};
+    const __anchorHtml=(__pa.enabled!==false&&(__pa.originalPrice||__pa.promoPrice))?`<div class="landing-anchor"><span class="anchor-orig">${esc(__pa.originalPrice||'')}</span><span class="anchor-arrow">\u2192</span><strong class="anchor-promo">${esc(__pa.promoPrice||'')}</strong>${__pa.note?`<span class="anchor-note">${esc(__pa.note)}</span>`:''}</div>`:'';
     const pricing=priceList.length ? `<section class="landing-sec" id="${landingSectionId('pricing')}">
         <div class="landing-head">${c.pricingTitle?`<h2>${esc(c.pricingTitle)}</h2>`:''}${c.pricingDesc?`<p>${esc(c.pricingDesc)}</p>`:''}</div>
-        <div class="landing-grid">${priceList.map(x=>`<article class="landing-card"><div class="ico">🎫</div><h3>${esc(x.name||'이용권')}</h3><p><b>${esc(x.price||'금액 미정')}</b> · ${esc(x.period||'1년')}</p>${x.desc?`<p>${esc(x.desc)}</p>`:''}</article>`).join('')}</div>
+        ${__anchorHtml}
+        <div class="landing-grid">${priceList.map(x=>{
+          const __dr = discountRateOf(x.orig, x.price);
+          const __dc = String(x.discount||'').trim() || (__dr>0 ? `${__dr}% 할인` : '');
+          const __priceHtml = x.orig
+            ? `<s class="anchor-orig">${esc(x.orig)}</s> <b>${esc(x.price||'금액 미정')}</b>${__dc?` <span class="discount-badge">${esc(__dc)}</span>`:''}`
+            : `<b>${esc(x.price||'금액 미정')}</b>${__dc?` <span class="discount-badge">${esc(__dc)}</span>`:''}`;
+          return `<article class="landing-card"><div class="ico">🎫</div><h3>${esc(x.name||'이용권')}</h3><p>${__priceHtml} · ${esc(x.period||'1년')}</p>${x.desc?`<p>${esc(x.desc)}</p>`:''}</article>`;
+        }).join('')}</div>
       </section>` : '';
     // 오른쪽 인디케이터 (지금 보고 있는 곳 표시)
     const dots=[['top','소개']];
@@ -3337,11 +3528,12 @@
       <div id="authError" class="form-error hidden"></div>
       <form id="authForm">
         <div class="field"><label>이메일</label><input class="input" name="email" type="email" autocomplete="email" value="${esc(state.authMode==='login'?rememberedEmail():'')}" required></div>
-        <div class="field"><label>비밀번호</label><div style="position:relative"><input class="input" name="password" type="password" autocomplete="current-password" minlength="6" required style="padding-right:44px"><button type="button" class="icon-btn" data-action="toggle-pw" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px" aria-label="비밀번호 보기">👁</button></div></div>
+        ${state.authMode==='login'
+          ? `<div class="field"><label>비밀번호</label><div style="position:relative"><input class="input" name="password" type="password" autocomplete="current-password" minlength="6" required style="padding-right:44px"><button type="button" class="icon-btn" data-action="toggle-pw" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px" aria-label="비밀번호 보기">👁</button></div></div>`
+          : `<div class="pw-row"><div class="field"><label>비밀번호</label><div style="position:relative"><input class="input" name="password" type="password" autocomplete="new-password" minlength="6" required style="padding-right:44px"><button type="button" class="icon-btn" data-action="toggle-pw" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px" aria-label="비밀번호 보기">👁</button></div></div><div class="field"><label>비밀번호 확인</label><div style="position:relative"><input class="input" name="passwordConfirm" type="password" autocomplete="new-password" minlength="6" required style="padding-right:44px"><button type="button" class="icon-btn" data-action="toggle-pw" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px" aria-label="비밀번호 보기">👁</button></div></div></div>`}
         ${state.authMode==='login'?`<label class="remember-check"><input type="checkbox" name="rememberEmail" ${rememberedEmail()?'checked':''}> 아이디 기억하기</label><label class="remember-check" style="margin-top:6px"><input type="checkbox" name="autoLogin" ${localStorage.getItem('edutalk_auto_login')==='1'?'checked':''}> 자동 로그인</label>`:''}
         ${state.authMode === 'signup' ? `<div class="field"><label>학교</label><div class="custom-select"><button type="button" class="select-button" data-action="pick-school"><span data-selected="school">${state.selectedSchool?esc(state.selectedSchool.name):'학교를 검색해 주세요'}</span><span>⌄</span></button></div></div>
         <div class="field"><label>학교 코드</label><input class="input" name="schoolCode" maxlength="12" autocomplete="off" placeholder="선생님께 받은 코드를 입력해 주세요." required><p class="desc" style="margin:7px 0 0;font-size:12px">${(state.schoolList&&state.schoolList.length)?'학교 코드는 담당 선생님께 받을 수 있어요.':'아직 등록된 학교가 없어요. 담당 선생님(관리자)에게 학교 등록과 코드를 요청해 주세요.'}</p></div>
-        <div class="field"><label>비밀번호 확인</label><div style="position:relative"><input class="input" name="passwordConfirm" type="password" autocomplete="new-password" minlength="6" required style="padding-right:44px"><button type="button" class="icon-btn" data-action="toggle-pw" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px" aria-label="비밀번호 보기">👁</button></div></div>
         <div class="field"><label>닉네임</label><input class="input" name="displayName" maxlength="20" required></div>
         <div class="field"><label>학년</label><div class="custom-select"><button type="button" class="select-button" data-select-open="grade"><span data-selected="grade">학년을 골라 주세요</span><span>⌄</span></button></div></div>
         <div class="field"><label>반</label><div class="custom-select"><button type="button" class="select-button" data-select-open="class"><span data-selected="class">학년을 먼저 골라 주세요</span><span>⌄</span></button></div></div>` : ''}
@@ -3352,7 +3544,7 @@
         </div>` : ''}
         <button class="primary">${state.authMode === 'login' ? '로그인' : '가입하기'}</button>
       </form>
-      <button class="google-btn" data-action="google"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg><span>Google 계정으로 ${state.authMode === 'login' ? '로그인' : '가입하기'}</span></button>
+      <button class="google-btn" data-action="google"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="etgR" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EA4335"/><stop offset=".6" stop-color="#FF5A36"/><stop offset="1" stop-color="#FF8A00"/></linearGradient><linearGradient id="etgB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A06CFF"/><stop offset=".45" stop-color="#4285F4"/><stop offset="1" stop-color="#1B9EEE"/></linearGradient><linearGradient id="etgY" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF8A00"/><stop offset=".5" stop-color="#FBBC05"/><stop offset="1" stop-color="#A3C400"/></linearGradient><linearGradient id="etgG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#A3C400"/><stop offset=".55" stop-color="#34A853"/><stop offset="1" stop-color="#0EA5A0"/></linearGradient></defs><path fill="url(#etgR)" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="url(#etgB)" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="url(#etgY)" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="url(#etgG)" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Google 계정으로 ${state.authMode === 'login' ? '로그인' : '가입하기'}</span></button>
       ${isLogin?`<div class="auth-foot"><button class="text-btn" data-action="toggle-auth">회원가입</button><button class="text-btn" data-action="forgot">비밀번호 찾기</button>${landingEnabled()?`<button class="text-btn" data-action="landing-show">소개 보기</button>`:''}</div>`:''}
       <div class="auth-links under-card">${authLinkButtons()}</div>
     </div></div></div></div>`;
@@ -3629,6 +3821,317 @@
     }
   }
 
+  /* ---------- Teacher vertical org (desktop classic) ---------- */
+  /* Desktop-only narrow org panel for teachers. Clean Edutalk style, no cmd look. */
+  function isClassicOrg(){ try{ return localStorage.getItem('edutalk_classic_org')==='1'; }catch(e){ return !!window.__classicOrg; } }
+  function setClassicOrg(v){
+    try{ localStorage.setItem('edutalk_classic_org', v?'1':'0'); }catch(e){}
+    window.__classicOrg=!!v;
+    applyClassicOrg();
+  }
+  function canSeeClassicOrg(){
+    try{ return !!(window.edutalkDesktop&&window.edutalkDesktop.isDesktop)&&isTeacher()&&!!state.user&&state.view!=='admin'&&state.view!=='settings'; }
+    catch(e){ return false; }
+  }
+  function classicAliasOf(id){ try{ return (window.__classicAlias||{})[String(id)]||''; }catch(e){ return ''; } }
+  function openClassicMenu(targetUid, targetName, x, y){
+    try{
+      try{ document.querySelector('#classicCtx')?.remove(); }catch(_){}
+      const fav=__classicFav().includes(String(targetUid));
+      const m=document.createElement('div');
+      m.id='classicCtx'; m.className='classic-ctx';
+      m.innerHTML=`<div class="classic-ctx-head">${esc(targetName||'사용자')}</div>`+
+        `<button type="button" data-ctx="dm">대화하기</button>`+
+        `<button type="button" data-ctx="file">파일 보내기</button>`+
+        `<button type="button" data-action="user-profile" data-uid="${esc(targetUid)}" data-name="${esc(targetName||'')}">프로필 보기</button>`+
+        `<button type="button" data-ctx="fav">${fav?'★ 해제':'☆ 추가'}</button>`+
+        `<button type="button" data-ctx="alias">별명 짓기</button>`;
+      document.body.appendChild(m);
+      m.style.left=Math.min(x||100, window.innerWidth-190)+'px';
+      m.style.top=Math.min(y||100, window.innerHeight-260)+'px';
+      m.querySelector('[data-ctx="dm"]').onclick=()=>{ try{ m.remove(); }catch(_){} confirmDM(targetUid, targetName); };
+      m.querySelector('[data-ctx="file"]').onclick=()=>{ try{ m.remove(); }catch(_){} runAsync(()=>fileDM(targetUid, targetName)); };
+      m.querySelector('[data-ctx="fav"]').onclick=()=>{ try{ m.remove(); }catch(_){} __classicToggleFav(targetUid); };
+      m.querySelector('[data-ctx="alias"]').onclick=()=>{ try{ m.remove(); }catch(_){} openAliasModal(targetUid, targetName); };
+      const pf=m.querySelector('[data-action="user-profile"]');
+      if(pf){ pf.addEventListener('click', ()=>{ try{ m.remove(); }catch(_){} }); }
+      setTimeout(()=>{ document.addEventListener('click', function h(ev){ if(m.contains(ev.target)) return; try{ m.remove(); }catch(_){} document.removeEventListener('click', h); }); },0);
+    }catch(e){}
+  }
+  function confirmDM(targetUid, targetName){
+    if(!targetUid||targetUid===uid()) return;
+    confirmModal(`${targetName||'사용자'}님에게 1:1 대화 초대를 보낼까요?`,'상대가 수락하면 대화할 수 있어요.',()=>{
+      runAsync(()=>startDM(targetUid, targetName||''));
+    });
+  }
+  async function fileDM(targetUid, targetName){
+    if(!targetUid||targetUid===uid()) return;
+    await startDM(targetUid, targetName||'');
+    await new Promise(r=>setTimeout(r,600));
+    try{ if(state.room){ const fi=$('#chatFileInput'); if(fi) fi.click(); } }catch(e){}
+  }
+  function openAliasModal(targetUid, targetName){
+    const cur=classicAliasOf(targetUid);
+    openModal(`<h2>별명 짓기</h2><p class="desc">${esc(targetName||'사용자')}님을 나만 보는 이름으로 저장해요. 비우면 지워져요.</p><div class="field"><label>별명</label><input id="aliasInput" class="input" maxlength="20" value="${esc(cur)}" placeholder="예: 3학년 부장"></div><div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="aliasSave">저장</button></div>`,{small:true});
+    $('#aliasSave').onclick=()=>runAsync(async()=>{
+      const v=($('#aliasInput')?.value||'').trim().slice(0,20);
+      try{
+        const ref=db.collection('staffNotes').doc(uid()).collection('items').doc(targetUid);
+        if(!v) await ref.delete();
+        else await ref.set({alias:v,updatedAt:ts()}, {merge:true});
+        window.__classicAlias={...(window.__classicAlias||{})};
+        if(v) window.__classicAlias[String(targetUid)]=v; else delete window.__classicAlias[String(targetUid)];
+        closeModal(); paintClassicRows(window.__classicRows||[], ($('#classicSearch')?.value||''));
+        toast('별명을 저장했어요.');
+      }catch(e){ console.error(e); toast(errText(e)); }
+    });
+  }
+  function canManageDepts(){ try{ return isSchoolAdmin()||isAdmin(); }catch(e){ return false; } }
+  async function openDeptModal(){
+    if(!canManageDepts()) return toast('학교 관리자만 할 수 있어요.');
+    const sid=state.profile?.schoolId||'';
+    openModal(`<h2>부서 관리</h2><p class="desc">조직도에 보이는 부서를 만들고 교직원을 배치해요.</p><div id="deptList" class="list"><div class="empty-side">불러오는 중…</div></div><div class="field" style="margin-top:10px"><label>새 부서</label><div class="row"><input id="deptNew" class="input" maxlength="20" placeholder="예: 교무부"><button type="button" class="soft-btn" style="flex:0 0 64px" id="deptAdd">추가</button></div></div><div class="modal-actions"><button class="cancel" data-close-modal>닫기</button></div>`);
+    const paint=async()=>{
+      const host=$('#deptList'); if(!host) return;
+      let depts=[];
+      try{ const s=await db.collection('orgDepts').where('schoolId','==',sid).limit(60).get(); depts=s.docs.map(d=>({id:d.id,...d.data()})); }catch(e){}
+      depts.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ko'));
+      let staff=[];
+      try{ const s=await db.collection('publicProfiles').where('schoolId','==',sid).limit(500).get(); staff=s.docs.map(d=>({id:d.id,...d.data()})).filter(u=>!u.deleted&&__classicRoleRank(u.role)<2); }catch(e){}
+      host.innerHTML=depts.map(d=>`<div class="list-item"><div class="grow"><div class="title">${esc(d.name||'이름 없음')}</div><div class="meta">${staff.filter(u=>(u.deptId||'')===d.id).length}명</div></div><button class="soft-btn" style="flex:0 0 52px" data-dept-del="${esc(d.id)}">삭제</button></div>`).join('')||'<div class="empty-side">부서가 없어요.</div>';
+      host.innerHTML+=`<div class="field" style="margin-top:10px"><label>교직원 배치</label>`+staff.map(u=>`<div class="row" style="margin-top:6px"><span class="grow" style="font-size:13px">${esc(u.displayName||'사용자')}</span><select class="input" style="flex:0 0 130px" data-dept-for="${esc(u.id)}"><option value="">미지정</option>${depts.map(d=>`<option value="${esc(d.id)}"${(u.deptId||'')===d.id?' selected':''}>${esc(d.name||'')}</option>`).join('')}</select></div>`).join('')+`</div>`;
+      host.querySelectorAll('[data-dept-del]').forEach(b=>b.onclick=()=>runAsync(async()=>{
+        const id=b.dataset.deptDel; if(!id) return;
+        try{
+          await db.collection('orgDepts').doc(id).delete();
+          const q=await db.collection('publicProfiles').where('schoolId','==',sid).limit(500).get();
+          const batch=db.batch(); let n=0;
+          q.docs.forEach(d=>{ if((d.data().deptId||'')===id&&n<400){ batch.update(d.ref,{deptId:'',updatedAt:ts()}); n++; } });
+          if(n) await batch.commit();
+        }catch(e){ console.error(e); return toast(errText(e)); }
+        paint(); renderClassicOrgPanel();
+      }));
+      host.querySelectorAll('[data-dept-for]').forEach(s=>s.onchange=()=>runAsync(async()=>{
+        try{ await db.collection('publicProfiles').doc(s.dataset.deptFor).update({deptId:s.value||'',updatedAt:ts()}); }
+        catch(e){ console.error(e); return toast(errText(e)); }
+        renderClassicOrgPanel();
+      }));
+    };
+    $('#deptAdd').onclick=()=>runAsync(async()=>{
+      const v=($('#deptNew')?.value||'').trim().slice(0,20);
+      if(!v) return toast('부서 이름을 입력해 주세요.');
+      try{ await db.collection('orgDepts').add({schoolId:sid,name:v,createdAt:ts(),createdBy:uid()}); }
+      catch(e){ console.error(e); return toast(errText(e)); }
+      $('#deptNew').value=''; paint(); renderClassicOrgPanel();
+    });
+    paint();
+  }
+  let __classicWired=false;
+  function mountClassicOrgEntry(){
+    try{
+      if(!__classicWired){
+        __classicWired=true;
+        document.addEventListener('click',(e)=>{
+          try{
+            const t=e.target?.closest?.('#classicOrgToggle');
+            if(t){ setClassicOrg(!isClassicOrg()); return; }
+            const c=e.target?.closest?.('#classicOrgClose');
+            if(c){ setClassicOrg(false); return; }
+            const r=e.target?.closest?.('#classicOrgRefresh');
+            if(r){ renderClassicOrgPanel(); return; }
+            const v=e.target?.closest?.('[data-classic-view]');
+            if(v&&v.dataset.classicView){ __classicSetView(v.dataset.classicView); return; }
+            const f=e.target?.closest?.('[data-classic-fav]');
+            if(f&&f.dataset.classicFav){ __classicToggleFav(f.dataset.classicFav); return; }
+            const dm=e.target?.closest?.('[data-classic-dm]');
+            if(dm&&dm.dataset.classicDm){
+              if(__classicSingle()){ openClassicMenu(dm.dataset.classicDm, dm.dataset.name||'', e.clientX, e.clientY); }
+              else { try{ window.__classicSel=dm.dataset.classicDm; document.querySelectorAll('#classicList .classic-row.sel').forEach(x=>x.classList.remove('sel')); dm.classList.add('sel'); }catch(_){} }
+              return;
+            }
+          }catch(_){}
+        });
+        document.addEventListener('dblclick',(e)=>{
+          try{
+            if(__classicSingle()) return;
+            const dm=e.target?.closest?.('[data-classic-dm]');
+            if(dm&&dm.dataset.classicDm){ openClassicMenu(dm.dataset.classicDm, dm.dataset.name||'', e.clientX, e.clientY); }
+          }catch(_){}
+        });
+        document.addEventListener('contextmenu',(e)=>{
+          try{
+            const dm=e.target?.closest?.('[data-classic-dm]');
+            if(!dm||!dm.dataset.classicDm) return;
+            if(!canSeeClassicOrg()) return;
+            e.preventDefault();
+            openClassicMenu(dm.dataset.classicDm, dm.dataset.name||'', e.clientX, e.clientY);
+          }catch(_){}
+        });
+      }
+      if(!canSeeClassicOrg()){
+        document.body.classList.remove('classic-org');
+        const b0=document.querySelector('#classicOrgToggle'); if(b0) b0.remove();
+        const p0=document.querySelector('#classicOrg'); if(p0) p0.remove();
+        try{ if(window.__classicSent===true&&window.edutalkDesktop&&typeof window.edutalkDesktop.setClassicMode==='function'){ window.__classicSent=false; window.edutalkDesktop.setClassicMode(false); } }catch(e){}
+        return;
+      }
+      let btn=document.querySelector('#classicOrgToggle');
+      if(!btn){
+        btn=document.createElement('button');
+        btn.id='classicOrgToggle';
+        btn.type='button';
+        btn.textContent='\uC870\uC9C1\uB3C4';
+        btn.title='\uC870\uC9C1\uB3C4';
+        btn.setAttribute('aria-pressed', isClassicOrg()?'true':'false');
+        document.body.appendChild(btn);
+      }
+      applyClassicOrg();
+    }catch(e){}
+  }
+  function applyClassicOrg(){
+    try{
+      const on=isClassicOrg()&&canSeeClassicOrg();
+      document.body.classList.toggle('classic-org', on);
+      const btn=document.querySelector('#classicOrgToggle');
+      if(btn) btn.setAttribute('aria-pressed', on?'true':'false');
+      let panel=document.querySelector('#classicOrg');
+      if(on&&!panel){
+        panel=document.createElement('aside');
+        panel.id='classicOrg';
+        panel.setAttribute('aria-label','org');
+        document.body.appendChild(panel);
+      }
+      if(on) renderClassicOrgPanel();
+      try{
+        if(window.__classicSent!==on&&window.edutalkDesktop&&typeof window.edutalkDesktop.setClassicMode==='function'){
+          window.__classicSent=on;
+          window.edutalkDesktop.setClassicMode(!!on);
+        }
+      }catch(e){}
+    }catch(e){}
+  }
+  const __CHO=["\u3131","\u3132","\u3134","\u3137","\u3138","\u3139","\u3141","\u3142","\u3143","\u3145","\u3146","\u3147","\u3148","\u3149","\u314A","\u314B","\u314C","\u314D","\u314E"];
+  function __toCho(s){
+    s=String(s||''); let out='';
+    for(let i=0;i<s.length;i++){ const c=s.charCodeAt(i); out+=(c>=0xAC00&&c<=0xD7A3)?__CHO[Math.floor((c-0xAC00)/588)]:s[i]; }
+    return out;
+  }
+  function __classicFav(){ try{ const a=JSON.parse(localStorage.getItem('edutalk_classic_fav')||'[]'); return Array.isArray(a)?a.filter(x=>typeof x==='string'):[]; }catch(e){ return []; } }
+  function __classicToggleFav(id){
+    try{
+      id=String(id); let a=__classicFav();
+      a=a.includes(id)?a.filter(x=>x!==id):[...a,id].slice(0,200);
+      try{ localStorage.setItem('edutalk_classic_fav', JSON.stringify(a)); }catch(e){}
+    }catch(e){}
+    try{ paintClassicRows(window.__classicRows||[], (document.querySelector('#classicSearch')?.value||'')); }catch(e){}
+  }
+  function __classicView(){ try{ return localStorage.getItem('edutalk_classic_view')||'org'; }catch(e){ return 'org'; } }
+  function __classicSetView(v){
+    if(v!=='org'&&v!=='online'&&v!=='fav') return;
+    try{ localStorage.setItem('edutalk_classic_view', v); }catch(e){}
+    try{ syncClassicTabs(); }catch(e){}
+    try{ paintClassicRows(window.__classicRows||[], (document.querySelector('#classicSearch')?.value||'')); }catch(e){}
+  }
+  function syncClassicTabs(){
+    try{
+      const v=__classicView();
+      document.querySelectorAll('#classicOrg [data-classic-view]').forEach(b=>b.classList.toggle('active', b.dataset.classicView===v));
+    }catch(e){}
+  }
+  function __classicSingle(){ try{ return localStorage.getItem('edutalk_classic_click')!=='double'; }catch(e){ return true; } }
+  function __classicSetSingle(single){ try{ localStorage.setItem('edutalk_classic_click', single?'single':'double'); }catch(e){} }
+  function __classicOnline(u){ const s=presenceStateOf(u); return s==='online'||s==='away'||s==='dnd'; }
+  function __classicRoleRank(r){
+    if(r==='admin'||r==='school_admin') return 0;
+    if(r==='teacher') return 1;
+    return 2;
+  }
+  async function renderClassicOrgPanel(){
+    const panel=document.querySelector('#classicOrg');
+    if(!panel||!canSeeClassicOrg()) return;
+    const sid=state.profile?.schoolId||'';
+    const schoolName=state.profile?.schoolName||'';
+    panel.innerHTML=`<div class="classic-head"><div class="classic-school">${esc(schoolName)}</div>`+
+      `<div class="classic-me"><span class="classic-name">${esc(myName)}</span>`+
+      `<select id="classicPresence" class="classic-select">`+
+      ['auto','away','dnd','offline','hidden'].map(v=>`<option value="${v}"${mode===v?' selected':''}>${esc(presenceModeLabel(v))}</option>`).join('')+
+      `</select></div>`+
+      `<div class="classic-tools"><input id="classicSearch" class="classic-search" placeholder="\uAC80\uC0C9" autocomplete="off">`+
+      `<button type="button" id="classicOrgRefresh" class="classic-icon" title="refresh">\u27F3</button>`+
+      `<button type="button" id="classicOrgClose" class="classic-icon" title="close">\u00D7</button></div>`+
+      `<div class="classic-tabs"><button type="button" class="classic-tab" data-classic-view="org">\uC870\uC9C1\uB3C4</button>`+
+      `<button type="button" class="classic-tab" data-classic-view="online">\uC628\uB77C\uC778</button>`+
+      `<button type="button" class="classic-tab" data-classic-view="fav">\u2605</button></div>`+
+      `<div class="classic-setrow"><select id="classicClick" class="classic-select">`+
+      `<option value="single">\uD55C \uBC88 \uB20C\uB7EC \uB300\uD654</option><option value="double">\uB450 \uBC88 \uB20C\uB7EC \uB300\uD654</option></select>`+
+      `<label class="classic-top"><input type="checkbox" id="classicTop">\uD56D\uC0C1 \uC704</label></div></div>`+
+      `<div id="classicList" class="classic-list"><div class="empty-side">loading</div></div>`;
+    const sel=panel.querySelector('#classicPresence');
+    if(sel){ sel.onchange=()=>{ runAsync(()=>setPresenceMode(sel.value)); }; }
+    const search=panel.querySelector('#classicSearch');
+    if(search){ search.oninput=()=>{ try{ paintClassicRows(window.__classicRows||[], search.value); }catch(e){} }; }
+    try{ syncClassicTabs(); }catch(e){}
+    const cc=panel.querySelector('#classicClick');
+    if(cc){
+      try{ cc.value=__classicSingle()?'single':'double'; }catch(e){}
+      cc.onchange=()=>{ __classicSetSingle(cc.value!=='double'); };
+    }
+    const tp=panel.querySelector('#classicTop');
+    if(tp){
+      try{
+        if(window.edutalkDesktop&&typeof window.edutalkDesktop.getAlwaysOnTop==='function'){
+          window.edutalkDesktop.getAlwaysOnTop().then(v=>{ try{ tp.checked=!!v; }catch(e){} }).catch(()=>{});
+        } else { tp.closest('.classic-top').style.display='none'; }
+      }catch(e){}
+      tp.onchange=()=>{ try{ if(window.edutalkDesktop&&typeof window.edutalkDesktop.setAlwaysOnTop==='function') window.edutalkDesktop.setAlwaysOnTop(!!tp.checked); }catch(e){} };
+    }
+    let rows=[];
+    try{
+      const q=sid?db.collection('publicProfiles').where('schoolId','==',sid).limit(500):db.collection('publicProfiles').limit(200);
+      const snap=await q.get();
+      rows=snap.docs.map(d=>({id:d.id,...(d.data()||{})}));
+    }catch(e){ const h=panel.querySelector('#classicList'); if(h) h.innerHTML='<div class="empty-side">load fail</div>'; return; }
+    rows=rows.filter(u=>!u.deleted);
+    rows.sort((a,b)=> (__classicRoleRank(a.role)-__classicRoleRank(b.role)) || ((Number(a.grade)||99)-(Number(b.grade)||99)) || ((Number(a.classNum)||99)-(Number(b.classNum)||99)) || String(a.displayName||'').localeCompare(String(b.displayName||''), 'ko'));
+    window.__classicRows=rows;
+    paintClassicRows(rows, '');
+  }
+  function paintClassicRows(rows, keyword){
+    const host=document.querySelector('#classicList');
+    if(!host) return;
+    const view=__classicView();
+    const favs=__classicFav();
+    const q=String(keyword||'').trim().toLowerCase();
+    const qCho=__toCho(String(keyword||'').trim().toLowerCase());
+    let list=(rows||[]).filter(u=>{
+      if(view==='fav'&&!favs.includes(String(u.id))) return false;
+      if(!q) return true;
+      const hay=[u.displayName,u.grade,u.classNum,roleLabel(u.role)].filter(Boolean).join(' ').toLowerCase();
+      if(hay.includes(q)) return true;
+      return __toCho(hay).includes(qCho);
+    });
+    if(view==='online'){ list=list.slice().sort((a,b)=> ((__classicOnline(b)?0:1)-(__classicOnline(a)?0:1)) || (__classicRoleRank(a.role)-__classicRoleRank(b.role))); }
+    else if(view==='fav'){ const pos={}; favs.forEach((id,i)=>pos[String(id)]=i); list=list.slice().sort((a,b)=> (pos[String(a.id)]??9999)-(pos[String(b.id)]??9999)); }
+    list=list.slice(0,500);
+    if(!list.length){ host.innerHTML='<div class="empty-side">no result</div>'; return; }
+    const sel=window.__classicSel||'';
+    let lastGroup='';
+    host.innerHTML=list.map(u=>{
+      const staff=__classicRoleRank(u.role)<2;
+      let g, sepText;
+      if(view==='online'){ const on=__classicOnline(u); g=on?'on':'off'; sepText=on?'\uC628\uB77C\uC778':'\uC624\uD504\uB77C\uC778'; }
+      else if(view==='fav'){ g='fav'; sepText='\uC990\uACA8\uCC3E\uAE30'; }
+      else { g=staff?'staff':('g'+(u.grade||'?')); sepText=staff?'\uAD50\uC9C1\uC6D0':((''+(u.grade||'?'))+'\uD559\uB144'); }
+      const sep=(g!==lastGroup)?(()=>{ lastGroup=g; return `<div class="classic-sep">${esc(sepText)}</div>`; })():'';
+      const meta=staff?esc(roleLabel(u.role)):(esc(gradeClassPrefix(u)||'')+esc(roleLabel(u.role)||''));
+      const fav=favs.includes(String(u.id));
+      return sep+`<div class="classic-row${sel===String(u.id)?' sel':''}" data-classic-dm="${esc(u.id)}" data-name="${esc(u.displayName||'')}" role="button" tabindex="0">`+
+        `<span class="classic-av">${avatarHtml(u,'',true)}</span>`+
+        `<span class="classic-grow"><span class="classic-title">${esc(u.displayName||'')} ${presenceDot(u)}</span>`+
+        `<span class="classic-meta">${meta}</span></span>`+
+        `<button type="button" class="classic-fav${fav?' on':''}" data-classic-fav="${esc(u.id)}" title="fav">${fav?'\u2605':'\u2606'}</button></div>`;
+    }).join('');
+  }
   function renderShell(){
     try{ if(isNativeApp() && !state.user) { state.landingRequested=false; state.landing=null; } }catch(e){}
     applyFontSize();
@@ -3654,6 +4157,37 @@
     if(window.innerWidth<=820 && state.view==='chat' && !state.room) openDrawer();
     // 초대 링크로 들어왔으면 로그인 뒤 코드 참가 흐름으로 잇는다 (1회성)
     if(state.profile) runAsync(()=>consumePendingJoinLink());
+    try{ mountClassicOrgEntry(); }catch(e){}
+    try{ mountFloatingTabBar(); }catch(e){}
+  }
+  // ---------- 모바일 플로팅 탭바 (iOS 리퀴드 글래스) ----------
+  // 좁은 화면(iOS/모바일)에서만 하단에 떠 있는 유리 알약 탭바를 붙인다.
+  // 채팅방을 열면 body.m-chat-open 이 붙어 CSS가 스스로 숨긴다 (입력창을 가리지 않음).
+  function mountFloatingTabBar(){
+    if(window.innerWidth>560) return;
+    if(document.getElementById('breezeTabbar')) return;
+    const host=document.getElementById('app'); if(!host) return;
+    const bar=document.createElement('nav');
+    bar.id='breezeTabbar'; bar.className='breeze-tabbar'; bar.setAttribute('aria-label','주요 화면');
+    const items=[
+      {id:'rooms', ico:'💬', label:'대화'},
+      {id:'friends', ico:'👥', label:'친구'},
+      {id:'search', ico:'⌕', label:'검색'},
+      {id:'settings', ico:'⚙️', label:'설정'},
+    ];
+    const active=(state.view==='settings')?'settings':'rooms';
+    bar.innerHTML=items.map(t=>`<button type="button" class="breeze-tab${t.id===active?' on':''}" data-bt="${t.id}" aria-label="${t.label}"><span class="bt-ico" aria-hidden="true">${t.ico}</span><span class="bt-label">${t.label}</span></button>`).join('');
+    bar.addEventListener('click',(e)=>{ const b=e.target.closest('[data-bt]'); if(!b) return; onBreezeTab(b.dataset.bt); });
+    host.appendChild(bar);
+  }
+  function onBreezeTab(id){
+    try{
+      if(id==='rooms'){ closeAllModals(); if(window.innerWidth<=820){ openDrawer(); } else { state.view='chat'; renderShell(); } }
+      else if(id==='friends'){ closeAllModals(); openFriends(); }
+      else if(id==='search'){ closeAllModals(); openCmdPalette(); }
+      else if(id==='settings'){ closeAllModals(); openSettings(); }
+    }catch(e){}
+    $$('#breezeTabbar .breeze-tab').forEach(x=>x.classList.toggle('on', x.dataset.bt===id));
   }
   const SB_MIN=226, SB_MAX=572, SB_DEFAULT=286;
   function applySidebarWidth(w){
@@ -3726,6 +4260,7 @@
     try{ paintLicenseBanner(); }catch(e){}
     try{ refreshSchoolLicense(); }catch(e){}
     try{ loadMealWidget(); }catch(e){}
+    try{ paintOrgTree(); }catch(e){}
   }
   // ---------- 학교 역할 (반장·부반장·학생회장 등 · 중복 부여 가능) ----------
   let roleDefsUnsub=null, roleGrantsUnsub=null;
@@ -3755,6 +4290,10 @@
       return {...g, name:g.roleName||d.name||'역할', emoji:g.emoji||d.emoji||'', color:g.color||d.color||''};
     });
   }
+  function teacherBadgeHtml(role){
+    if(role==='teacher'||role==='school_admin'||role==='admin') return `<span class="teacher-badge">교사전용</span>`;
+    return '';
+  }
   function roleChipsHtml(uid){
     const roles=userRoles(uid); if(!roles.length) return '';
     return `<span class="role-chips">${roles.map(r=>{
@@ -3773,7 +4312,7 @@
     state.settings.collapsedSideSections=[...cur];
     const s={...(state.profile?.settings||{}),collapsedSideSections:state.settings.collapsedSideSections,sideOrder:state.settings.sideOrder||sideOrderList(),collapsedGroups:state.settings.collapsedGroups||[]};
     if(state.profile) state.profile.settings=s;
-    $$('.side-body .side-section[data-sidekey="'+key+'"]').forEach(el=>el.classList.toggle('collapsed', on));
+    $$(`.side-body .side-section[data-sidekey="${key}"], .side-bottom[data-sidekey="${key}"]`).forEach(el=>el.classList.toggle('collapsed', on));
     try{ await db.collection('users').doc(uid()).update({settings:s,updatedAt:ts()}); }catch(e){ console.error(e); }
   }
   function sidebarHtml(){
@@ -3786,6 +4325,8 @@
     const cMeal=isSideCollapsed('meal')?' collapsed':'';
     const cSug=isSideCollapsed('suggest')?' collapsed':'';
     const cAdm=isSideCollapsed('admin')?' collapsed':'';
+    const cOrg=isSideCollapsed('org')?' collapsed':'';
+    const orgSec=netMode()!=='cloud'?`<div class="side-section${cOrg}" data-sidekey="org"><div class="side-title" data-sidetitle="org"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="org" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>조직도</span></span><button class="text-btn" data-action="org-refresh">새로고침</button></div><div class="side-section-body"><div class="side-section-inner"><div id="orgTree"><div class="empty-side">불러오는 중…</div></div></div></div></div>`:'';
     const chatSec=`<div class="side-section${cChat}" data-sidekey="chat"><div class="side-title" data-sidetitle="chat"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="chat" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>채팅</span></span><span class="side-title-btns"><button class="text-btn" data-action="room-join-code">코드로 참가</button><button class="text-btn" data-action="new-room">+ 만들기</button></span></div><div class="side-section-body"><div class="side-section-inner"><div id="roomList"></div></div></div></div>`;
     const inviteSec=`<div class="side-section hidden${cInv}" data-sidekey="invite" id="inviteSection"><div class="side-title" data-sidetitle="invite"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="invite" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>초대</span></span></div><div class="side-section-body"><div class="side-section-inner"><div id="inviteList"></div></div></div></div>`;
     const friendSec=`<div class="side-section${cFr}" data-sidekey="friends"><div class="side-title" data-sidetitle="friends"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="friends" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>친구</span></span><button class="text-btn" data-action="friends">관리</button></div><div class="side-section-body"><div class="side-section-inner"><div id="friendList"></div></div></div></div>`;
@@ -3793,7 +4334,7 @@
     const mealSec=`<div class="side-section${cMeal}" data-sidekey="meal"><div class="side-title" data-sidetitle="meal"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="meal" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>오늘 급식·시간표</span></span><button class="text-btn" data-action="meal-refresh">새로고침</button></div><div class="side-section-body"><div class="side-section-inner"><div id="mealWidget"><div class="empty-side">불러오는 중…</div></div></div></div></div>`;
     const suggestSec=state.profile?.role==='student'?`<div class="side-section${cSug}" data-sidekey="suggest"><div class="side-title" data-sidetitle="suggest"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="suggest" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>건의함</span></span></div><div class="side-section-body"><div class="side-section-inner"><button class="room" data-action="suggest-box"><div class="room-icon">📮</div><div class="room-main"><div class="room-name">익명 건의함</div><div class="room-sub">누가 썼는지 알 수 없어요</div></div></button></div></div></div>`:'';
     const adminSec=(isAdmin()||state.profile?.role==='teacher'||isSchoolAdmin())?`<div class="side-section${cAdm}" data-sidekey="admin"><div class="side-title" data-sidetitle="admin"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="admin" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>관리</span></span></div><div class="side-section-body"><div class="side-section-inner"><button class="room" data-action="admin"><div class="room-icon">⌘</div><div class="room-main"><div class="room-name">${isAdmin()?'관리자 도구':isSchoolAdmin()?'학교 관리':'교사 도구'}</div><div class="room-sub">학교 설정과 운영 도구</div></div></button></div></div></div>`:'';
-    const secs={chat:chatSec,invite:inviteSec,friends:friendSec,sched:schedSec,meal:mealSec,suggest:suggestSec,admin:adminSec};
+    const secs={chat:chatSec,invite:inviteSec,friends:friendSec,sched:schedSec,org:orgSec,meal:mealSec,suggest:suggestSec,admin:adminSec};
     // sideLayout이 rooms-only/friends-only면 해당 섹션만, split/friends-top이면 순서대로
     let keys=sideOrderList().filter(k=>secs[k]);
     if(layout==='rooms-only') keys=keys.filter(k=>k==='chat');
@@ -3801,16 +4342,17 @@
     else if(layout==='friends-top') keys=[...keys.filter(k=>k==='friends'),...keys.filter(k=>k!=='friends'&&k!=='invite'),...keys.filter(k=>k==='invite')];
     const listSecs=keys.map(k=>secs[k]).join('');
     const paletteHint=`<button class="icon-btn" data-action="open-palette" aria-label="빠른 실행" title="빠른 실행 (Ctrl+K)" style="margin-right:4px">⌕</button>`;
-    return `<div class="side-top"><div class="brand"><div class="brand-mark">${brandMarkHtml()}</div><span class="brand-name" data-brand-roll>${esc(brandNames()[0]||'에듀톡')}</span></div>${paletteHint}</div>
-      <div class="profile-card"><div class="profile-row"><button type="button" class="avatar-dot profile-open" data-action="profile" aria-label="내 프로필 보기">${avatarHtml(state.profile)}</button><div class="grow"><button type="button" class="profile-name profile-open" data-action="profile">${esc(state.profile?.displayName||'사용자')}</button><div class="profile-meta-line"><span class="profile-meta">${gradeClassPrefix(state.profile)}${roleLabel(state.profile?.role)}</span><span class="presence-dot inline ${myPresenceState()||'hidden'}" data-my-presence-dot aria-hidden="true"></span><button type="button" class="presence-menu-btn" data-action="presence-menu" aria-haspopup="menu" aria-label="접속 상태 변경"><span class="presence-text" data-my-presence-label>${esc(myPresenceLabel())}</span><span class="presence-caret" aria-hidden="true">⌄</span></button></div></div></div></div>
+    const cBottom=isSideCollapsed('bottom')?' collapsed':'';
+    return `<div class="side-top"><div class="brand"><div class="brand-mark">${brandMarkHtml()}</div><span class="brand-name" data-brand-roll>${esc(brandNames()[0]||'브리즈')}</span></div>${paletteHint}</div>
+      <div class="profile-card"><div class="profile-row"><button type="button" class="avatar-dot profile-open" data-action="profile" aria-label="내 프로필 보기">${avatarHtml(state.profile)}</button><div class="grow"><button type="button" class="profile-name profile-open" data-action="profile">${esc(state.profile?.displayName||'사용자')}</button><div class="profile-meta-line"><span class="profile-meta">${gradeClassPrefix(state.profile)}${roleLabel(state.profile?.role)}</span><span class="class-now-badge hidden" data-class-now></span><span class="presence-dot inline ${myPresenceState()||'hidden'}" data-my-presence-dot aria-hidden="true"></span><button type="button" class="presence-menu-btn" data-action="presence-menu" aria-haspopup="menu" aria-label="접속 상태 변경"><span class="presence-text" data-my-presence-label>${esc(myPresenceLabel())}</span><span class="presence-caret" aria-hidden="true">⌄</span></button></div></div></div></div>
       <div id="licenseBanner" class="license-banner hidden"></div>
       <div id="bannerPager"></div>
       <div id="unreadSummary" class="unread-summary hidden" role="button" tabindex="0" data-action="unread-summary-go" aria-label="안읽은 방으로 이동" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); this.click(); }"></div>
       <div class="side-body">${listSecs}</div>
-      <div class="side-bottom"><button class="soft-btn manage-btn" data-action="chat-manage"><span>💬</span> 채팅 관리</button><div class="row"><button class="soft-btn" data-action="settings">전체 설정</button><button class="soft-btn" data-action="logout">로그아웃</button></div></div>`;
+      <div class="side-bottom side-section${cBottom}" data-sidekey="bottom"><div class="side-title" data-sidetitle="bottom" style="margin-bottom:8px"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="bottom" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>바로가기</span></span></div><div class="side-section-body"><div class="side-section-inner" style="display:grid;gap:8px"><button class="soft-btn manage-btn" data-action="chat-manage"><span>💬</span> 채팅 관리</button><div class="row"><button class="soft-btn" data-action="settings">전체 설정</button><button class="soft-btn" data-action="logout">로그아웃</button></div></div></div></div>`;
   }
   // 큰 탭(채팅·친구·일정 등) 순서 — 꾹 눌러 바꾸고 저장한다 (채팅방 순서 바꾸기와 동일한 모션)
-  const SIDE_DEFAULT_ORDER=['chat','friends','sched','meal','suggest','admin','invite'];
+  const SIDE_DEFAULT_ORDER=['chat','friends','sched','org','meal','suggest','admin','invite'];
   function sideOrderList(){
     const saved=Array.isArray(state.settings?.sideOrder)?state.settings.sideOrder:[];
     const known=SIDE_DEFAULT_ORDER.filter(k=>saved.includes(k));
@@ -3956,7 +4498,7 @@
         const guard=document.getElementById('devGuard');
         const guardHtml = guard ? guard.outerHTML : '<div id="devGuard" class="show" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(12,16,22,.92);backdrop-filter:blur(6px);padding:24px"><div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 30px 90px rgba(0,0,0,.35)"><div style="width:52px;height:52px;border-radius:50%;background:#FFF0F1;color:#E5484D;display:grid;place-items:center;margin:0 auto 14px;font-size:26px">⚠️</div><h2 style="margin:0 0 8px;color:#000">개발자 도구가 감지되었습니다</h2><p style="margin:0;color:#333;font-size:14px;line-height:1.6">보안을 위해 화면을 보호했습니다.<br>창을 닫고 다시 시도해 주세요.</p></div></div>';
         // 문서 전체를 경고만 남기도록 교체 (소스는 이미 다운로드되어 네트워크 탭에 남지만, DOM에서는 제거)
-        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>에듀톡</title><style>html,body{height:100%;margin:0;background:#101119;color:#fff;font-family:Pretendard,sans-serif}</style></head><body>' + guardHtml + '</body>';
+        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>브리즈</title><style>html,body{height:100%;margin:0;background:#101119;color:#fff;font-family:Pretendard,sans-serif}</style></head><body>' + guardHtml + '</body>';
         try{ window.stop(); }catch(e){}
         // 추가: 무한 debugger로 추가 분석 방해 (개발자 도구가 열려 있으면 멈춤)
         // Note: 실제 보안 경계는 firestore.rules이며, 클라이언트 코드는 항상 네트워크로 다운로드되므로 완전 은닉은 불가능합니다.
@@ -3969,7 +4511,7 @@
     let ov=document.getElementById('devGuard');
     if(!ov){
       ov=document.createElement('div'); ov.id='devGuard';
-      ov.innerHTML=`<div class="dev-guard-card"><div class="dev-guard-mark">!</div><h2>안전한 에듀톡을 위해 개발자 도구는 허용하지 않아요</h2><p>개발자 도구를 닫고 새로고침 해주세요.<br><span class="dev-guard-sub">(F12를 실수로 눌렀을 수도 있어요. F12를 누르지 마세요.)</span></p><div class="modal-actions" style="margin-top:6px"><button type="button" class="confirm" id="devGuardReload">새로고침</button><button type="button" class="cancel" id="devGuardClose">확인</button></div></div>`;
+      ov.innerHTML=`<div class="dev-guard-card"><div class="dev-guard-mark">!</div><h2>안전한 브리즈을 위해 개발자 도구는 허용하지 않아요</h2><p>개발자 도구를 닫고 새로고침 해주세요.<br><span class="dev-guard-sub">(F12를 실수로 눌렀을 수도 있어요. F12를 누르지 마세요.)</span></p><div class="modal-actions" style="margin-top:6px"><button type="button" class="confirm" id="devGuardReload">새로고침</button><button type="button" class="cancel" id="devGuardClose">확인</button></div></div>`;
       document.body.appendChild(ov);
       ov.querySelector('#devGuardClose').onclick=()=>{ hideDevGuard(); };
       ov.querySelector('#devGuardReload').onclick=()=>{ try{ location.reload(); }catch(e){} };
@@ -4033,7 +4575,7 @@
       e.preventDefault();
       openAttachConfirm(file);
     });
-    document.addEventListener('change',e=>{ if(e.target && e.target.dataset && 'landingAction' in e.target.dataset){ syncLandingDraft(); renderLandingAdmin($('#adminPanel')); return; } if(e.target && e.target.id==='chatFileInput'){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) openAttachConfirm(f); } if(e.target && e.target.id==='roomIconFile'){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) setRoomIconPhoto(state.room?.id,f); } if(e.target && (e.target.id==='avatarFileInput'||e.target.id==='avatarCameraInput')){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) setProfilePhoto(f); } if(e.target && e.target.id==='trCertFile'){ const f=e.target.files&&e.target.files[0]; const pv=$('#trCertPreview'); if(pv) pv.innerHTML=f?`<span>${esc(f.name||'파일')} · ${esc(fmtBytes(f.size))}</span>`:'<span>파일 없음</span>'; } if(e.target&&e.target.dataset&&e.target.dataset.cmPick){ if(!(state.cmSel instanceof Set)) state.cmSel=new Set(); if(e.target.checked) state.cmSel.add(e.target.dataset.cmPick); else state.cmSel.delete(e.target.dataset.cmPick); } });
+    document.addEventListener('change',e=>{ if(e.target && e.target.dataset && 'landingAction' in e.target.dataset){ syncLandingDraft(); renderLandingAdmin($('#adminPanel')); return; } if(e.target && e.target.id==='chatFileInput'){ const fs=(e.target.files?[...e.target.files]:[]).slice(0,10); e.target.value=''; if(e.target.files&&e.target.files.length>10) toast('한 번에 10개까지만 보낼 수 있어요.'); if(fs.length===1&&String(fs[0].type||'').startsWith('image/')) openAttachConfirm(fs[0]); else if(fs.length) openAttachMulti(fs); } if(e.target && e.target.id==='roomIconFile'){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) setRoomIconPhoto(state.room?.id,f); } if(e.target && (e.target.id==='avatarFileInput'||e.target.id==='avatarCameraInput')){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) setProfilePhoto(f); } if(e.target && e.target.id==='trCertFile'){ const f=e.target.files&&e.target.files[0]; const pv=$('#trCertPreview'); if(pv) pv.innerHTML=f?`<span>${esc(f.name||'파일')} · ${esc(fmtBytes(f.size))}</span>`:'<span>파일 없음</span>'; } if(e.target&&e.target.dataset&&e.target.dataset.cmPick){ if(!(state.cmSel instanceof Set)) state.cmSel=new Set(); if(e.target.checked) state.cmSel.add(e.target.dataset.cmPick); else state.cmSel.delete(e.target.dataset.cmPick); } });
     document.addEventListener('keydown',e=>{ if(e.target.id==='roomSearchInput'&&e.key==='Enter'){e.preventDefault();runRoomSearch(e.target.value);} if(e.target.id==='roomSearchInput'&&e.key==='Escape'){e.preventDefault();toggleRoomSearch(false);} });
     document.addEventListener('visibilitychange',onReadVisibility);
     wireMessagePress();
@@ -4144,6 +4686,8 @@
       }
     }
     if(a){
+      // 타임아웃 중에는 정리(나가기·거절·삭제·신고·이의신청)·읽기·닫기만 되고, 나머지는 토스트 후 차단
+      if(isChatLockedAction(a) && chatLockActive() && !isAdmin()){ chatLockToast(); return; }
       if(a==='close-settings')return closeSettings();
       if(a==='retry')return location.reload(); if(a==='toggle-auth'){state.authAnim=state.authMode==='login'?'left':'right';state.authMode=state.authMode==='login'?'signup':'login';state.authPage='';renderAuth();return}
       if(a==='auth-page'){state.authAnim='left';state.authPage=el.dataset.page||'';paintAuth();return}
@@ -4168,9 +4712,10 @@
         openSafeLink(url);   // http(s) · mailto · tel 만 허용
         return;
       }
-      if(a==='mention-pick')return pickMention(el.dataset.idx);
+      if(a==='mention-pick')return pickMention(el.dataset.idx); if(a==='mention-profile')return openMentionProfile(el.dataset.name||'');
       if(a==='read-list')return openReadList(el.dataset.names||'',el.dataset.count||'');
       if(a==='attach-confirm-send'){ return confirmAttachmentSend(el); }
+      if(a==='attach-multi-send'){ return sendAttachMulti(el); }
       if(a==='attach-send-risky'){
         const d=state.attachDraft;
         if(!d?.file) return;
@@ -4231,7 +4776,7 @@
       if(a==='landing-mock-msg-add'){syncLandingDraft();const P=landingDraft().mock.presets[Number(el.dataset.idx)];if(P&&P.messages.length<6)P.messages.push({side:'left',avatar:'',text:'새 메시지'});renderLandingAdmin($('#adminPanel'));return}
       if(a==='landing-mock-msg-remove'){syncLandingDraft();const P=landingDraft().mock.presets[Number(el.dataset.idx)];if(P)P.messages.splice(Number(el.dataset.mi),1);renderLandingAdmin($('#adminPanel'));return}
       if(a==='google')return googleLogin(); if(a==='forgot')return forgot(); if(a==='send-reset')return sendReset();
-      if(a==='settings')return openSettings(); if(a==='delete-account')return openDeleteAccountModal(); if(a==='profile')return openProfile(); if(a==='presence-menu'){ openPresenceMenu(el); return; } if(a==='logout')return confirmModal('로그아웃 하시겠어요?','다시 로그인해야 들어올 수 있어요.',()=>{closeAllModals();clearListeners();state.logoutZoom=true;return auth.signOut();}); if(a==='new-room')return openRoomModal(); if(a==='admin')return openAdmin();
+             if(a==='netmode'||a==='netsave'||a==='netconnect'||a==='netdisconnect'||a==='net-guide'||a==='org-toggle'||a==='org-user'||a==='org-refresh'||a==='internal-reads'||a==='internal-members'||a==='internal-leave'||a==='internal-delete'||a==='recall-message')return handleNetAction(a,el); if(a==='settings')return openSettings(); if(a==='delete-account')return openDeleteAccountModal(); if(a==='profile')return openProfile(); if(a==='presence-menu'){ openPresenceMenu(el); return; } if(a==='logout')return confirmModal('로그아웃 하시겠어요?','다시 로그인해야 들어올 수 있어요.',()=>{closeAllModals();clearListeners();try{disconnectInternal();}catch(e){}state.logoutZoom=true;return auth.signOut();}); if(a==='new-room')return openRoomModal(); if(a==='admin')return openAdmin();
       if(a==='close-admin')return exitAdmin(); if(a==='site-notice')return openAdmin('sitenotice'); if(a==='users-admin')return openAdmin('users');
       if(a==='user-profile')return openUserProfile(el.dataset.uid,el.dataset.name);
       if(a==='notice-link')return openNoticeLink(el.dataset.url);
@@ -4242,13 +4787,43 @@
       if(a==='retry-profile')return retryProfile();
       if(a==='neis-search')return neisSearch();
       if(a==='register-school')return registerSchool(el.dataset.nid);
+      if(a==='il-secret-save'){
+        const sid=state.profile?.schoolId||'';
+        const v=($('#ilSecret')?.value||'').trim();
+        if(!sid) return toast('학교 정보가 없어요.');
+        if(v.length<16) return toast('등록 코드가 짧아요. 학교 PC 관리 페이지에서 확인해 주세요.');
+        try{ await db.collection('schoolSecrets').doc(sid).set({secret:v,updatedAt:ts()},{merge:true}); }
+        catch(e){ console.error(e); return toast(errText(e)); }
+        toast('등록 코드를 저장했어요. 키가 자동으로 만들어져요.');
+        renderInternalLicenseCard();
+        return;
+      }
+      if(a==='il-issue'){ const h=(($('#ilHwid')?.value||'').trim().toUpperCase()); issueInternalLicenseCall(h); return; }
+      if(a==='il-copy'){
+        const t=$('#ilCard textarea');
+        if(t&&t.value){ try{ await navigator.clipboard.writeText(t.value); toast('복사했어요.'); }catch(e){ t.select(); toast('복사하려면 길게 눌러 주세요.'); } }
+        return;
+      }
+      if(a==='il-download'){
+        const t=$('#ilCard textarea');
+        if(!(t&&t.value)) return;
+        try{
+          const blob=new Blob([t.value],{type:'text/plain'});
+          const u=URL.createObjectURL(blob);
+          const link=document.createElement('a');
+          link.href=u; link.download='license.key'; document.body.appendChild(link); link.click();
+          setTimeout(()=>{ try{URL.revokeObjectURL(u);}catch(e){} link.remove(); },2000);
+          toast('license.key를 받았어요.');
+        }catch(e){ toast('내려받지 못했어요. 복사로 저장해 주세요.'); }
+        return;
+      }
       if(a==='open-school-settings')return openSchoolSettings(el.dataset.sid);
       if(a==='regen-school-code')return regenSchoolCode(el.dataset.sid);
       if(a==='delete-school')return deleteSchool(el.dataset.sid);
       if(a==='link-school-data')return linkSchoolData(el.dataset.sid);
       if(a==='save-site-notice')return saveSiteNotice();
       if(a==='profile-emoji')return pickProfileEmoji(el.dataset.emoji); if(a==='profile-color')return pickProfileColor(el.dataset.color);
-      if(a==='close-drawer')return closeDrawer(); if(a==='open-drawer')return openDrawer(); if(a==='mobile-back'){document.body.classList.remove('m-chat-open');openDrawer();return;} if(a==='jump-bottom'){hideInRoomPill();const h=$('#messages');if(h)scrollMessagesToBottom(h,true);return;} if(a==='load-more-msgs')return loadMoreMessages(); if(a==='open-invite'||a==='invite'){closeAllModals();return openInvite(rid());} if(a==='accept-invite')return acceptInvite(inv()); if(a==='decline-invite')return declineInvite(inv());
+      if(a==='close-drawer')return closeDrawer(); if(a==='open-drawer')return openDrawer(); if(a==='mobile-back'){document.body.classList.remove('m-chat-open');openDrawer();return;} if(a==='jump-bottom'){hideInRoomPill();const h=$('#messages');if(h)scrollMessagesToBottom(h,true);return;} if(a==='load-more-msgs')return loadMoreMessages();       if(a==='open-invite'||a==='invite'){ if(state.room&&isInternalRoom(state.room)){closeAllModals();return openInternalInvite(state.room.id);} closeAllModals();return openInvite(rid());} if(a==='accept-invite')return acceptInvite(inv()); if(a==='decline-invite')return declineInvite(inv());
       if(a==='cross-approve')return handleCross(el.dataset.id,true); if(a==='cross-reject')return handleCross(el.dataset.id,false);
       if(a==='school-remove')return removeUserFromSchool(el.dataset.uid,el.dataset.name);
       if(a==='school-role')return openSchoolRoleModal(el.dataset.uid,el.dataset.name,el.dataset.role);
@@ -4278,7 +4853,7 @@
       if(a==='notice-create')return createNoticeRoom();
       if(a==='appeal-unblock')return handleAppeal(el.dataset.id,el.dataset.uid,el.dataset.name,true);
       if(a==='appeal-close')return handleAppeal(el.dataset.id,el.dataset.uid,el.dataset.name,false);
-      if(a==='members'){closeAllModals();return openMembersPanel(el.dataset.roomId||state.room?.id);}
+      if(a==='members'){ if(state.room&&isInternalRoom(state.room)){closeAllModals();return openInternalMembers(state.room.id);} closeAllModals();return openMembersPanel(el.dataset.roomId||state.room?.id);}
       if(a==='close-members')return closeMembersPanel();
       if(a==='room-menu')return openRoomMenu(rid());
       if(a==='search'||a==='toggle-search'){closeAllModals();return toggleRoomSearch();}
@@ -4305,12 +4880,16 @@
       if(a==='blind-confirm')return confirmBlindDelete(el.dataset.msg);
       if(a==='meal-refresh')return loadMealWidget(true);
       if(a==='neis-manual')return openNeisManual();
+      if(a==='tt-request')return openTimetableChangeModal();
+      if(a==='tt-approve-list')return openTimetableApproveList();
+      if(a==='tt-approve')return approveTimetableChange(el.dataset.id, true);
+      if(a==='tt-reject')return approveTimetableChange(el.dataset.id, false);
       if(a==='poll-opt-add'){ const host=$('#pollOpts'); if(host&&host.querySelectorAll('[data-poll-opt]').length<6){ const i=document.createElement('input'); i.className='input'; i.setAttribute('data-poll-opt',''); i.maxLength=30; i.placeholder='보기 '+(host.querySelectorAll('[data-poll-opt]').length+1); i.style.marginTop='6px'; host.appendChild(i); i.focus(); } return; }
       if(a==='poll-create')return createPoll();
       if(a==='poll-vote')return votePoll(el.dataset.msg,Number(el.dataset.i));
       if(a==='poll-close')return closePoll(el.dataset.msg);
       if(a==='notice-from-room')return openNoticeFromRoom(rid());
-      if(a==='export-room')return exportRoomText(el.dataset.roomId||rid());
+      if(a==='export-room'){ if(state.room&&isInternalRoom(state.room)) return toast('내부망 방에서는 지원하지 않아요.'); return exportRoomText(el.dataset.roomId||rid());}
       if(a==='poll-open')return openPollModal();
       if(a==='renotify-unread')return renotifyUnread(el.dataset.roomId||rid());
       if(a==='notice-pick-create')return createNoticePickRoom(el.dataset.room);
@@ -4352,7 +4931,21 @@
       if(a==='cal-neis')return importNeisSchedule();
       if(a==='cal-reload')return (async()=>{ await loadCalEvents(true); paintCalendar(); })();
       if(a==='chat-groups'){closeAllModals();return openGroupManager();} if(a==='chat-manage')return openChatManager(); if(a==='blocked-users')return openBlockedUsers(); if(a==='open-policies')return openPolicies(); if(a==='view-policy')return viewPolicy(el.dataset.page||el.dataset.id||'');       if(a==='attach-file'){const fi=$('#chatFileInput');if(fi)fi.click();return;}
+       if(a==='open-templates'){closeAllModals();openTemplates();return;}
+       if(a==='tpl-insert'){insertTpl(el.dataset.i);return;}
+       if(a==='tpl-del'){const arr=readTpls();arr.splice(Number(el.dataset.i),1);writeTpls(arr);openTemplates();return;}
+       if(a==='tpl-add'){const v=($('#tplNew')?.value||'').trim();if(!v) return toast('문구를 입력해 주세요.');const arr=readTpls();arr.unshift({t:v.slice(0,300),d:''});writeTpls(arr);openTemplates();return;}
+       if(a==='dlp-toggle'){try{localStorage.setItem('edutalk_dlp', dlpOn()?'0':'1');}catch(e){}refreshComposer();return;}
+       if(a==='dlp-send'){state.dlpOk=true;const f=state.dlpForm||null;state.dlpForm=null;closeModal();runAsync(()=>sendMessage(f));return;}
+       if(a==='memo-open'){closeAllModals();openMemos();return;}
+       if(a==='memo-add'){saveMemo();return;}
+       if(a==='memo-color'){state.memoColor=el.dataset.c||MEMO_COLORS[0];document.querySelectorAll('#memoColors .memo-dot').forEach(b=>b.classList.toggle('on', b.dataset.c===state.memoColor));return;}
+       if(a==='memo-edit'){try{const s=await db.collection('personalMemos').doc(el.dataset.id).get();if(s.exists){const v=s.data()||{};const ta=$('#memoNew');if(ta){ta.value=String(v.text||'');ta.focus();}state.memoEdit=el.dataset.id;state.memoColor=v.color||MEMO_COLORS[0];}}catch(e){}return;}
+       if(a==='memo-del'){try{await db.collection('personalMemos').doc(el.dataset.id).delete();}catch(e){}paintMemos();return;}
+       if(a==='usb-log'){openUsbLog();return;}
+       if(a==='masked-capture'){maskedCapture();return;}
       if(a==='download-attach')return;
+      if(a==='view-attach'&&labOn('hw')){const mm=state.messages.find(x=>x.id===el.dataset.msg);if(mm&&mm.attachment){const done=await previewTextAttach(mm);if(done) return;}}
       if(a==='view-attach'){const m=state.messages.find(x=>x.id===el.dataset.msg);if(!m?.attachment) return;const data=attachDataOf(m);if(data){const src=esc(safeImgSrc(data));const href=esc(safeFileHref(data));if(src)openModal(`<h2>${esc(m.attachment.name||'사진')}</h2><img class="attach-view" src="${src}" alt=""><div class="modal-actions"><button class="cancel" data-close-modal>닫기</button>${href?`<a class="confirm" style="text-decoration:none;display:grid;place-items:center" href="${href}" download="${esc(m.attachment.name||'사진')}" data-close-modal>내려받기</a>`:''}</div>`);}else openModal(`<h2>${esc(m.attachment.name||'파일')}</h2><div class="empty-side">파일을 불러오는 중이에요…</div><div data-chunkview="${esc(m.id)}"></div><div class="modal-actions"><button class="cancel" data-close-modal>닫기</button></div>`);return;}
       if(a==='mute-room')return toggleRoomMute(el.dataset.roomId||state.room?.id);
       if(a==='room-chat-off')return toggleRoomChatOff(el.dataset.roomId||state.room?.id);
@@ -4368,7 +4961,9 @@
       if(a==='purge-reports')return purgeReports();
       if(a==='delete-appeal')return deleteAppeal(el.dataset.id);
       if(a==='purge-appeals')return purgeAppeals();
-      if(a==='room-scope'){syncRoomDraftInputs();state.roomDraft.visibility=el.dataset.scope==='all'?'all':'private';paintRoomModal('');return;}
+      if(a==='room-scope'){syncRoomDraftInputs();state.roomDraft.kind='chat';state.roomDraft.visibility=el.dataset.scope==='all'?'all':'private';paintRoomModal('');return;}
+      if(a==='room-net'){syncRoomDraftInputs();state.roomDraft.net=(el.dataset.net==='in'?'in':'ex');paintRoomModal('');return;}
+      if(a==='room-kind'){syncRoomDraftInputs();state.roomDraft.kind=el.dataset.kind==='notice'?'notice':'chat';paintRoomModal('');return;}
       if(a==='room-next'){syncRoomDraftInputs();if(!(state.roomDraft.name||'').trim())return toast('방 이름을 적어 주세요.');state.roomDraft.step=2;paintRoomModal('right');return;}
       if(a==='room-back'){syncRoomDraftInputs();state.roomDraft.step=1;paintRoomModal('left');return;}
       if(a==='room-create')return createRoom();
@@ -4400,6 +4995,8 @@
       if(a==='resolve-report')return resolveReport(el.dataset.id); if(a==='read-notice')return readNotice(el.dataset.id);
       if(a==='license-issue')return openLicenseIssueModal(); if(a==='license-buy')return openLicenseBuyModal();
       if(a==='license-days-plus')return adjustSchoolLicense(1); if(a==='license-days-minus')return adjustSchoolLicense(-1);
+      if(a==='license-grant')return grantSchoolAccess(); if(a==='license-revoke-school')return revokeSchoolAccess();
+      if(a==='license-toggle-active')return toggleSchoolActive();
       if(a==='sched-add')return addScheduled(); if(a==='sched-cancel')return cancelScheduled(el.dataset.id);
       if(a==='license-tab'){ state.licenseFilter=el.dataset.filter||'all'; paintLicenseList(); return; }
       if(a==='license-revoke')return openDangerConfirm({ title:'이 이용권을 회수할까요?', desc:'학교 권한도 함께 회수돼요. 돈과 연결된 작업이라 5초 뒤에 진행할 수 있어요.', requireText:'', seconds:5, confirmLabel:'회수하기', onConfirm:()=>forceRevokeLicense(el.dataset.code) });
@@ -4519,7 +5116,7 @@
     const closeBtn=e.target.closest('[data-close-modal]'); if(closeBtn)return closeModal();
     const tab=e.target.closest('[data-tab]'); if(tab&&$('#adminPanel')){renderAdminPanel(tab.dataset.tab);$$('.tab',tab.closest('.overlay')||document).forEach(x=>x.classList.toggle('active',x===tab));setTimeout(()=>{ try{ const t=tab.closest('.admin-tabs')||document.querySelector('.admin-tabs'); if(t) updateTabsIndicator(t); }catch(e){} },30);return;}
     if(e.target.matches('.select-option'))return;
-    const swAct=e.target.closest('[data-swipe-act]'); if(swAct){ const wrap=swAct.closest('[data-room-id]'); const rid2=wrap?.dataset.roomId; if(!rid2) return; const k=swAct.dataset.swipeAct; closeRoomSwipe(); if(k==='mute') return toggleRoomMute(rid2); if(k==='manage'){ closeAllModals(); return openRoomManage(rid2); } if(k==='leave') return leaveRoom(rid2); return; }
+    const swAct=e.target.closest('[data-swipe-act]'); if(swAct){ const wrap=swAct.closest('[data-room-id]'); const rid2=wrap?.dataset.roomId; if(!rid2) return; const k=swAct.dataset.swipeAct; closeRoomSwipe(); if(k==='mute'){ if(chatLockActive() && !isAdmin()){ chatLockToast(); return; } return toggleRoomMute(rid2); } if(k==='manage'){ closeAllModals(); return openRoomManage(rid2); } if(k==='leave') return leaveRoom(rid2); return; }
     const room=e.target.closest('[data-room-id]'); if(room){ if(state.suppressRoomClick) return; return openRoom(room.dataset.roomId); }
   }
 
@@ -4555,6 +5152,8 @@
     el.innerHTML = `<div class="modal ${o.small?'small':''}">${o.dismissible===false?'':'<button type="button" class="modal-close" data-close-modal aria-label="닫기">✕</button>'}${html}</div>`;
     const panel = el.firstElementChild;
     wrapModalHead(panel);
+    // :has 미지원 브라우저에서도 버튼 아래 여백이 겹치지 않게 같은 처리를 해 둔다
+    try{ if(panel.querySelector(':scope > .modal-actions, :scope > form .modal-actions')) panel.classList.add('has-actions'); }catch(e){}
     if (o.dismissible !== false) {
       let downOnBack = false;
       el.addEventListener('pointerdown', e => { downOnBack = e.target === el; });
@@ -4680,6 +5279,7 @@
     openModal(`<h2>프로필</h2><div class="user-head">${avatarHtml(p,'large',true)}<div class="grow"><strong style="font-size:17px">${esc(dispName)}</strong><div class="profile-meta">${gradeClassPrefix(p)}${roleLabel(p.role)}</div>${roleChipsHtml(id)}${presenceStateOf(p)?`<div class="presence-row static"><span class="presence-dot inline ${presenceStateOf(p)}" aria-hidden="true"></span><span class="presence-text">${esc(presenceLabel(presenceStateOf(p)))}</span></div>`:''}</div></div>${p.photoFlagged?'<p class="photo-caution">이 프로필 사진은 자동 검사에서 주의가 필요한 사진으로 확인됐어요.</p>':''}${p.bio?`<p class="bio-text">${esc(p.bio)}</p>`:'<p class="desc">아직 자기소개가 없어요.</p>'}${infoRows}${schoolRows}<div class="modal-actions" style="flex-wrap:wrap">${friendBtn}<button class="soft-btn" data-action="dm-uid" data-uid="${esc(id)}" data-name="${esc(dispName)}">1:1 대화</button><button class="cancel" data-action="block" data-uid="${esc(id)}" data-name="${esc(dispName)}">${blocked?'차단 해제':'차단'}</button><button class="cancel" data-action="report-user" data-uid="${esc(id)}" data-name="${esc(dispName)}">신고</button><button class="confirm" data-close-modal>닫기</button></div>`);
   }
   async function saveProfile(f){
+    if(!requireChatFree()) return;
     const displayName=f.displayName.value.trim(); if(!displayName)return toast('닉네임을 적어 주세요.');
     const patch={displayName,bio:(f.bio?.value||'').trim().slice(0,80),avatarEmoji:state.profileDraft?.avatarEmoji||'',avatarColor:state.profileDraft?.avatarColor||'',updatedAt:ts()};
     if(state.profile.role==='student'){patch.grade=Number(f.querySelector('[data-selected="profileGrade"]')?.dataset.value||state.profile.grade||0)||null;patch.classNum=Number(f.querySelector('[data-selected="profileClass"]')?.dataset.value||state.profile.classNum||0)||null;}
@@ -4806,7 +5406,7 @@
 
   async function maybeShowProfileSetup(){
     if(state.profile.role==='student' && (!state.profile.grade || !state.profile.classNum)){
-      openModal(`<h2>학급 정보를 알려 주세요</h2><p class="desc">채팅방을 제대로 보여드리려면 학년과 반을 알려주세요.</p><form id="setupForm"><div class="field"><label>학년</label><div class="custom-select"><button type="button" class="select-button" data-select-open="setupGrade"><span data-selected="setupGrade">골라 주세요</span><span>⌄</span></button></div></div><div class="field"><label>반</label><div class="custom-select"><button type="button" class="select-button" data-select-open="setupClass"><span data-selected="setupClass">학년을 먼저 골라 주세요</span><span>⌄</span></button></div></div><label class="consent"><input type="checkbox" name="setupConsent"><span>에듀톡은 가입·접속할 때 <b>IP 주소, 접속 시각, 브라우저 정보</b>를 수집·보관할 수 있어요. 부적절한 사용을 확인하기 위한 목적으로만 쓰이며, 위 내용을 확인했습니다.</span></label><button class="primary" data-action="save-setup">저장하고 시작하기</button></form>`,{dismissible:false});
+      openModal(`<h2>학급 정보를 알려 주세요</h2><p class="desc">채팅방을 제대로 보여드리려면 학년과 반을 알려주세요.</p><form id="setupForm"><div class="field"><label>학년</label><div class="custom-select"><button type="button" class="select-button" data-select-open="setupGrade"><span data-selected="setupGrade">골라 주세요</span><span>⌄</span></button></div></div><div class="field"><label>반</label><div class="custom-select"><button type="button" class="select-button" data-select-open="setupClass"><span data-selected="setupClass">학년을 먼저 골라 주세요</span><span>⌄</span></button></div></div><label class="consent"><input type="checkbox" name="setupConsent"><span>브리즈은 가입·접속할 때 <b>IP 주소, 접속 시각, 브라우저 정보</b>를 수집·보관할 수 있어요. 부적절한 사용을 확인하기 위한 목적으로만 쓰이며, 위 내용을 확인했습니다.</span></label><button class="primary" data-action="save-setup">저장하고 시작하기</button></form>`,{dismissible:false});
       const gb=$('[data-select-open="setupGrade"]');wireDropdown(gb,state.school.grades.map(g=>({value:g,label:`${g}학년`})),(v,l)=>{gb.querySelector('[data-selected]').textContent=l;gb.querySelector('[data-selected]').dataset.value=v;const cb=$('[data-select-open="setupClass"]');wireDropdown(cb,Array.from({length:Number(state.school.classCounts?.[v]||0)},(_,i)=>({value:i+1,label:`${i+1}반`})),(cv,cl)=>{cb.querySelector('[data-selected]').textContent=cl;cb.querySelector('[data-selected]').dataset.value=cv;});});
     }
   }
@@ -4824,6 +5424,7 @@
   function roomGroup(r){
     const explicit=state.settings.roomGroups?.[r.id];
     if(explicit) return explicit;
+    if(isInternalRoom(r)) return '내부망';
     const label=String(r.typeLabel||'').trim();
     if(label && (state.groupNames||[]).includes(label)) return label;
     if(r.type==='notice') return '공지';
@@ -4868,16 +5469,564 @@
     if(myKey && keys.some(k=>k!==myKey)) return 'cross-class';
     return '';
   }
-  function shareDot(kind){
-    if(!kind) return '';
-    const title=kind==='cross-school'?'다른 학교와 함께 쓰는 채팅방이에요':'같은 학교의 다른 학급과 함께 쓰는 채팅방이에요';
-    return `<span class="share-dot ${kind}" title="${title}" aria-label="${title}"></span>`;
-  }
+  // (동그라미 share-dot는 알약 태그로 전면 교체되어 삭제)
   function sharePill(kind){
     if(!kind) return '';
     return kind==='cross-school'
-      ? `<span class="share-pill cross-school">🌐 다른 학교와 공유</span>`
-      : `<span class="share-pill cross-class">🏫 다른 학급과 공유</span>`;
+      ? `<span class="tagpill share-other-school">타학교 공유</span>`
+      : `<span class="tagpill share-other-class">타학급 공유</span>`;
+  }
+  // ================= 내부망 / 유료 듀얼 네트워크 =================
+  // Firebase 방은 전부 EXTERNAL, 내부 서버 방은 전부 INTERNAL — 한 방에 두 속성이 섞이지 않는다.
+  const NET_MODES=['cloud','internal','dual'];
+  function netMode(){ try{ const v=localStorage.getItem('edutalk_net_mode'); return NET_MODES.includes(v)?v:'cloud'; }catch(e){ return 'cloud'; } }
+  function setNetMode(m){ if(!NET_MODES.includes(m)) return; try{ localStorage.setItem('edutalk_net_mode',m); }catch(e){} }
+  function internalBase(){ try{ return String(localStorage.getItem('edutalk_internal_server')||'').trim().replace(/\/+$/,''); }catch(e){ return ''; } }
+  function setInternalBase(u){ try{ localStorage.setItem('edutalk_internal_server',String(u||'').trim().replace(/\/+$/,'')); }catch(e){} }
+  function internalToken(){ try{ return localStorage.getItem('edutalk_internal_token')||''; }catch(e){ return ''; } }
+  function setInternalToken(t){ try{ if(t) localStorage.setItem('edutalk_internal_token',t); else localStorage.removeItem('edutalk_internal_token'); }catch(e){} }
+  function isInternalRoom(r){ return !!r&&(r.network_type==='INTERNAL'||String(r.id||'').startsWith('in:')); }
+  function isInternalRoomId(id){ return String(id||'').startsWith('in:'); }
+  function internalSrvId(id){ return String(id||'').replace(/^in:/,''); }
+  function netPill(r){
+    if(isInternalRoom(r)) return `<span class="tagpill net-internal">내부망</span>`;
+    return `<span class="tagpill net-external">외부망</span>`;
+  }
+  // 내부망 날짜 문자열을 기존 시간 렌더러에 그대로 태우는 어댑터
+  function fakeTs(v){
+    let d=(v instanceof Date)?v:new Date(String(v||'').replace(' ','T'));
+    if(!(d instanceof Date)||isNaN(d)) d=new Date();
+    return { toDate:()=>d };
+  }
+  function adaptInternalRoom(r){
+    return { id:'in:'+r.id, srvId:r.id, name:r.name||'내부망 방', network_type:'INTERNAL', type:'group', typeLabel:'내부망',
+      visibility:'members', memberIds:[], memberCount:Array.isArray(r.member_ids)?r.member_ids.length:0,
+      createdBy:'', created_by:r.created_by, description:'학교 내부망 전용 방이에요. 이 방의 대화는 학교 서버에만 저장돼요.',
+      lastText:'', lastSenderId:null, lastCreatedAt:null, updatedAt:Date.now(), internal:true };
+  }
+  function adaptInternalMsg(m, meId, nameMap){
+    const mine=Number(m.sender_id)===Number(meId);
+    const nm=(nameMap&&nameMap[m.sender_id])||m.sender_name||'사용자';
+    const base={ id:'in_'+m.id, srvId:m.id, roomSrvId:m.room_id,
+      senderId:mine?uid():('in_'+m.sender_id),
+      senderName:mine?((state.profile||{}).displayName||'사용자'):nm,
+      senderRole:'student', replyToText:null, createdAt:fakeTs(m.created_at),
+      deleted:false, isRecalled:!!m.is_recalled,
+      text:m.is_recalled?'회수된 메시지입니다':String(m.content||''),
+      attachment:null, internal:true };
+    if(m.file_id&&!m.is_recalled){
+      const url=internalBase()+`/api/files/${m.file_id}?token=`+encodeURIComponent(internalToken());
+      const isImg=/\.(png|jpe?g|gif|webp|bmp)$/i.test(m.file_name||'');
+      base.attachment={ kind:isImg?'image':'file', name:m.file_name||'파일', size:Number(m.file_size||0), type:'', data:url };
+    }
+    if((m.poll_opts&&m.poll_opts.length)||m.poll_q){
+      const opts=Array.isArray(m.poll_opts)?m.poll_opts:[];
+      base.attachment={ kind:'poll', name:'투표', poll:{ q:m.poll_q||'투표', opts, multi:false, closed:!!m.poll_closed } };
+      const counts=Array.isArray(m.poll_counts)?m.poll_counts:opts.map(()=>0);
+      let total=0; counts.forEach(c=>{ total+=Number(c)||0; });
+      base._pv={ counts, total, mine:Array.isArray(m.poll_mine)?m.poll_mine:[] };
+      if(!base.text) base.text='📊 '+(m.poll_q||'투표');
+    }
+    return base;
+  }
+  async function inet(path, opts){
+    const base=internalBase(); if(!base) throw new Error('no-server');
+    const o=opts||{};
+    const r=await fetch(base+path,{...o,headers:{'Content-Type':'application/json',...((o.headers)||{}),Authorization:'Bearer '+internalToken()}});
+    const j=await r.json().catch(()=>({ok:false,error:'bad-json'}));
+    if(r.status===401){ setInternalToken(''); state.internalUser=null; throw new Error('auth'); }
+    return j;
+  }
+  // 학내망 검증: 내부 서버가 닿으면 학내망, 안 닿으면 경고 모달 + 차단
+  async function ensureInternalLAN(){
+    const base=internalBase();
+    if(!base){
+      openModal(`<h2>내부 서버가 설정되지 않았어요</h2><p class="desc">전체 설정 → 네트워크에서 학교 내부 서버 주소를 먼저 입력해 주세요.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
+      return false;
+    }
+    try{
+      const ctrl=new AbortController(); const timer=setTimeout(()=>{ try{ctrl.abort();}catch(e){} },6000);
+      const r=await fetch(base+'/api/network-info',{signal:ctrl.signal}); clearTimeout(timer);
+      if(!r.ok) throw new Error('bad');
+      return true;
+    }catch(e){
+      openModal(`<h2>내부망에 연결할 수 없어요</h2><p class="desc">학교 내부 Wi-Fi 또는 학내망 네트워크에 연결되어 있지 않습니다.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
+      return false;
+    }
+  }
+  let inSocket=null, inSocketBase='', inScriptLoading=null;
+  function loadInternalSocketScript(){
+    const base=internalBase();
+    if(window.io) return Promise.resolve(true);
+    if(inScriptLoading) return inScriptLoading;
+    inScriptLoading=new Promise((res)=>{
+      const s=document.createElement('script');
+      s.src=base+'/socket.io/socket.io.js';
+      s.onload=()=>res(!!window.io);
+      s.onerror=()=>res(false);
+      document.head.appendChild(s);
+      setTimeout(()=>res(!!window.io),10000);
+    }).then((ok)=>{ if(!ok) inScriptLoading=null; return ok; });
+    return inScriptLoading;
+  }
+  async function connectInternalSocket(){
+    const base=internalBase(), tok=internalToken();
+    if(!base||!tok) return false;
+    if(inSocket&&inSocketBase===base&&inSocket.connected) return true;
+    try{ disconnectInternalSocket(); }catch(e){}
+    const okLib=await loadInternalSocketScript();
+    if(!okLib||!window.io) return false;
+    return new Promise((res)=>{
+      try{
+        const s=window.io(base,{auth:{token:tok},transports:['websocket','polling']});
+        let done=false;
+        const fin=(v)=>{ if(!done){done=true;res(v);} };
+        s.on('connect',()=>{ inSocket=s; inSocketBase=base; wireInternalSocket(s); fin(true); });
+        s.on('connect_error',()=>fin(false));
+        setTimeout(()=>fin(false),10000);
+      }catch(e){ res(false); }
+    });
+  }
+  function disconnectInternalSocket(){ try{ if(inSocket){ inSocket.removeAllListeners(); inSocket.disconnect(); } }catch(e){} inSocket=null; inSocketBase=''; }
+  function disconnectInternal(){
+    disconnectInternalSocket();
+    state.internalUser=null; state.internalNames={}; state.internalRooms=[]; state.orgTree=null;
+    mergeInternalRooms();
+  }
+  function wireInternalSocket(s){
+    // 조직도 실시간 상태
+    s.on('user:status_updated',(d)=>{
+      try{
+        if(d&&d.userId!=null){
+          state.internalStatuses=state.internalStatuses||{};
+          state.internalStatuses[d.userId]={status:d.status,statusMessage:d.statusMessage||''};
+        }
+        if(netMode()!=='cloud') paintOrgTree();
+      }catch(e){}
+    });
+    // 내부 메시지 수신 (Firebase와 완전히 분리된 경로)
+    s.on('message:new',(m)=>{
+      try{
+        if(!m||!m.room_id) return;
+        const rid='in:'+m.room_id;
+        const room=(state.rooms||[]).find(r=>r.id===rid);
+        if(room){ room.lastText=(m.content||'').slice(0,60)||'📎 파일'; room.lastSenderId='in_'+m.sender_id; room.lastSenderName=m.sender_name||'사용자'; room.lastCreatedAt=fakeTs(m.created_at); room.updatedAt=Date.now(); }
+        if(state.room&&state.room.id===rid){
+          if(m.sender_name) { state.internalNames=state.internalNames||{}; state.internalNames[m.sender_id]=m.sender_name; }
+          const adapted=adaptInternalMsg(m,state.internalUser?.id,state.internalNames);
+          state.messages=[...(state.messages||[]),adapted];
+          try{ renderMessages(false); }catch(e){}
+          try{ s.emit('message:read',{messageId:m.id}); }catch(e){}
+        } else if(room){
+          state.unread=state.unread||{}; state.unread[rid]=(state.unread[rid]||0)+1;
+          try{ renderRooms(); }catch(e){} try{ renderUnreadSummary(); }catch(e){}
+        }
+      }catch(e){}
+    });
+    s.on('message:recalled',(d)=>{
+      try{
+        const m=(state.messages||[]).find(x=>x.srvId===Number((d||{}).messageId));
+        if(m){ m.isRecalled=true; m.text='회수된 메시지입니다'; m.attachment=null; renderMessages(false); }
+      }catch(e){}
+    });
+    s.on('poll:votes_updated',(d)=>{
+      try{
+        const m=(state.messages||[]).find(x=>x.srvId===Number((d||{}).messageId));
+        if(m){ m._pv={counts:(d||{}).counts||[],total:Number((d||{}).total)||0,mine:(m._pv&&m._pv.mine)||[]}; renderMessages(false); }
+      }catch(e){}
+    });
+    s.on('poll:closed',(d)=>{
+      try{
+        const m=(state.messages||[]).find(x=>x.srvId===Number((d||{}).messageId));
+        if(m&&m.attachment&&m.attachment.poll){ m.attachment.poll.closed=true; renderMessages(false); }
+      }catch(e){}
+    });
+    s.on('message:read_updated',()=>{});
+  }
+  async function fetchInternalRooms(){
+    state.internalRooms=state.internalRooms||[];
+    state.internalRooms=[];
+    mergeInternalRooms();
+    if(netMode()==='cloud'||!internalBase()||!internalToken()){ try{ renderRooms(); }catch(e){} return; }
+    try{
+      const ok=await connectInternalSocket();
+      if(!ok){ try{ renderRooms(); }catch(e){} return; }
+      const me=await inet('/api/me').catch(()=>null);
+      if(me&&me.ok) state.internalUser=me.user;
+      const users=await inet('/api/users').catch(()=>null);
+      state.internalNames={};
+      if(users&&users.ok) (users.users||[]).forEach(u=>{ state.internalNames[u.id]=u.real_name||'사용자'; });
+      const j=await inet('/api/rooms');
+      if(j&&j.ok) state.internalRooms=(j.rooms||[]).map(adaptInternalRoom);
+      await fetchOrgTree();
+    }catch(e){}
+    mergeInternalRooms();
+    try{ renderRooms(); }catch(e){}
+  }
+  function mergeInternalRooms(){
+    try{
+      const keep=new Map((state.rooms||[]).filter(r=>!isInternalRoom(r)).map(r=>[r.id,r]));
+      (state.internalRooms||[]).forEach(r=>keep.set(r.id,r));
+      state.rooms=[...keep.values()];
+    }catch(e){}
+  }
+  async function openInternalRoom(id, opts){
+    const token=++roomOpenToken;
+    const room=(state.rooms||[]).find(r=>r.id===id);
+    if(!room){ toast('채팅방을 찾지 못했어요.'); return; }
+    // 내부방은 Firebase를 전혀 건드리지 않는다: 리스너를 붙이기 전에 차단 검사부터
+    const okLan=await ensureInternalLAN();
+    if(!okLan||token!==roomOpenToken) return;
+    const okSock=await connectInternalSocket();
+    if(!okSock||token!==roomOpenToken){ toast('내부 서버에 연결하지 못했어요.'); return; }
+    try{ clearRoomListener(); }catch(e){}
+    try{ const prevTa=document.getElementById('composerText'); if(prevTa&&state.room?.id) saveDraft(state.room.id,prevTa.value); }catch(e){}
+    state.room=room;
+    try{ if(state.unread) delete state.unread[id]; }catch(e){} try{ renderUnreadSummary(); }catch(e){}
+    state.replyText=null; state.selectMode=false; state.selected=new Set(); state.revealedAttach=new Set();
+    closeDrawer(); closeFloatMenu();
+    state.editingId=null; state.sending=false; state.memberPanel=false;
+    if(window.innerWidth<=820) document.body.classList.add('m-chat-open');
+    stopTyping(); state.typingCooldownUntil=0; state.mentionTriedKey='';
+    state.searchMode=false; state.searchQuery=''; state.searchHits=[]; state.searchIndex=-1; state.unreadMarkerId=null; state.awayMsgId=null; state.scrollToMarker=false; state.justOpenedRoom=true;
+    state.msgLimit=MSG_PAGE; state.msgExhausted=true; state.msgLoading=false; state.msgPaging=false;
+    state.memberQuery='';
+    state.pollVotes=new Map(); state.pollFetching=new Set();
+    state.messages=[];
+    try{ renderRooms(); }catch(e){}
+    renderChatFrame(room);
+    try{ restoreDraftToComposer(id); }catch(e){}
+    try{ const mh=$('#messages'); if(mh) mh.innerHTML=chatSkeletonHtml(); }catch(e){}
+    startLockTick();
+    state.seenMsgIds=new Set(); state.bubbleAnims=new Map();
+    try{ inSocket.emit('room:join',room.srvId); }catch(e){}
+    try{
+      const j=await inet(`/api/rooms/${room.srvId}/messages?limit=100`);
+      if(token!==roomOpenToken) return;
+      if(j&&j.ok){
+        state.messages=(j.messages||[]).map(m=>adaptInternalMsg(m,state.internalUser?.id,state.internalNames));
+        renderMessages(false);
+        const last=[...state.messages].reverse().find(m=>!m.isRecalled);
+        if(last){ try{ inSocket.emit('message:read',{messageId:last.srvId}); }catch(e){} }
+      } else { toast('메시지를 불러오지 못했어요.'); }
+    }catch(e){ if(token===roomOpenToken) toast('메시지를 불러오지 못했어요.'); }
+    if(!(opts&&opts.fromHistory)) pushRoomHistory(id);
+  }
+  async function sendInternalMessage(room, text){
+    state.sending=false;
+    if(!inSocket||!inSocket.connected) return toast('내부 서버에 연결되지 않았어요.');
+    try{
+      const ack=await new Promise((res)=>{
+        let done=false;
+        try{ inSocket.emit('message:send',{roomId:room.srvId,content:text},(r)=>{ if(!done){done=true;res(r);} }); }catch(e){ if(!done){done=true;res(null);} }
+        setTimeout(()=>{ if(!done){done=true;res(null);} },10000);
+      });
+      if(!ack||!ack.ok) return toast('메시지를 보내지 못했어요.');
+      state.lastSendText=text; state.lastSendRoom=room.id; state.lastSendAt=Date.now();
+      const ta=$('#composerText');
+      if(ta){ ta.value=''; ta.style.height='44px'; }
+      updateCharCount(); syncComposerHeight();
+    }catch(e){ toast('메시지를 보내지 못했어요.'); }
+  }
+  async function sendInternalFile(att){
+    try{
+      toast('파일을 내부 서버에 올리는 중이에요…');
+      let blob=null;
+      const d=att&&att.data;
+      if(typeof d==='string'&&d.startsWith('data:')){ blob=await (await fetch(d)).blob(); }
+      else if(d instanceof Blob) blob=d;
+      if(!blob) return toast('파일을 읽지 못했어요.');
+      if(blob.size>100*1024*1024) return toast('파일이 너무 커요. 100MB 이하로 보내 주세요.');
+      const fd=new FormData();
+      fd.append('file',blob,att.name||'파일');
+      const r=await fetch(internalBase()+'/api/upload',{method:'POST',headers:{Authorization:'Bearer '+internalToken()},body:fd});
+      const j=await r.json().catch(()=>({}));
+      if(!j||!j.ok) return toast('파일을 올리지 못했어요.');
+      const room=state.room;
+      const ack=await new Promise((res)=>{
+        let done=false;
+        try{ inSocket.emit('message:send',{roomId:room.srvId,content:'',fileId:j.fileId},(x)=>{ if(!done){done=true;res(x);} }); }catch(e){ if(!done){done=true;res(null);} }
+        setTimeout(()=>{ if(!done){done=true;res(null);} },15000);
+      });
+      if(!ack||!ack.ok) return toast('파일을 보내지 못했어요.');
+      toast('파일을 보냈어요.');
+    }catch(e){ toast('파일을 보내지 못했어요.'); }
+  }
+  async function recallMessage(id){
+    const m=(state.messages||[]).find(x=>x.id===id); if(!m||m.deleted||m.isRecalled) return;
+    if(m.senderId!==uid()) return;
+    if(isInternalRoom(state.room)){
+      const srv=m.srvId;
+      confirmModal('이 메시지를 회수할까요?','모든 화면에서 "회수된 메시지입니다"로 바뀌어요.',()=>{
+        try{ inSocket.emit('message:recall',{messageId:srv},(r)=>{ if(!r||!r.ok) toast('회수하지 못했어요.'); }); }catch(e){ toast('회수하지 못했어요.'); }
+      });
+      return;
+    }
+    confirmModal('이 메시지를 회수할까요?','모든 화면에서 "회수된 메시지입니다"로 바뀌어요.',async()=>{
+      try{
+        await db.collection('channels').doc(state.room.id).collection('messages').doc(id).update({isRecalled:true,text:'회수된 메시지입니다',updatedAt:ts()});
+      }catch(e){ console.error(e); return toast(errText(e)); }
+      renderMessages(false);
+      toast('메시지를 회수했어요.');
+    });
+  }
+  async function openInternalReads(srvId){
+    const room=state.room; if(!room||!isInternalRoom(room)) return;
+    openModal(`<h2>읽은 사람</h2><div id="inReadsHost"><div class="empty-side">불러오는 중…</div></div><div class="modal-actions"><button class="confirm" data-close-modal>닫기</button></div>`,{small:true});
+    try{
+      const j=await inet(`/api/messages/${srvId}/reads`);
+      const host=$('#inReadsHost'); if(!host) return;
+      if(!j||!j.ok){ host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; return; }
+      const rd=j.read||[], un=j.unread||[];
+      host.innerHTML=`<p class="desc">읽은 사람 ${rd.length}명 · 안 읽은 사람 ${un.length}명</p>
+        <div class="list">${rd.map(r=>`<div class="list-item"><div class="grow"><div class="title">${esc(r.real_name||'사용자')}</div><div class="meta">${esc(String(r.read_at||''))}</div></div><span>✓</span></div>`).join('')}
+        ${un.map(r=>`<div class="list-item"><div class="grow"><div class="title">${esc(r.real_name||'사용자')}</div><div class="meta">안 읽음</div></div><span class="mini muted">–</span></div>`).join('')||''}</div>`
+        ||'<div class="empty-side">기록이 없어요.</div>';
+    }catch(e){ const host=$('#inReadsHost'); if(host) host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; }
+  }
+  async function openInternalMembers(roomId){
+    const room=(state.rooms||[]).find(r=>r.id===(roomId||''))||state.room;
+    if(!room||!isInternalRoom(room)) return;
+    const canInvite=state.internalUser&&(Number(room.created_by)===Number(state.internalUser.id)||state.internalUser.role==='ADMIN');
+    openModal(`<h2>참여자</h2><p class="desc">${esc(room.name||'채팅방')}</p><div id="inMembersHost"><div class="empty-side">불러오는 중…</div></div><div class="modal-actions">${canInvite?`<button class="soft-btn" id="inInviteGo2" style="flex:1">초대하기</button>`:''}<button class="confirm" data-close-modal style="flex:1">닫기</button></div>`,{small:true});
+    try{
+      const [uj, rj]=await Promise.all([inet('/api/users'), inet(`/api/rooms/${room.srvId}`)]);
+      const host=$('#inMembersHost'); if(!host) return;
+      if(!uj||!uj.ok||!rj||!rj.ok){ host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; return; }
+      const byId={}; (uj.users||[]).forEach(u=>{ byId[u.id]=u; });
+      const mids=(rj.room&&rj.room.member_ids)||[];
+      host.innerHTML=`<div class="list">${mids.map(id=>{ const u=byId[id]||{real_name:'사용자'}; const ov=(state.internalStatuses||{})[id];
+        return `<div class="list-item"><div class="grow"><div class="title">${esc(u.real_name||'사용자')}</div><div class="meta">${esc(statusLabelKo(ov?ov.status:u.status))}</div></div></div>`; }).join('')||'<div class="empty-side">참여자가 없어요.</div>'}</div>`;
+      const go2=$('#inInviteGo2');
+      if(go2) go2.onclick=()=>{ closeModal(); openInternalInvite(room.id); };
+    }catch(e){ const host=$('#inMembersHost'); if(host) host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; }
+  }
+  async function openInternalInvite(roomId){
+    const room=(state.rooms||[]).find(r=>r.id===(roomId||''))||state.room;
+    if(!room||!isInternalRoom(room)) return;
+    openModal(`<h2>참여자 초대</h2><p class="desc">내부망 사용자 중에서 골라 주세요.</p><div id="inInviteHost"><div class="empty-side">불러오는 중…</div></div><div class="modal-actions"><button class="cancel" data-close-modal>취소</button><button class="confirm" id="inInviteGo">초대하기</button></div>`,{small:true});
+    try{
+      const [uj, rj]=await Promise.all([inet('/api/users'), inet(`/api/rooms/${room.srvId}`)]);
+      const host=$('#inInviteHost'); if(!host) return;
+      if(!uj||!uj.ok||!rj||!rj.ok){ host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; return; }
+      const members=new Set((rj.room&&rj.room.member_ids)||[]);
+      const list=(uj.users||[]).filter(u=>!members.has(u.id));
+      state.inInvitePick=new Set();
+      host.innerHTML=`<div class="list modal-scroll" style="max-height:300px">${list.map(u=>`<label class="list-item"><input type="checkbox" data-invite-pick="${u.id}"><div class="grow"><div class="title">${esc(u.real_name||'사용자')}</div><div class="meta">${esc(u.username||'')}</div></div></label>`).join('')||'<div class="empty-side">초대할 사람이 없어요.</div>'}</div>`;
+      host.querySelectorAll('[data-invite-pick]').forEach(cb=>cb.onchange=()=>{ if(!(state.inInvitePick instanceof Set)) state.inInvitePick=new Set(); if(cb.checked) state.inInvitePick.add(Number(cb.dataset.invitePick)); else state.inInvitePick.delete(Number(cb.dataset.invitePick)); });
+      const go=$('#inInviteGo');
+      if(go) go.onclick=async()=>{
+        const ids=[...(state.inInvitePick||[])];
+        if(!ids.length) return toast('초대할 사람을 골라 주세요.');
+        try{
+          const j=await inet(`/api/rooms/${room.srvId}/members`,{method:'POST',body:JSON.stringify({user_ids:ids})});
+          if(!j.ok) return toast('초대하지 못했어요.');
+          closeModal(); toast(`${ids.length}명을 초대했어요.`);
+        }catch(e){ toast('초대하지 못했어요.'); }
+      };
+    }catch(e){ const host=$('#inInviteHost'); if(host) host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; }
+  }
+  function statusLabelKo(s){
+    return s==='ONLINE'?'온라인':s==='IN_CLASS'?'수업 중':s==='TRIP'?'출장':s==='AWAY'?'자리 비움':'오프라인';
+  }
+  function statusBadgeKo(s){
+    const cls=s==='ONLINE'?'ok':s==='IN_CLASS'?'busy':s==='TRIP'?'trip':s==='AWAY'?'away':'off';
+    return `<span class="st-badge ${cls}">${esc(statusLabelKo(s))}</span>`;
+  }
+  async function fetchOrgTree(){
+    state.orgTree=null;
+    if(netMode()==='cloud'||!internalBase()||!internalToken()) return;
+    try{
+      const j=await inet('/api/departments/tree');
+      if(j&&j.ok){ state.orgTree=j.tree||[]; state.orgUnassigned=j.unassigned||[]; }
+    }catch(e){}
+    try{ paintOrgTree(); }catch(e){}
+  }
+  function paintOrgTree(){
+    const host=$('#orgTree'); if(!host) return;
+    if(netMode()==='cloud'||!internalToken()){ host.innerHTML='<div class="empty-side">내부망·듀얼 모드에서 볼 수 있어요.</div>'; return; }
+    if(!state.orgTree){ host.innerHTML='<div class="empty-side">불러오는 중…</div>'; fetchOrgTree(); return; }
+    if(!(state.orgCollapsed instanceof Set)) state.orgCollapsed=new Set();
+    const stMap=state.internalStatuses||{};
+    const memberHtml=(u)=>{
+      const ov=stMap[u.id];
+      const st=ov?ov.status:(u.status||'OFFLINE');
+      const sm=ov?(ov.statusMessage||''):(u.status_message||'');
+      return `<button type="button" class="org-user" data-action="org-user" data-uid="${esc(String(u.id))}" data-name="${esc(u.real_name||'사용자')}"><span class="grow">${esc(u.real_name||'사용자')}</span>${statusBadgeKo(st)}${sm?`<span class="mini muted">${esc(String(sm).slice(0,20))}</span>`:''}</button>`;
+    };
+    const depHtml=(d)=>{
+      const shut=state.orgCollapsed.has(d.id);
+      return `<div class="org-dep"><button type="button" class="org-dep-head" data-action="org-toggle" data-dep="${esc(String(d.id))}"><span class="cat-caret">${shut?'▸':'▾'}</span><span>${esc(d.name||'부서')}</span><span class="group-count">${(d.members||[]).length}</span></button>${shut?'':`<div class="org-dep-body">${(d.children||[]).map(depHtml).join('')}${(d.members||[]).map(memberHtml).join('')}</div>`}</div>`;
+    };
+    host.innerHTML=(state.orgTree||[]).map(depHtml).join('')
+      + ((state.orgUnassigned||[]).length?`<div class="org-dep"><div class="org-dep-head"><span>미지정</span><span class="group-count">${state.orgUnassigned.length}</span></div><div class="org-dep-body">${state.orgUnassigned.map(memberHtml).join('')}</div></div>`:'')
+      ||'<div class="empty-side">등록된 부서가 없어요.</div>';
+  }
+  // 네트워크 설정 화면 HTML (전체 설정 → 네트워크 탭)
+  function networkSettingsHtml(){
+    const mode=netMode(), base=internalBase();
+    const conn=inSocket&&inSocket.connected;
+    const iu=state.internalUser;
+    const dual=state.internalDual;
+    const sInfo=state.schoolInfo||{};
+    const licType=licenseTypeLabel(sInfo.licenseType||'');
+    const licNet=sInfo.licenseSingleNet||sInfo.licenseNetwork||'';
+    const modeBtn=(v,l,d)=>`<button type="button" class="choice ${mode===v?'active':''}" data-action="netmode" data-mode="${v}" style="flex:1;min-width:0">${l}<span class="mini muted" style="display:block;font-weight:400">${d}</span></button>`;
+    return `<div class="admin-card"><h3>네트워크 모드</h3>
+      <p class="desc" style="margin:0 0 8px;font-size:12.5px">이 선택창은 <b>채팅 목록에 어떤 망의 방을 보여줄지</b> 고르는 화면 전환 스위치예요. 누르면 목록이 바로 바뀌어요 (클라우드=외부망 방만, 내부망=학교 서버 방만, 듀얼=둘 다). <b>바뀐 게 없어 보이면</b> 내부 서버 주소·연결 상태를 아래에서 확인해 주세요. 현재 모드: <b>${mode==='cloud'?'클라우드':mode==='internal'?'내부망 전용':'유료 듀얼'}</b></p>
+      <div class="choice-row" style="gap:8px">
+        ${modeBtn('cloud','☁️ 클라우드 모드','외부망(Firebase)만 사용')}
+        ${modeBtn('internal','🏫 학교 내부망 전용','내부 서버만 사용')}
+        ${modeBtn('dual','💎 유료 듀얼 모드','내부+외부 동시 사용')}
+      </div>
+      <p class="desc" style="margin:8px 0 0;font-size:12px">유료 듀얼 모드는 학교 서버의 유료 구독이 켜져 있을 때만 선택할 수 있어요. 내부망 방의 대화는 학교 서버에만 저장되고 Firebase로는 가지 않아요.</p>
+      <div class="admin-meta" style="margin-top:10px">
+        <span class="admin-chip">우리 학교 이용권: ${esc(licType)}${licNet?` · ${esc(licNet)}`:''} · ${esc(sInfo.licenseStatus||'없음')}</span>
+        <span class="admin-chip">요금제는 1개만 동시 사용</span>
+      </div>
+      <p class="desc" style="margin:8px 0 0;font-size:12px">요금제는 동시에 2개를 쓸 수 없어요. 새 이용권을 등록하려면 기존 이용권이 만료·회수된 상태여야 해요. 단일망 이용권은 등록 때 고른 망(외부/내부)으로만 쓰고 바꿀 수 없어요.</p>
+    </div>
+    <div class="admin-card"><h3>학교 내부 서버</h3>
+      <div class="field"><label>서버 주소 (예: http://192.168.0.100:3000)</label><input id="netServerUrl" class="input" inputmode="url" placeholder="http://192.168.0.100:3000" value="${esc(base)}"></div>
+      <div class="row" style="margin-top:8px"><button type="button" class="soft-btn" data-action="netsave" style="flex:1">주소 저장</button></div>
+      <div class="field" style="margin-top:10px"><label>내부망 계정 (사번·학번)</label><input id="netUsername" class="input" autocomplete="username" placeholder="예: t001"></div>
+      <div class="field"><label>비밀번호</label><input id="netPassword" class="input" type="password" autocomplete="current-password" placeholder="내부망 비밀번호"></div>
+      <div class="row" style="margin-top:8px">
+        <button type="button" class="soft-btn" data-action="netconnect" style="flex:1">연결하기</button>
+        <button type="button" class="soft-btn" data-action="netdisconnect" style="flex:1">연결 끊기</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button type="button" class="text-btn" data-action="net-guide">📖 내부망 서버 설치 방법 보기</button>
+      </div>
+      <div class="admin-meta" style="margin-top:10px">
+        <span class="admin-chip">상태: ${conn?('연결됨 ('+esc((iu||{}).real_name||'')+')'):(internalToken()?'토큰 있음':'끊김')}</span>
+        ${dual==null?'':(dual?'<span class="admin-chip">유료 듀얼 가능</span>':'<span class="admin-chip">유료 듀얼 불가</span>')}
+      </div>
+    </div>`;
+  }
+  async function refreshInternalPublic(){
+    state.internalDual=null;
+    if(!internalBase()) return;
+    try{
+      const r=await fetch(internalBase()+'/api/public-info');
+      const j=await r.json().catch(()=>null);
+      if(j&&j.ok){ state.internalDual=!!j.dual; state.internalSchool=j.school||''; }
+    }catch(e){}
+  }
+  // 네트워크 관련 클릭 한 곳에서 처리 (기존 클릭 체인에서 한 줄로 연결)
+  async function handleNetAction(a, el){
+    const d=el&&el.dataset?el.dataset:{};
+    if(a==='netmode'){
+      const m=d.mode;
+      if(m==='dual'){
+        await refreshInternalPublic();
+        if(state.internalDual!==true){ toast('학교 서버의 유료 듀얼 구독이 켜져 있지 않아요.'); return true; }
+      }
+      if(m!=='cloud'&&!internalBase()){ toast('먼저 학교 내부 서버 주소를 입력해 주세요.'); openSettings('network'); return true; }
+      setNetMode(m);
+      if(m==='cloud'){ disconnectInternal(); }
+      else { fetchInternalRooms(); }
+      try{ renderRooms(); renderSidebar(); }catch(e){}
+      openSettings('network');
+      toast(m==='cloud'?'클라우드 모드로 바꿨어요.':m==='internal'?'학교 내부망 전용 모드로 바꿨어요.':'유료 듀얼 모드로 바꿨어요.');
+      return true;
+    }
+    if(a==='netsave'){
+      const v=($('#netServerUrl')?.value||'').trim().replace(/\/+$/,'');
+      if(!v) return toast('서버 주소를 입력해 주세요.'), true;
+      if(!/^https?:\/\//i.test(v)) return toast('http:// 또는 https:// 로 시작해야 해요.'), true;
+      setInternalBase(v);
+      await refreshInternalPublic();
+      openSettings('network');
+      toast('서버 주소를 저장했어요.');
+      return true;
+    }
+    if(a==='netconnect'){
+      const base=internalBase();
+      if(!base) return toast('먼저 서버 주소를 저장해 주세요.'), true;
+      const u=($('#netUsername')?.value||'').trim(), pw=$('#netPassword')?.value||'';
+      if(!u||!pw) return toast('사번과 비밀번호를 입력해 주세요.'), true;
+      try{
+        const r=await fetch(base+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:pw})});
+        const j=await r.json().catch(()=>({}));
+        if(!j||!j.ok) return toast('사번이나 비밀번호를 확인해 주세요.'), true;
+        setInternalToken(j.token); state.internalUser=j.user;
+        await refreshInternalPublic();
+        const ok=await connectInternalSocket();
+        if(!ok) return toast('소켓 연결에 실패했어요.'), true;
+        await fetchInternalRooms();
+        try{ renderSidebar(); }catch(e){}
+        openSettings('network');
+        toast(`${j.user.real_name||'사용자'}님으로 내부망에 연결했어요.`);
+      }catch(e){ toast('내부 서버에 닿지 않았어요. 주소를 확인해 주세요.'); }
+      return true;
+    }
+    if(a==='netdisconnect'){
+      try{ if(internalBase()&&internalToken()) await inet('/api/logout',{method:'POST'}).catch(()=>{}); }catch(e){}
+      disconnectInternal();
+      try{ renderRooms(); renderSidebar(); }catch(e){}
+      openSettings('network');
+      toast('내부망 연결을 끊었어요.');
+      return true;
+    }
+    if(a==='net-guide'){ try{ window.open('guide.html','_blank','noopener'); }catch(e){} return true; }
+    if(a==='org-refresh'){ fetchOrgTree(); return true; }
+    if(a==='org-toggle'){
+      if(!(state.orgCollapsed instanceof Set)) state.orgCollapsed=new Set();
+      const k=Number(d.dep);
+      if(state.orgCollapsed.has(k)) state.orgCollapsed.delete(k); else state.orgCollapsed.add(k);
+      paintOrgTree();
+      return true;
+    }
+    if(a==='org-user'){
+      openModal(`<h2>${esc(d.name||'사용자')}</h2><div id="orgUserHost"><div class="empty-side">불러오는 중…</div></div><div class="modal-actions"><button class="confirm" data-close-modal>닫기</button></div>`,{small:true});
+      try{
+        const j=await inet('/api/users');
+        const host=$('#orgUserHost'); if(!host) return true;
+        const u=((j&&j.users)||[]).find(x=>String(x.id)===String(d.uid));
+        if(!u){ host.innerHTML='<div class="empty-side">정보가 없어요.</div>'; return true; }
+        const ov=(state.internalStatuses||{})[u.id];
+        host.innerHTML=`<div class="admin-meta"><span class="admin-chip">${esc(statusLabelKo(ov?ov.status:u.status))}</span>${(ov?ov.statusMessage:u.status_message)?`<span class="admin-chip">${esc(ov?ov.statusMessage:u.status_message)}</span>`:''}<span class="admin-chip">${esc(u.role||'')}</span></div>`;
+      }catch(e){ const host=$('#orgUserHost'); if(host) host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; }
+      return true;
+    }
+    if(a==='internal-reads'){ openInternalReads(d.msg); return true; }
+    if(a==='internal-members'){ openInternalMembers(d.roomId); return true; }
+    if(a==='internal-leave'){
+      const room=(state.rooms||[]).find(r=>r.id===(d.roomId||''))||state.room;
+      closeAllModals();
+      if(!room||!isInternalRoom(room)) return true;
+      confirmModal('이 내부망 방에서 나갈까요?','목록에서 사라져요. 다시 초대받으면 들어올 수 있어요.',async()=>{
+        try{ await inet(`/api/rooms/${room.srvId}/members/me`,{method:'DELETE'}); }catch(e){ return toast('나가지 못했어요.'); }
+        state.internalRooms=(state.internalRooms||[]).filter(r=>r.id!==room.id);
+        mergeInternalRooms();
+        if(state.room?.id===room.id){ state.room=null; try{ clearChatPane(); }catch(e){} }
+        try{ renderRooms(); }catch(e){}
+        toast('채팅방에서 나왔어요.');
+      });
+      return true;
+    }
+    if(a==='internal-delete'){
+      // 내부망 방 삭제도 쓰기이므로 타임아웃 중에는 막는다 (나가기는 허용)
+      if(chatLockActive() && !isAdmin()){ chatLockToast(); return true; }
+      const room=(state.rooms||[]).find(r=>r.id===(d.roomId||''))||state.room;
+      closeAllModals();
+      if(!room||!isInternalRoom(room)) return true;
+      confirmModal('이 내부망 방을 지울까요?','모든 대화가 함께 지워져요.',async()=>{
+        try{
+          const j=await inet(`/api/rooms/${room.srvId}`,{method:'DELETE'});
+          if(!j.ok) return toast('방을 만든 사람만 지울 수 있어요.');
+        }catch(e){ return toast('지우지 못했어요.'); }
+        state.internalRooms=(state.internalRooms||[]).filter(r=>r.id!==room.id);
+        mergeInternalRooms();
+        if(state.room?.id===room.id){ state.room=null; try{ clearChatPane(); }catch(e){} }
+        try{ renderRooms(); }catch(e){}
+        toast('채팅방을 지웠어요.');
+      });
+      return true;
+    }
+    if(a==='recall-message'){ recallMessage(d.msg); return true; }
+    return false;
   }
   function renderRooms(){
     const hosts=$$('#roomList'); if(!hosts.length)return;
@@ -4958,7 +6107,7 @@
     if((r.memberIds||[]).includes(uid())) items.push(`<button type="button" class="danger" data-action="leave-room" data-room-id="${esc(roomId)}">채팅방 나가기</button>`);
     showFloatMenu(x,y,`<div class="float-title">${esc(r.name||'채팅방')}</div>${items.join('')}`);
   }
-  function roomHtml(r){const unread=state.unread[r.id]?1:0;const lock=isRoomMuted(r.id)?'<span class="share-dot" style="background:#9aa4b2" title="알림을 꺼 둔 채팅방이에요"></span>':'';const pin=isRoomPinned(r.id)?'<span class="pin-mark" title="위로 고정">📌</span>':'';const muted=isRoomMuted(r.id);return `<div class="room-swipe" data-room-id="${esc(r.id)}"><div class="room-swipe-bg left"><button type="button" data-swipe-act="mute">${muted?'🔔 알림 켜기':'🔕 알림 끄기'}</button><button type="button" data-swipe-act="manage">⚙ 설정</button></div><div class="room-swipe-bg right"><button type="button" data-swipe-act="leave">🚪 나가기</button></div><button class="room ${state.room?.id===r.id?'active':''}${unread?' has-unread':''}" data-room-id="${esc(r.id)}"><div class="room-icon">${roomIconHtml(r)}</div><div class="room-main"><div class="room-name">${pin}${esc(r.name||'이름 없는 채팅방')}${shareDot(roomShare(r))}${lock}</div><div class="room-sub">${esc(r.lastText || (r.type==='notice'?'선생님이 안내를 올려요.':'메시지가 아직 없어요.'))}</div></div><div class="room-right">${state.unread[r.id]?`<span class="unread">${Math.min(99,state.unread[r.id])}</span>`:''}</div></button></div>`;}
+  function roomHtml(r){const unread=state.unread[r.id]?1:0;const lock=isRoomMuted(r.id)?'<span class="tagpill muted-pill" title="알림을 꺼 둔 채팅방이에요">알림 끔</span>':'';const pin=isRoomPinned(r.id)?'<span class="pin-mark" title="위로 고정">📌</span>':'';const muted=isRoomMuted(r.id);return `<div class="room-swipe" data-room-id="${esc(r.id)}"><div class="room-swipe-bg left"><button type="button" data-swipe-act="mute">${muted?'🔔 알림 켜기':'🔕 알림 끄기'}</button><button type="button" data-swipe-act="manage">⚙ 설정</button></div><div class="room-swipe-bg right"><button type="button" data-swipe-act="leave">🚪 나가기</button></div><button class="room ${state.room?.id===r.id?'active':''}${unread?' has-unread':''}" data-room-id="${esc(r.id)}"><div class="room-icon">${roomIconHtml(r)}</div><div class="room-main"><div class="room-name">${pin}${esc(r.name||'이름 없는 채팅방')}${netPill(r)}${sharePill(roomShare(r))}${lock}</div><div class="room-sub">${esc(r.lastText || (r.type==='notice'?'선생님이 안내를 올려요.':'메시지가 아직 없어요.'))}</div></div><div class="room-right">${state.unread[r.id]?`<span class="unread">${Math.min(99,state.unread[r.id])}</span>`:''}</div></button></div>`;}
 
   // ---------- 탭(카테고리) 저장 ----------
   async function persistGroups(){
@@ -5301,6 +6450,7 @@
           if(fu<best) r.updatedAt=best;
           return r;
         }).sort((a,b)=>(docTs(b.updatedAt)-docTs(a.updatedAt))||(docTs(b.lastCreatedAt)-docTs(a.lastCreatedAt))||String(a.id||'').localeCompare(String(b.id||'')));
+        try{ mergeInternalRooms(); }catch(e){}
         state.rooms.forEach(r=>{ const u=docTs(r.updatedAt); if(u>(prevUpdated.get(r.id)||0)) prevUpdated.set(r.id,u); });
         healStalePrivateRooms();
         if(!(state.knownRoomIds instanceof Set)) state.knownRoomIds=new Set();
@@ -5319,14 +6469,15 @@
         // 안 센 방은 직전 값을 유지한다 (읽음 처리된 방은 아래 keep 조건에서 떨어진다)
         const reads=state.profile?.readAt||{};
         const keepUnread={...(state.unread||{})};
-        const candidates=state.rooms.filter(r=>r.id!==state.room?.id && docTs(r.lastCreatedAt)>docTs(reads[r.id]) && docTs(r.lastCreatedAt)>(prevUnreadCut.get(r.id)||0) && r.lastSenderId!==uid() && !summaryBlocked(r));
+        const floors=state.readFloor||{};
+        const candidates=state.rooms.filter(r=>r.id!==state.room?.id && docTs(r.lastCreatedAt)>docTs(reads[r.id]) && docTs(r.lastCreatedAt)>(floors[r.id]||0) && docTs(r.lastCreatedAt)>(prevUnreadCut.get(r.id)||0) && r.lastSenderId!==uid() && !summaryBlocked(r));
         const counts=await Promise.all(candidates.slice(0,30).map(async r=>{try{const s=await db.collection('channels').doc(r.id).collection('messages').orderBy('createdAt','desc').limit(80).get();const cut=docTs(reads[r.id])||0;return [r.id,s.docs.filter(d=>{const m=d.data();return !m.deleted&&m.senderId!==uid()&&docTs(m.createdAt)>cut&&!isBlockedMessage(m)}).length];}catch{return [r.id,1];}}));
         state.unread={};counts.forEach(([id,c])=>{ if(Number(c)>0) state.unread[id]=c; const rr=state.rooms.find(x=>x.id===id); prevUnreadCut.set(id,docTs(rr?.lastCreatedAt)||0); });
         for(const [id,c] of Object.entries(keepUnread)){
           if(id in state.unread) continue;
           if(!(Number(c)>0)) continue;
           const r=state.rooms.find(x=>x.id===id);
-          if(r&&r.id!==state.room?.id&&docTs(r.lastCreatedAt)>docTs(reads[r.id])&&r.lastSenderId!==uid()&&!summaryBlocked(r)) state.unread[id]=c;
+          if(r&&r.id!==state.room?.id&&docTs(r.lastCreatedAt)>docTs(reads[r.id])&&docTs(r.lastCreatedAt)>((state.readFloor||{})[r.id]||0)&&r.lastSenderId!==uid()&&!summaryBlocked(r)) state.unread[id]=c;
         }
         renderRooms(); try{ renderUnreadSummary(); }catch(e){} previous.clear();state.rooms.forEach(r=>{previous.set(r.id,docTs(r.lastCreatedAt));state.knownRoomIds.add(r.id);});
       }catch(e){console.error('room load',e);toast('채팅방을 불러오는 데 잠시 문제가 있었어요.');}
@@ -5538,6 +6689,7 @@
     },e=>console.error('sent friend requests',e));
   }
   async function requestFriend(targetUid,targetName){
+    if(chatLockActive() && !isAdmin()) return {ok:false,msg:chatLockMessage()};
     if(!targetUid||targetUid===uid()) return {ok:false,msg:'내 코드는 추가할 수 없어요.'};
     if(isFriend(targetUid)) return {ok:false,msg:'이미 친구예요.'};
     if(mySentRequestTo(targetUid)) return {ok:false,msg:'이미 친구 요청을 보냈어요.'};
@@ -5549,6 +6701,7 @@
     return {ok:true,msg:`${targetName||'상대방'}님에게 친구 요청을 보냈어요.`};
   }
   async function addFriendByCode(raw){
+    if(!requireChatFree()) return;
     const msg=$('#friendCodeMsg');
     const say=(t,cls)=>{ if(msg){ msg.textContent=t; msg.className='reset-msg'+(cls?' '+cls:''); } };
     const code=normalizeCode(raw);
@@ -5570,6 +6723,8 @@
     openFriends();
   }
   async function acceptFriendRequest(id){
+    // 친구가 되면 바로 초대가 오갈 수 있으므로 타임아웃 중에는 수락도 막는다 (거절은 허용)
+    if(!requireChatFree()) return;
     const req=(state.friendRequests||[]).find(r=>r.id===id);
     if(!req){ dismissStickyNotice(`fr_${id}`); return toast('이미 처리된 요청이에요.'); }
     try{
@@ -5770,7 +6925,7 @@
   // 마지막으로 시작한 호출만 살아남도록 토큰을 쓴다
   let roomOpenToken=0;
   // 메시지 목록은 최신 300개부터 보여주고, '이전 메시지 더 보기'로 넓혀간다
-  const MSG_PAGE=300, MSG_MAX_LIMIT=3000;
+  const MSG_PAGE=100, MSG_MAX_LIMIT=3000;
 
   // ---------- History 라우팅 (뒤로가기/제스처 완화) ----------
   function pushRoomHistory(roomId){
@@ -5833,6 +6988,7 @@
 
   async function openRoom(id, opts){
     const token=++roomOpenToken;
+    if(isInternalRoomId(id)) return openInternalRoom(id, opts);
     let room=state.rooms.find(r=>r.id===id);
     if(!room){
       try{
@@ -5870,15 +7026,25 @@
       }
     } else {
       const mySid=state.profile?.schoolId||'';
-      const isMember = Array.isArray(room.memberIds) && room.memberIds.includes(uid());
+      let isMember = Array.isArray(room.memberIds) && room.memberIds.includes(uid());
       try{ if(isMember) unmarkRoomLeft(id); }catch(e){}
       try{
         if(!isMember && !isAdmin() && isRoomLeft(id)){
-          state.rooms=(state.rooms||[]).filter(r=>r.id!==id);
-          try{ renderRooms(); }catch(e){}
-          openModal(`<h2>나온 채팅방이에요</h2><p class="desc">이미 나온 채팅방은 다시 볼 수 없어요. 다시 초대받으면 들어갈 수 있어요.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
-          if(!fromHistory) try{ history.replaceState({},'', location.pathname); }catch(_){}
-          return;
+          let freshMember=false;
+          try{
+            const s=await db.collection('channels').doc(id).get();
+            if(s.exists){
+              const fd=s.data()||{};
+              freshMember=Array.isArray(fd.memberIds) && fd.memberIds.includes(uid());
+              if(freshMember){ room={...room,...fd}; const ix=state.rooms.findIndex(r=>r.id===id); if(ix>=0) state.rooms[ix]=room; }
+            }
+          }catch(e){}
+          if(freshMember){ try{ unmarkRoomLeft(id); }catch(e){} isMember=true; }
+          else {
+            openModal(`<h2>���� ä�ù��̿���</h2><p class="desc">�̹� ���� ä�ù��� �ٽ� �� �� �����. �ٽ� �ʴ������ �� �� �־��.</p><div class="modal-actions"><button class="confirm" data-close-modal>Ȯ��</button></div>`,{small:true});
+            if(!fromHistory) try{ history.replaceState({},'', location.pathname); }catch(_){}
+            return;
+          }
         }
       }catch(e){}
       const sameSchool = !room.schoolId || !mySid || room.schoolId===mySid;
@@ -5917,6 +7083,8 @@
       db.collection('channels').doc(id).update({memberIds:firebase.firestore.FieldValue.arrayUnion(uid()),updatedAt:ts()}).catch(()=>{});
     }
     await markRead(id);
+    // 방을 연 순간의 서버 시각을 바닥값으로 기억한다 (스냅샷이 늦게 와도 읽은 방이 다시 세어지지 않게)
+    try{ state.readFloor=state.readFloor||{}; state.readFloor[id]=Math.max(docTs(room.lastCreatedAt)||0,docTs((state.profile?.readAt||{})[id])||0,state.readFloor[id]||0); }catch(e){}
     if(token!==roomOpenToken) return;
     clearRoomListener();
     renderChatFrame(room);
@@ -5961,7 +7129,7 @@
                 const label=`'${state.room?.name||v.roomName||'채팅방'}' ${v.targetName||'메시지'}에 신고 ${newC}건이 접수되었습니다`;
                 // 채팅방으로 들어가지 않고 신고 관리로 간다 (방에 없는 교사도 방에 끌려들어가지 않게)
                 if(newC>=REPORT_BLIND_COUNT) showStickyNotice(`report_${mid}_${newC}`,'신고가 쌓였어요',label,`<div class="sticky-btns"><button type="button" class="sticky-btn primary" data-action="reports">신고 관리 열기</button></div>`);
-                try{ notifyMessage('',{name:'에듀톡'},{senderId:'report',senderName:'신고 알림',text:label,createdAt:new Date()}); }catch(e){}
+                try{ notifyMessage('',{name:'브리즈'},{senderId:'report',senderName:'신고 알림',text:label,createdAt:new Date()}); }catch(e){}
               }
             });
           }
@@ -5973,16 +7141,32 @@
   function countConfirm({title,desc,confirmLabel,seconds}){
     return new Promise(res=>{
       const secs=Math.min(10,Math.max(1,Number(seconds)||3));
-      const panel=openModal(`<h2>${esc(title)}</h2><p class="desc">${esc(desc)}</p><div class="modal-actions"><button class="cancel" id="ccNo">취소</button><button class="confirm" id="ccYes" disabled style="opacity:.5">${esc(confirmLabel||'확인')} (${secs})</button></div>`,{small:true,dismissible:false});
-      let n=secs; const btn=panel.querySelector('#ccYes');
+      const panel=openModal(`<h2>${esc(title)}</h2><p class="desc">${esc(desc)}</p><div class="modal-actions"><button class="cancel" id="ccNo">취소</button><button class="confirm countdown" id="ccYes" data-label="${esc(confirmLabel||'확인')}" disabled><span class="cd-fill"></span><span class="cd-text">${esc(confirmLabel||'확인')} (${secs}초)</span></button></div>`,{small:true,dismissible:false});
+      const btn=panel.querySelector('#ccYes');
+      const tx=btn.querySelector('.cd-text');
+      const total=secs;
+      let n=secs;
+      const paint=()=>{
+        const p=((total-n)/total)*100;
+        btn.style.setProperty('--cd-p',p.toFixed(1)+'%');
+        if(tx) tx.textContent=`${confirmLabel||'확인'} (${n}초)`;
+      };
+      paint();
       const timer=setInterval(()=>{
         n--;
         if(!document.body.contains(btn)){ clearInterval(timer); return; }
-        if(n<=0){ clearInterval(timer); btn.disabled=false; btn.style.opacity='1'; btn.textContent=confirmLabel||'확인'; }
-        else btn.textContent=`${confirmLabel||'확인'} (${n})`;
+        if(n<=0){
+          clearInterval(timer);
+          btn.disabled=false;
+          btn.classList.remove('countdown');
+          btn.classList.add('countdown-ready');
+          btn.style.removeProperty('--cd-p');
+          btn.innerHTML=`<span class="cd-text">${esc(confirmLabel||'확인')}</span>`;
+        }
+        else paint();
       },1000);
       panel.querySelector('#ccNo').onclick=()=>{ clearInterval(timer); closeModal(); res(false); };
-      btn.onclick=()=>{ clearInterval(timer); closeModal(); res(true); };
+      btn.onclick=()=>{ if(btn.disabled) return; clearInterval(timer); closeModal(); res(true); };
     });
   }
   async function restoreBlindMessage(msgId){
@@ -6098,9 +7282,11 @@
   }
   async function markRead(id){
     if(!id) return;
+    // 로컬을 먼저 갱신한다 (서버 쓰기가 느리거나 실패해도 배지가 무기한 남지 않게)
+    try{ if(state.profile){ state.profile.readAt=state.profile.readAt||{}; state.profile.readAt[id]={toDate:()=>new Date()}; } }catch(e){}
+    try{ if(state.unread&&state.unread[id]!==undefined){ delete state.unread[id]; try{renderRooms();}catch(e){} try{renderUnreadSummary();}catch(e){} } }catch(e){}
     try{
       await db.collection('users').doc(uid()).update({[`readAt.${id}`]:ts()});
-      if(state.profile){ state.profile.readAt=state.profile.readAt||{}; state.profile.readAt[id]={toDate:()=>new Date()}; }
       // 읽음 표시를 켠 사람만 방에 내 읽음 시각을 남긴다 (끄면 서로 보이지 않는다)
       if(readReceiptsEnabled()){
         await db.collection('channels').doc(id).collection('reads').doc(uid()).set({at:ts(),name:state.profile?.displayName||'사용자'},{merge:true});
@@ -6114,15 +7300,20 @@
     const count=(room.memberIds||[]).length;
     const warnPill=(!isStaff() && state.warnCount>0)?`<span class="warn-pill">경고 ${state.warnCount}/${warnLimit()}</span>`:'';
     const desk=[];
+    if(isInternalRoom(room)){
+      desk.push(`<button type="button" class="icon-btn" data-action="manage-room" data-room-id="${esc(room.id)}" title="채팅방 설정" aria-label="채팅방 설정">⚙</button>`);
+    } else {
     desk.push(`<button type="button" class="head-btn" data-action="members" data-room-id="${esc(room.id)}" title="참여자 보기"><span class="hb-ico">👥</span><span class="hb-label">참여자</span><span class="hb-count">${count}</span></button>`);
     desk.push(`<button type="button" class="head-btn" data-action="toggle-search" title="메시지 검색"><span class="hb-ico">🔍</span><span class="hb-label">검색</span></button>`);
     if(canInvite) desk.push(`<button type="button" class="head-btn" data-action="invite" data-room-id="${esc(room.id)}" title="사람 초대하기"><span class="hb-ico">👤</span><span class="hb-label">사람 초대</span><span class="hb-plus">＋</span></button>`);
     if(isMember) desk.push(`<button type="button" class="icon-btn" data-action="manage-room" data-room-id="${esc(room.id)}" title="채팅방 설정" aria-label="채팅방 설정">⚙</button>`);
+    }
     const desc=esc(room.description||((room.type==='notice')?'안내와 공지가 올라와요.':'편하게 이야기해 보세요.'));
-    $('#chat').innerHTML=`<header class="chat-head"><button type="button" class="icon-btn narrow-only mobile-back" data-action="mobile-back" aria-label="채팅 목록으로" title="채팅 목록으로">←</button><button type="button" class="icon-btn narrow-only" data-action="open-drawer" aria-label="채팅방 목록" title="채팅방 목록">▤</button><div class="chat-head-left"><div class="chat-title">${esc(room.name||'채팅방')}${sharePill(share)}${warnPill}</div><div class="chat-desc">${desc}</div></div><div class="head-actions wide-only">${desk.join('')}</div><button type="button" class="icon-btn narrow-only" data-action="room-menu" data-room-id="${esc(room.id)}" aria-label="채팅 메뉴" title="채팅 메뉴">☰</button></header><div class="chat-body${state.memberPanel?' panel-open':''}"><div class="chat-main">${selectBarHtml()}${state.searchMode?searchBarHtml():''}<div id="oldChatBar" class="old-chat-bar hidden">오래전 채팅을 보고 있어요.</div><div class="messages-wrap"><div id="messages" class="messages"></div><div id="newBanner" class="new-banner"></div></div>${composerHtml(room)}<button type="button" id="jumpBottomFab" class="jump-bottom-fab hidden" data-action="jump-bottom" aria-label="맨 아래로">↓</button></div><div class="mp-resizer" id="mpResizer" title="끌어서 폭 조절 (더블클릭하면 기본값)"></div><aside id="memberPanel" class="member-panel${state.memberPanel?' open':''}"><div class="member-panel-inner"><div class="member-panel-head"><strong>참여자 <span id="memberCount">${count}</span>명</strong><button type="button" class="icon-btn" data-action="close-members" aria-label="닫기">✕</button></div><div class="member-search"><input id="memberSearch" class="input" placeholder="이름 검색" autocomplete="off"></div><div id="memberList" class="member-list"></div></div></aside></div>`;
+    $('#chat').innerHTML=`<header class="chat-head"><button type="button" class="icon-btn narrow-only mobile-back" data-action="mobile-back" aria-label="채팅 목록으로" title="채팅 목록으로">←</button><button type="button" class="icon-btn narrow-only" data-action="open-drawer" aria-label="채팅방 목록" title="채팅방 목록">▤</button><div class="chat-head-left"><div class="chat-title">${esc(room.name||'채팅방')}${netPill(room)}${sharePill(share)}${warnPill}</div><div class="chat-desc">${desc}</div></div><div class="head-actions wide-only">${desk.join('')}</div><button type="button" class="icon-btn narrow-only" data-action="room-menu" data-room-id="${esc(room.id)}" aria-label="채팅 메뉴" title="채팅 메뉴">☰</button></header><div class="chat-body${state.memberPanel?' panel-open':''}"><div class="chat-main">${selectBarHtml()}${state.searchMode?searchBarHtml():''}<div id="oldChatBar" class="old-chat-bar hidden">오래전 채팅을 보고 있어요.</div><div class="messages-wrap"><div id="messages" class="messages"></div><div id="newBanner" class="new-banner"></div></div>${composerHtml(room)}<button type="button" id="jumpBottomFab" class="jump-bottom-fab hidden" data-action="jump-bottom" aria-label="맨 아래로">↓</button></div><div class="mp-resizer" id="mpResizer" title="끌어서 폭 조절 (더블클릭하면 기본값)"></div><aside id="memberPanel" class="member-panel${state.memberPanel?' open':''}"><div class="member-panel-inner"><div class="member-panel-head"><strong>참여자 <span id="memberCount">${count}</span>명</strong><button type="button" class="icon-btn" data-action="close-members" aria-label="닫기">✕</button></div><div class="member-search"><input id="memberSearch" class="input" placeholder="이름 검색" autocomplete="off"></div><div id="memberList" class="member-list"></div></div></aside></div>`;
     wireMemberResizer();
     observeComposer();
     try{ renderMainBottom(); }catch(e){}
+    try{ enhanceChatExtras(); }catch(e){}
     const cm=$('#chat .chat-main');
     if(cm && !prefersReducedMotion()){ cm.classList.remove('room-enter'); void cm.offsetWidth; cm.classList.add('room-enter'); setTimeout(()=>cm.classList.remove('room-enter'),380); }
     if(state.memberPanel) renderMemberPanel();
@@ -6224,6 +7415,7 @@
   // ---------- 채팅방 검색 (입력창이 검색창으로 바뀐다) ----------
   function toggleRoomSearch(force){
     if(!state.room) return;
+    if(isInternalRoom(state.room)){ openInternalSearch(); return; }
     const on=(force===undefined)?!state.searchMode:!!force;
     state.searchMode=on;
     if(!on){ state.searchQuery=''; state.searchHits=[]; state.searchIndex=-1; }
@@ -6255,7 +7447,7 @@
     state.searchQuery=q||'';
     const needle=String(q||'').trim().toLowerCase();
     if(!needle){ state.searchHits=[]; state.searchIndex=-1; clearSearchHighlight(); updateSearchCount(); return; }
-    state.searchHits=state.messages.filter(m=>!m.deleted && !m.system && !isHiddenMsg(m.id) && !isBlockedMessage(m) && String(m.text||'').toLowerCase().includes(needle)).map(m=>m.id);
+    state.searchHits=state.messages.filter(m=>!m.deleted && !m.system && !isHiddenMsg(m.id) && !isBlockedMessage(m) && (String(m.text||'').toLowerCase().includes(needle) || (labOn('deep')&&String(m?.attachment?.name||'').toLowerCase().includes(needle)))).map(m=>m.id);
     state.searchIndex=state.searchHits.length-1; // 가장 최근 메시지부터 보여준다
     applySearchHighlight();
     updateSearchCount();
@@ -6481,6 +7673,10 @@
     }).join('')}</div>`;
   }
   function composerHtml(room){
+    if(isInternalRoom(room)){
+      if(!inSocket||!inSocket.connected) return `<div class="composer"><div class="composer-inner centered">내부 서버에 연결 중이에요. 방을 다시 들어와 주세요.</div></div>`;
+      return `<div id="mainBottom" class="main-bottom hidden"></div><div class="composer"><div class="char-count" id="charCount">0 / 1500</div><form id="composerForm" class="composer-inner"><button type="button" class="icon-btn" data-action="attach-file" title="파일·사진 보내기">＋</button><textarea id="composerText" name="text" rows="1" maxlength="1500" placeholder="내부망으로 보내요. 대화는 학교 서버에만 저장돼요." enterkeyhint="send" autocomplete="off" autocapitalize="sentences"></textarea><button type="submit" class="send" aria-label="전송">↑</button></form><input type="file" id="chatFileInput" multiple accept="image/*,.pdf,.txt,.hwp,.hwpx,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip" hidden></div>`;
+    }
     const canSend = room.type==='notice' ? isTeacher() : (isAdmin() || room.visibility==='all' || (room.memberIds||[]).includes(uid()));
     if(!canSend)return `<div class="composer"><div class="composer-inner centered">${room.type==='notice'?'이 공지방은 선생님이 안내를 올리는 곳이에요.':'이 채팅방에 참여하면 메시지를 보낼 수 있어요.'}</div></div>`;
     if(!isAdmin()){
@@ -6505,7 +7701,7 @@
       : '';
     const editBar=state.editingId?`<div class="edit-bar"><span>✏️ 메시지 수정 중</span><span class="grow">${esc((state.messages.find(x=>x.id===state.editingId)?.text||'').slice(0,60))}</span><button type="button" class="soft-btn" data-action="cancel-edit">취소</button></div>`:'';
     const taPlaceholder=state.editingId?'메시지를 수정해 보세요. (Enter로 저장)':'메시지를 입력해 주세요. (최대 1500자)';
-    return `<div id="mainBottom" class="main-bottom hidden"></div><div class="composer">${editBar}<div id="mentionBox" class="mention-box hidden"></div><div class="char-count" id="charCount">0 / 1500</div><form id="composerForm" class="composer-inner"><button type="button" class="icon-btn" data-action="attach-file" title="파일·사진 보내기">＋</button>${rxToggle}<textarea id="composerText" name="text" rows="1" maxlength="1500" placeholder="${taPlaceholder}" enterkeyhint="send" autocomplete="off" autocapitalize="sentences"></textarea><button type="submit" class="send" aria-label="전송">${state.editingId?'✓':'↑'}</button></form><input type="file" id="chatFileInput" accept="image/*,.pdf,.txt,.hwp,.hwpx,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip" hidden></div>`;
+    return `<div id="mainBottom" class="main-bottom hidden"></div><div class="composer">${editBar}<div id="mentionBox" class="mention-box hidden"></div><div class="char-count" id="charCount">0 / 1500</div><form id="composerForm" class="composer-inner"><button type="button" class="icon-btn" data-action="attach-file" title="파일·사진 보내기">＋</button>${rxToggle}<textarea id="composerText" name="text" rows="1" maxlength="1500" placeholder="${taPlaceholder}" enterkeyhint="send" autocomplete="off" autocapitalize="sentences"></textarea><button type="submit" class="send" aria-label="전송">${state.editingId?'✓':'↑'}</button></form><input type="file" id="chatFileInput" multiple accept="image/*,.pdf,.txt,.hwp,.hwpx,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip" hidden></div>`;
   }
   // ---------- @ 멘션 (입력창에서 @를 치면 참여자 목록이 떠서 골라 넣는다) ----------
   function mentionQuery(ta){
@@ -6517,15 +7713,59 @@
   function mentionRows(q){
     const room=state.room; if(!room) return [];
     const me=uid(), needle=String(q||'').toLowerCase(), rows=[];
+    // 대화에 나온 이름도 함께 기억해 둔다 (프로필을 읽지 못해도 멘션 후보에 올리기 위해)
+    const saidNames=new Map();
+    try{ (state.messages||[]).forEach(m=>{ if(m.senderId&&m.senderId!==me&&m.senderName&&!saidNames.has(m.senderId)) saidNames.set(m.senderId,String(m.senderName)); }); }catch(e){}
     roomParticipantIds().forEach(id=>{
       if(id===me) return;
       const p=state.profileCache.get(id)||{};
-      const name=String(p.displayName||'').trim(); if(!name) return;
+      let name=String(p.displayName||'').trim();
+      // 프로필 읽기 권한이 없어 이름이 비어 있으면 대화에 나온 이름으로 대신한다 (계정·기기 무관)
+      if(!name&&saidNames.has(id)) name=String(saidNames.get(id)||'').trim();
+      if(!name) return;
       if(needle && !name.toLowerCase().includes(needle)) return;
       rows.push({ id, name, p });
     });
     rows.sort((a,b)=>a.name.localeCompare(b.name,'ko'));
     return rows.slice(0,100);
+  }
+  function decodeMentionName(s){
+    return String(s||'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+  }
+  // 멘션 이름 → 참여자 uid (프로필 캐시 우선, 대화 발신자 폴백)
+  function resolveMentionUid(name){
+    const needle=String(name||'').trim(); if(!needle||!state.room) return null;
+    const ids=roomParticipantIds();
+    for(const id of ids){ const p=state.profileCache.get(id)||{}; if(String(p.displayName||'').trim()===needle) return id; }
+    for(const id of ids){ const p=state.profileCache.get(id)||{}; if(String(p.displayName||'').trim().toLowerCase()===needle.toLowerCase()) return id; }
+    const seen=new Map();
+    try{ (state.messages||[]).forEach(m=>{ if(m.senderId&&m.senderName&&!seen.has(m.senderName)) seen.set(String(m.senderName),m.senderId); }); }catch(e){}
+    if(seen.has(needle)) return seen.get(needle);
+    const low=needle.toLowerCase();
+    for(const [nm,id] of seen){ if(String(nm).toLowerCase()===low) return id; }
+    return null;
+  }
+  // 실제로 없는 인물이면 멘션 전송을 막는다. 없으면 null.
+  function validateMentions(text){
+    const out=[];
+    try{
+      const re=/@([^\s@<>&]{1,20})/g;
+      let m; const seen=new Set();
+      while((m=re.exec(String(text||'')))){
+        const nm=decodeMentionName(m[1]);
+        if(seen.has(nm)) continue; seen.add(nm);
+        if(nm.includes('.')) continue; // 이메일 등은 멘션 검사를 건너뛴다
+        if(!resolveMentionUid(nm)) out.push(nm);
+      }
+    }catch(e){}
+    return out.length?out[0]:null;
+  }
+  function openMentionProfile(rawName){
+    const nm=decodeMentionName(rawName);
+    if(!nm) return;
+    const id=resolveMentionUid(nm);
+    if(!id) return toast('나갔거나 찾을 수 없는 사람이에요.');
+    return openUserProfile(id, nm);
   }
   function hideMentionBox(){
     const b=$('#mentionBox');
@@ -6608,6 +7848,7 @@
     const next=tmp.querySelector('.composer'); if(!next) return;
     const nextBottom=tmp.querySelector('#mainBottom');
     cur.replaceWith(next);
+    try{ enhanceComposerExtras(); }catch(e){}
     try{ const mb=$('#chat .chat-main #mainBottom'); if(mb&&nextBottom){ mb.replaceWith(nextBottom); renderMainBottom(); } }catch(e){}
     const ta=$('#composerText');
     if(ta && draft && ta.value!==draft){
@@ -6696,6 +7937,7 @@
     return `<div class="rx-row">${chips}</div>`;
   }
   async function setReaction(msgId,emoji){
+    if(!requireChatFree()) return;
     const m=state.messages.find(x=>x.id===msgId); if(!m||!emoji||!state.room) return;
     if(m.noReactions) return toast('이 메시지는 공감을 받지 않아요.');
     const rx={...(m.reactions||{})};
@@ -6736,12 +7978,22 @@
     setTimeout(()=>{ document.addEventListener('pointerdown',off,true); window.addEventListener('wheel',off,{passive:true}); },0);
   }
   function openMsgMenu(msgId,x,y){
-    const m=state.messages.find(v=>v.id===msgId); if(!m||m.system||m.deleted) return;
+    const m=state.messages.find(v=>v.id===msgId); if(!m||m.system||m.deleted||m.isRecalled) return;
+    if(state.room&&isInternalRoom(state.room)){
+      const mine0=m.senderId===uid();
+      const items0=[`<button type="button" data-action="copy-message" data-msg="${esc(m.id)}">복사</button>`];
+      if(mine0&&!m.isRecalled) items0.push(`<button type="button" data-action="recall-message" data-msg="${esc(m.id)}">회수하기</button>`);
+      if(mine0&&!m.isRecalled) items0.push(`<button type="button" data-action="internal-reads" data-msg="${esc(m.srvId||'')}">읽음 확인</button>`);
+      state.menuXY={x,y};
+      showFloatMenu(x,y,`<div class="float-title">${mine0?'내 메시지':esc(m.senderName||'사용자')+'님의 메시지'}</div>${items0.join('')}`);
+      return;
+    }
     const mine=m.senderId===uid();
     const senderName=esc((state.profileCache.get(m.senderId)||{}).displayName||m.senderName||'사용자');
     const items=[];
     items.push(`<button type="button" data-action="copy-message" data-msg="${esc(m.id)}">복사</button>`);
     if(mine && canEditMsg(m)) items.push(`<button type="button" data-action="edit-message" data-msg="${esc(m.id)}">수정</button>`);
+    if(mine && !m.isRecalled && (m.text||m.attachment)) items.push(`<button type="button" data-action="recall-message" data-msg="${esc(m.id)}">회수하기</button>`);
     items.push(`<button type="button" data-action="reply-message" data-msg="${esc(m.id)}">답장</button>`);
     if(!m.noReactions) items.push(`<button type="button" data-action="react-pick" data-msg="${esc(m.id)}">감정 아이콘</button>`);
     items.push(`<button type="button" data-action="pick-chat" data-msg="${esc(m.id)}">채팅 선택</button>`);
@@ -6768,7 +8020,7 @@
       if(e.pointerType==='mouse') return; // 마우스는 오른쪽 버튼(우클릭)으로 연다
       // 삭제된 메시지예요 표시는 꾹 누르기 메뉴도 띄우지 않는다
       const pm=(state.messages||[]).find(v=>v.id===row.dataset.msgId);
-      if(pm && (pm.deleted || pm.system)) return;
+      if(pm && (pm.deleted || pm.system || pm.isRecalled)) return;
       msgPressInfo={id:row.dataset.msgId,x:e.clientX,y:e.clientY,moved:false};
       clearTimeout(msgPressTimer);
       msgPressTimer=setTimeout(()=>{
@@ -6824,7 +8076,7 @@
   function canPurgeMsg(m){ return !!state.room && (state.room.createdBy===uid() || !!(m&&m.senderId===uid()) || canStaffPurge()); }
   // 본인 메시지는 본인만 수정할 수 있다 (삭제됨·시스템·공감금지 제외, 텍스트만)
   function canEditMsg(m){
-    return !!m && !m.deleted && !m.system && m.senderId===uid() && typeof m.text==='string' && m.text.length>0;
+    return !!m && !m.deleted && !m.isRecalled && !m.system && m.senderId===uid() && typeof m.text==='string' && m.text.length>0;
   }
   // 수정한 메시지가 마지막 메시지였다면 목록 요약도 함께 고친다
   async function refreshLastTextAfterEdit(roomId, editedId){
@@ -6842,6 +8094,7 @@
   }
   function startEditMessage(id){
     const m=state.messages.find(x=>x.id===id);
+    if(state.room&&isInternalRoom(state.room)) return toast('내부망 방에서는 메시지 수정을 지원하지 않아요. 회수를 이용해 주세요.');
     if(!m || !canEditMsg(m)) return toast('수정할 수 있는 메시지가 아니에요.');
     state.editingId=id; state.replyText=null;
     closeFloatMenu();
@@ -6863,6 +8116,7 @@
   }
   async function saveEditedMessage(){
     if(state.sending) return;
+    if(!requireChatFree()){ state.sending=false; return; }
     state.sending=true;
     const id=state.editingId;
     const m=state.messages.find(x=>x.id===id);
@@ -6871,6 +8125,8 @@
     const text=(ta?.value||'').trim();
     if(!text){ state.sending=false; return toast('수정할 내용을 입력해 주세요.'); }
     if(text.length>MSG_MAX_LEN){ state.sending=false; return toast(`메시지는 ${MSG_MAX_LEN}자까지만 보낼 수 있어요.`); }
+    const badEditMention=validateMentions(text);
+    if(badEditMention){ state.sending=false; return toast(`@${badEditMention}님을 찾을 수 없어요. 이름을 다시 확인해 주세요.`); }
     if(text===(m.text||'')){ state.sending=false; cancelEditMessage(); return; }
     try{
       await db.collection('channels').doc(state.room.id).collection('messages').doc(id).update({
@@ -6923,6 +8179,239 @@
     });
     await batch.commit();
   }
+  /* ---------- Lab (opt-in heavy features) ---------- */
+  function labOn(key){ try{ return localStorage.getItem('edutalk_lab_'+key)==='1'; }catch(e){ return false; } }
+  function mountLabSettings(p){
+    if(!p||p.querySelector('#labCard')) return;
+    const card=document.createElement('div');
+    card.className='admin-card'; card.id='labCard';
+    card.innerHTML=`<h3>\uC2E4\uD5D8\uC2E4</h3><p class="desc">\uBB34\uAC70\uC6B4 \uAE30\uB2A5\uC785\uB2C8\uB2E4. \uD544\uC694\uD55C \uC0AC\uB78C\uB9CC \uCF1C\uC8FC\uC138\uC694.</p>`+
+      `<div class="setting-row"><div class="setting-label"><strong>\uD14D\uC2A4\uD2B8 \uBBF8\uB9AC\uBCF4\uAE30</strong><div class="meta" style="font-size:12px;color:var(--sub)">txt\u00B7md\u00B7csv \uCC28\uB2E8 \uBCF4\uAE30</div></div><label class="choice${labOn('hw')?' active':''}"><input type="checkbox" data-lab="hw"${labOn('hw')?' checked':''}></label></div>`+
+      `<div class="setting-row"><div class="setting-label"><strong>\uD655\uC7A5 \uAC80\uC0C9</strong><div class="meta" style="font-size:12px;color:var(--sub)">\uD30C\uC77C\uBA85\uAE4C\uC9C0 \uAC80\uC0C9</div></div><label class="choice${labOn('deep')?' active':''}"><input type="checkbox" data-lab="deep"${labOn('deep')?' checked':''}></label></div>`;
+    p.appendChild(card);
+    card.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
+      try{ localStorage.setItem('edutalk_lab_'+c.dataset.lab, c.checked?'1':'0'); }catch(e){}
+      c.closest('.choice')?.classList.toggle('active', c.checked);
+    });
+  }
+  const TEXT_PREVIEW_EXTS=['.txt','.md','.csv','.json','.log','.xml'];
+  async function previewTextAttach(m){
+    try{
+      const name=String(m?.attachment?.name||'').toLowerCase();
+      if(!TEXT_PREVIEW_EXTS.some(e=>name.endsWith(e))) return false;
+      const data=attachDataOf(m); if(!data) return false;
+      const href=safeFileHref(data); if(!href) return false;
+      const r=await fetch(href); if(!r.ok) return false;
+      const t=await r.text(); if(!t) return false;
+      openModal(`<h2>${esc(m.attachment.name||'file')}</h2><pre class="text-preview">${esc(t.slice(0,8000))}${t.length>8000?'\n…':''}</pre><div class="modal-actions"><button class="cancel" data-close-modal>\uB2EB\uAE30</button></div>`);
+      return true;
+    }catch(e){ return false; }
+  }
+  /* ---------- Personal memos (server post-it) ---------- */
+  const MEMO_COLORS=['#FFF6DB','#E7F4E8','#E2EFFD','#FBE4E9','#F1E8FA'];
+  function openMemos(){
+    state.memoEdit=null; state.memoColor=MEMO_COLORS[0];
+    openModal(`<h2>\uB0B4 \uBA54\uBAA8</h2><p class="desc">\uB098\uB9CC \uBCF4\uB294 \uBA54\uBAA8\uC785\uB2C8\uB2E4.`+
+      `</p><div id="memoList" class="list"><div class="empty-side">loading</div></div>`+
+      `<div class="field" style="margin-top:10px"><label>\uC0C8 \uBA54\uBAA8</label><textarea id="memoNew" class="input" rows="3" maxlength="1000" placeholder="\uB0B4\uC6A9 \uC785\uB825"></textarea></div>`+
+      `<div class="row" style="align-items:center"><div id="memoColors" style="display:flex;gap:6px;flex:1">`+
+      MEMO_COLORS.map((c,i)=>`<button type="button" class="memo-dot${i===0?' on':''}" data-action="memo-color" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('')+
+      `</div><button type="button" class="soft-btn" style="flex:0 0 64px" data-action="memo-add">\uC800\uC7A5</button></div>`+
+      `<div class="modal-actions"><button class="cancel" data-close-modal>\uB2EB\uAE30</button></div>`);
+    paintMemos();
+  }
+  async function paintMemos(){
+    const host=$('#memoList'); if(!host) return;
+    let rows=[];
+    try{
+      const s=await db.collection('personalMemos').where('uid','==',uid()).limit(50).get();
+      rows=s.docs.map(d=>({id:d.id,...d.data()}));
+      rows.sort((a,b)=>(docTs(b.updatedAt)||0)-(docTs(a.updatedAt)||0));
+    }catch(e){ host.innerHTML='<div class="empty-side">load fail</div>'; return; }
+    host.innerHTML=rows.map(r=>`<div class="list-item" style="background:${esc(r.color||MEMO_COLORS[0])};border-radius:12px"><div class="grow"><div class="title" style="white-space:pre-wrap">${esc(String(r.text||'').slice(0,200))}</div><div class="meta">${esc(fmtDateTime(r.updatedAt))}</div></div><button class="soft-btn" style="flex:0 0 52px" data-action="memo-edit" data-id="${esc(r.id)}">\uC218\uC815</button><button class="soft-btn" style="flex:0 0 52px" data-action="memo-del" data-id="${esc(r.id)}">\uC0AD\uC81C</button></div>`).join('')||'<div class="empty-side">empty</div>';
+  }
+  async function saveMemo(){
+    const t=($('#memoNew')?.value||'').trim();
+    if(!t) return toast('내용을 입력해 주세요.');
+    const color=state.memoColor||MEMO_COLORS[0];
+    try{
+      if(state.memoEdit){
+        await db.collection('personalMemos').doc(state.memoEdit).update({text:t.slice(0,1000),color,updatedAt:ts()});
+        state.memoEdit=null;
+      } else {
+        await db.collection('personalMemos').add({uid:uid(),text:t.slice(0,1000),color,createdAt:ts(),updatedAt:ts()});
+      }
+    }catch(e){ console.error(e); return toast(errText(e)); }
+    const ta=$('#memoNew'); if(ta) ta.value='';
+    paintMemos();
+  }
+  async function openUsbLog(){
+    openModal(`<h2>USB \uC811\uC18D \uAE30\uB85D</h2><p class="desc">\uC774 PC\uC758 \uC774\uB3D9\uC2DD \uB4DC\uB77C\uC774\uBE0C \uC5F0\uACB0 \uAE30\uB85D\uC785\uB2C8\uB2E4.</p><div id="usbLogList" class="list"><div class="empty-side">loading</div></div><div class="modal-actions"><button class="cancel" data-close-modal>\uB2EB\uAE30</button></div>`,{small:true});
+    try{
+      const rows=await window.edutalkDesktop.getUsbLog();
+      const host=$('#usbLogList'); if(!host) return;
+      host.innerHTML=(rows||[]).map(r=>`<div class="list-item"><div class="grow"><div class="title">${esc(r.event==='usb-add'?'\uC5F0\uACB0':'\uD574\uC81C')} ${esc(r.letter||'')}</div><div class="meta">${esc(r.label||'')}${esc(r.t||'')}</div></div></div>`).join('')||'<div class="empty-side">empty</div>';
+    }catch(e){ const host=$('#usbLogList'); if(host) host.innerHTML='<div class="empty-side">load fail</div>'; }
+  }
+  async function maskedCapture(){
+    try{
+      if(!(window.edutalkDesktop&&typeof window.edutalkDesktop.captureMasked==='function')) return;
+      document.body.classList.add('masking');
+      await new Promise(r=>setTimeout(r,150));
+      let res=null;
+      try{ res=await window.edutalkDesktop.captureMasked(); }
+      finally{ document.body.classList.remove('masking'); }
+      if(res&&res.ok) toast('saved');
+    }catch(e){ try{ document.body.classList.remove('masking'); }catch(_){} }
+  }
+  /* ---------- Importance + templates + pre-send DLP ---------- */
+  function impFilter(){ try{ const v=localStorage.getItem('edutalk_imp_filter'); return (v==='urgent'||v==='normal'||v==='ref')?v:'all'; }catch(e){ return 'all'; } }
+  function setImpFilter(v){
+    if(v!=='all'&&v!=='urgent'&&v!=='normal'&&v!=='ref') v='all';
+    try{ localStorage.setItem('edutalk_imp_filter', v); }catch(e){}
+    try{ syncImpFilterBar(); }catch(e){}
+    try{ renderMessages(); }catch(e){}
+  }
+  function syncImpFilterBar(){
+    const v=impFilter();
+    document.querySelectorAll('#impFilterBar [data-imp-filter]').forEach(b=>b.classList.toggle('active', b.dataset.impFilter===v));
+  }
+  function impHide(m){
+    const f=impFilter(); if(f==='all') return false;
+    return (m.importance||'normal')!==f;
+  }
+  function impBadge(m){
+    const v=m.importance||'normal';
+    if(v==='urgent') return `<span class="imp-badge urgent">긴급</span>`;
+    if(v==='ref') return `<span class="imp-badge ref">\uCC38\uACE0</span>`;
+    return '';
+  }
+  function currentImportance(){
+    // 학생은 항상 일반으로 고정 (우회 시도해도 서버·전송단에서 강제). 교사만 긴급/참고 선택 가능.
+    try{
+      if(!isTeacher()) return 'normal';
+      const s=document.querySelector('#impSelect')?.value; return (s==='urgent'||s==='ref')?s:'normal';
+    }catch(e){ return 'normal'; }
+  }
+  function dlpOn(){ try{ return localStorage.getItem('edutalk_dlp')!=='0'; }catch(e){ return true; } }
+  function dlpHit(text){
+    if(!dlpOn()) return '';
+    const t=String(text||'');
+    if(/[0-9]{6}-[1-4][0-9]{6}/.test(t)) return 'rrn';
+    if(/01[016789]-?[0-9]{3,4}-?[0-9]{4}/.test(t)) return 'phone';
+    return '';
+  }
+  function openDlpModal(form, kind){
+    state.dlpForm=form||null;
+    openModal(`<h2>\uBC1C\uC1A1 \uC804 \uD655\uC778</h2><p class="desc">${kind==='rrn'?'\uC8FC\uBBFC\uBC88\uD638로 \uBCF4\uC774\uB294 \uBC88\uD638\uAC00 \uD3EC\uD568\uB418\uC5B4 \uC788\uC5B4\uC694.':'\uD734\uB300\uD3F0 \uBC88\uD638\uB85C \uBCF4\uC774\uB294 \uBC88\uD638\uAC00 \uD3EC\uD568\uB418\uC5B4 \uC788\uC5B4\uC694.'}<br>\uBCF4\uB0B4\uAE30 \uC804\uC5D0 \uB2E4\uC2DC \uD655\uC778\uD574 \uC8FC\uC138\uC694.</p><div class="modal-actions"><button type="button" class="cancel" data-close-modal>\uCDE8\uC18C</button><button type="button" class="confirm" data-action="dlp-send">\uADF8\uB798\uB3C4 \uBCF4\uB0B4\uAE30</button></div>`,{small:true});
+  }
+  function tplDefaults(){
+    return [
+      {t:'[\uAC00\uC815\uD1B5\uC2E0\uBB38] \uC548\uB155\uD558\uC138\uC694. \uC624\uB298 \uC548\uB0B4 \uB9D0\uC500 \uB4DC\uB9BD\uB2C8\uB2E4.', d:''},
+      {t:'[\uD68C\uC758 \uACF5\uC9C0] \uB0B4\uC77C \uC870\uD68C \uC2DC\uAC04\uC5D0 \uC804\uB2EC \uC0AC\uD56D\uC774 \uC788\uC2B5\uB2C8\uB2E4.', d:''},
+      {t:'\uD655\uC778\uD588\uC2B5\uB2C8\uB2E4. \uAC10\uC0AC\uD569\uB2C8\uB2E4.', d:''}
+    ];
+  }
+  function readTpls(){ try{ const a=JSON.parse(localStorage.getItem('edutalk_templates')||'[]'); return Array.isArray(a)?a.filter(x=>x&&typeof x.t==='string').slice(0,20):[]; }catch(e){ return []; } }
+  function writeTpls(a){ try{ localStorage.setItem('edutalk_templates', JSON.stringify((a||[]).slice(0,20))); }catch(e){} }
+  function openTemplates(){
+    const mine=readTpls();
+    const all=[...tplDefaults().map(x=>({...x,sys:true})),...mine.map((x,i)=>({...x,sys:false,idx:i}))];
+    openModal(`<h2>\uC0C1\uC6A9\uAD6C</h2><p class="desc">\uC790\uC8FC \uC4F0\uB294 \uBB38\uAD6C\uB97C \uB20C\uB7EC \uBC14\uB85C \uB123\uC5B4\uC694.</p><div class="list">`+
+      all.map((x,i)=>`<div class="list-item"><div class="grow"><div class="title" style="white-space:pre-wrap">${esc(x.t.slice(0,80))}</div></div><button class="soft-btn" style="flex:0 0 56px" data-action="tpl-insert" data-i="${i}">\uC0BD\uC785</button>${x.sys?'':`<button class="soft-btn" style="flex:0 0 52px" data-action="tpl-del" data-i="${x.idx}">\uC0AD\uC81C</button>`}</div>`).join('')+
+      `</div><div class="field" style="margin-top:10px"><label>\uB0B4 \uC0C1\uC6A9\uAD6C \uCD94\uAC00</label><div class="row"><input id="tplNew" class="input" maxlength="300" placeholder="\uBB38\uAD6C \uC785\uB825"><button type="button" class="soft-btn" style="flex:0 0 64px" data-action="tpl-add">\uCD94\uAC00</button></div></div><div class="modal-actions"><button class="cancel" data-close-modal>\uB2EB\uAE30</button></div>`);
+  }
+  function tplAllOrdered(){ return [...tplDefaults().map(x=>({...x,sys:true})),...readTpls().map((x,i)=>({...x,sys:false,idx:i}))]; }
+  function insertTpl(i){
+    const all=tplAllOrdered(); const x=all[Number(i)];
+    if(!x) return;
+    const ta=$('#composerText'); if(!ta) return;
+    const ins=x.t;
+    try{
+      const s=ta.selectionStart??ta.value.length, e=ta.selectionEnd??ta.value.length;
+      ta.value=ta.value.slice(0,s)+ins+ta.value.slice(e);
+      ta.focus(); ta.selectionStart=ta.selectionEnd=s+ins.length;
+    }catch(_){ ta.value=(ta.value?ta.value+'\n':'')+ins; try{ ta.focus(); }catch(e){} }
+    try{ updateCharCount(); syncComposerHeight(); }catch(e){}
+    closeModal();
+  }
+  function enhanceComposerExtras(){
+    try{
+      const form=document.querySelector('#composerForm');
+      if(!form) return;
+      const ex=form.querySelector('#composerExtras');
+      // 역할이 바뀌었으면 기존 바를 다시 그린다 (교사→학생 전환 시 선택창 잔류 방지)
+      if(ex){
+        const hasSel=!!ex.querySelector('#impSelect');
+        if(!isTeacher() && hasSel) ex.querySelector('#impSelectRow')?.remove();
+        if(isTeacher() && !hasSel){
+          ex.remove();
+        } else return;
+      }
+      const d=document.createElement('div');
+      d.id='composerExtras'; d.className='composer-extras folder';
+      const isDesk=!!(window.edutalkDesktop&&typeof window.edutalkDesktop.getUsbLog==='function');
+      // 입력란 옆에는 폴더 버튼 1개만. 누르면 도구들이 쭈르륵 펼쳐진다.
+      d.innerHTML=`<button type="button" class="icon-btn" id="toolsFolderBtn" title="도구 모음">📁</button>`+
+        `<div id="toolsFolderPanel" class="tools-folder hidden">`+
+        (isTeacher()?`<div class="tools-row" id="impSelectRow"><span class="tools-label">중요도</span><select id="impSelect" class="imp-select" title="importance"><option value="normal">일반</option><option value="urgent">긴급</option><option value="ref">참고</option></select></div>`:'')+
+        `<div class="tools-row"><button type="button" class="tools-item" data-action="open-templates">☰<span>상용구</span></button></div>`+
+        `<div class="tools-row"><button type="button" class="tools-item" data-action="memo-open">📝<span>쪽지</span></button></div>`+
+        `<div class="tools-row"><button type="button" class="tools-item" data-action="dlp-toggle">⚡<span>유해차단 ${dlpOn()?'켜짐':'꺼짐'}</span></button></div>`+
+        (isDesk?`<div class="tools-row"><button type="button" class="tools-item" data-action="usb-log">💾<span>USB 기록</span></button></div><div class="tools-row"><button type="button" class="tools-item" data-action="masked-capture">📷<span>가림 캡처</span></button></div>`:'')+
+        `</div>`;
+      form.insertBefore(d, form.firstChild);
+      const btn=d.querySelector('#toolsFolderBtn'), panel=d.querySelector('#toolsFolderPanel');
+      const close=()=>{ try{ panel?.classList.add('hidden'); btn?.classList.remove('open'); }catch(e){} };
+      if(btn) btn.onclick=(e)=>{ try{ e.stopPropagation(); }catch(_){} const willOpen=panel?.classList.contains('hidden'); close(); if(willOpen){ panel?.classList.remove('hidden'); btn?.classList.add('open'); } };
+      // 패널 안에서 버튼을 누르면 패널을 닫는다 (선택창 조작 제외)
+      if(panel){
+        panel.addEventListener('click',(e)=>{
+          try{ if(e.target.closest('#impSelect')) return; }catch(_){}
+          try{ if(e.target.closest('button')) setTimeout(close,60); }catch(_){}
+        });
+        const s=panel.querySelector('#impSelect');
+        if(s){
+          try{ s.value=localStorage.getItem('edutalk_imp')||'normal'; }catch(e){}
+          s.onchange=()=>{ try{ localStorage.setItem('edutalk_imp', s.value); }catch(e){} close(); };
+        }
+      }
+      // 바깥을 누르면 폴더를 닫는다 (1회만 등록)
+      if(!window.__toolsFolderBound){
+        window.__toolsFolderBound=true;
+        document.addEventListener('click',(e)=>{
+          try{
+            const p=document.querySelector('#toolsFolderPanel');
+            if(p && !p.classList.contains('hidden') && !e.target.closest('#composerExtras')) p.classList.add('hidden');
+            const b=document.querySelector('#toolsFolderBtn');
+            if(b && !e.target.closest('#composerExtras')) b.classList.remove('open');
+          }catch(_){}
+        });
+        document.addEventListener('keydown',(e)=>{
+          if(e.key==='Escape'){ try{ document.querySelector('#toolsFolderPanel')?.classList.add('hidden'); }catch(_){} }
+        });
+      }
+    }catch(e){}
+  }
+  function enhanceChatExtras(){
+    try{
+      // 중요도 필터바(전체/긴급/일반/참고)는 교사 전용. 학생 화면에는 띄우지 않는다.
+      // (학생은 메시지 옆 긴급/참고 뱃지로만 확인. 작성 선택창도 교사만.)
+      if(!isTeacher()){
+        try{ document.querySelector('#impFilterBar')?.remove(); }catch(e){}
+        try{ enhanceComposerExtras(); }catch(e){}
+        return;
+      }
+      const wrap=document.querySelector('#chat .messages-wrap'); if(!wrap||wrap.querySelector('#impFilterBar')) return;
+      const bar=document.createElement('div');
+      bar.id='impFilterBar'; bar.className='imp-filter teacher-only';
+      bar.innerHTML=[['all','\uC804\uCCB4'],['urgent','긴급'],['normal','\uC77C\uBC18'],['ref','\uCC38\uACE0']].map(([v,l])=>`<button type="button" data-action="imp-filter" data-imp-filter="${v}">${l}</button>`).join('');
+      wrap.insertBefore(bar, wrap.firstChild);
+      bar.querySelectorAll('[data-imp-filter]').forEach(b=>b.onclick=()=>setImpFilter(b.dataset.impFilter||'all'));
+      syncImpFilterBar();
+    }catch(e){}
+    try{ enhanceComposerExtras(); }catch(e){}
+  }
   function renderMessages(initial=false){
     const host=$('#messages'); if(!host)return;
     const wasBottom=host.scrollHeight-host.scrollTop-host.clientHeight<40;
@@ -6938,6 +8427,7 @@
     for(const m of state.messages){
       if(isBlockedMessage(m))continue;
       if(isHiddenMsg(m.id))continue;
+      if(impHide(m))continue;
       visible.push(m);
     }
     // 가장 아래(최근) 메시지 1개에만 읽음 표시 (시스템 알림은 제외)
@@ -6971,11 +8461,16 @@
         html+=`<div class="message-row center"><div class="message-content"><div class="system-pill ${join?'join':'leave'}"><span class="sys-ico">${join?'👋':'🚪'}</span>${esc(m.targetName||m.senderName||'사용자')}님이 ${join?'채팅방에 참여했어요':'채팅방을 나갔어요'}.</div></div></div>`;
         continue;
       }
+      if(m.isRecalled&&!m.deleted){
+        html+=`<div class="message-row center" data-msg-id="${esc(m.id)}"><div class="message-content"><div class="deleted-pill">↩️ 회수된 메시지입니다</div></div></div>`;
+        continue;
+      }
       if(m.deleted){
         // 지워진 메시지의 원문은 아무도 화면에서 볼 수 없다.
         // 신고가 접수된 경우에만 신고 관리 패널의 스냅샷으로 최소 열람한다.
         // 1번: 관리자가 지운 메시지는 문구를 구분한다
-        const staffTxt=m.staffDeleted?`🛡️ 관리자에 의해 삭제된 메시지예요`:`🗑️ 삭제된 메시지예요`;
+        const delRole=m.deletedByRole||'';
+        const staffTxt=!m.staffDeleted?`🗑️ 삭제된 메시지예요`:delRole==='school_admin'?`🛡️ 학교 관리자가 지운 메시지예요.`:delRole==='admin'?`🛡️ 운영자가 지운 메시지예요.`:delRole==='teacher'?`🛡️ 선생님이 지운 메시지에요.`:`🛡️ 관리자에 의해 삭제된 메시지예요`;
         html+=`<div class="message-row center" data-msg-id="${esc(m.id)}"><div class="message-content"><div class="deleted-pill${m.staffDeleted?' staff':''}">${esc(staffTxt)}</div></div></div>`;
         continue;
       }
@@ -7007,7 +8502,7 @@
       const avBtn=`<button type="button" class="avatar-btn" data-action="user-profile" data-uid="${esc(m.senderId)}" data-name="${senderName}" aria-label="프로필 보기">${avatarHtml(profile,'',true)}</button>`;
       const receipt=(m.id===latestVisibleId)?(mine?readReceiptHtml(m):readReceiptOthersHtml(m)):'';
       const editedBadge=m.edited?`<span class="edited-badge">수정됨</span>`:'';
-      html+=`<div class="message-row ${mine?'mine':''}${groupFirst?'':' grouped'}${m.id===state.reportTargetId?' report-target':''}" data-msg-id="${esc(m.id)}">${state.selectMode?(canPickMsg(m)?`<button type="button" class="msg-pick ${selSet().has(m.id)?'on':''}" data-action="pick-msg" data-msg="${esc(m.id)}" aria-label="선택">✓</button>`:'<span class="msg-pick blank"></span>'):''}<div class="msg-side">${!mine?(groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'):''}</div><div class="message-content">${groupFirst?`<div class="message-author"><button type="button" class="author-btn" data-action="user-profile" data-uid="${esc(m.senderId)}" data-name="${senderName}">${senderName}</button> · ${roleLabel(profile.role||m.senderRole)}${roleChipsHtml(m.senderId)} · ${t}${m.id===state.reportTargetId?' <span class="report-badge">신고된 메시지</span>':''}</div>`:''}${reply}<div class="bubble" data-time="${t}">${bubbleInner(m)}</div>${groupLast?'':`<div class="bubble-time">${t}${editedBadge}</div>`}${reactionsHtml(m)}${groupLast?`<div class="msg-time">${t}${editedBadge}</div>`:''}${receipt}</div>${mine?`<div class="msg-side">${groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'}</div>`:''}</div>`;
+      html+=`<div class="message-row ${mine?'mine':''}${groupFirst?'':' grouped'}${m.id===state.reportTargetId?' report-target':''}" data-msg-id="${esc(m.id)}">${state.selectMode?(canPickMsg(m)?`<button type="button" class="msg-pick ${selSet().has(m.id)?'on':''}" data-action="pick-msg" data-msg="${esc(m.id)}" aria-label="선택">✓</button>`:'<span class="msg-pick blank"></span>'):''}<div class="msg-side">${!mine?(groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'):''}</div><div class="message-content">${groupFirst?`<div class="message-author"><button type="button" class="author-btn" data-action="user-profile" data-uid="${esc(m.senderId)}" data-name="${senderName}">${senderName}</button> · ${roleLabel(profile.role||m.senderRole)}${teacherBadgeHtml(profile.role||m.senderRole)}${roleChipsHtml(m.senderId)} · ${t}${m.id===state.reportTargetId?' <span class="report-badge">신고된 메시지</span>':''}</div>`:''}<div class="bubble" data-time="${t}">${impBadge(m)}${reply}${bubbleInner(m)}</div>${groupLast?'':`<div class="bubble-time">${t}${editedBadge}</div>`}${reactionsHtml(m)}${groupLast?`<div class="msg-time">${t}${editedBadge}</div>`:''}${receipt}</div>${mine?`<div class="msg-side">${groupFirst?avBtn:'<span class="msg-avatar-spacer"></span>'}</div>`:''}</div>`;
     }
     const pendingId=state.pendingHighlight; state.pendingHighlight=null;
     // 더 옛날 메시지가 있으면 맨 위에 '이전 메시지 더 보기'를 둔다
@@ -7135,7 +8630,8 @@
     let box=readOutbox();
     if(!box.length) return;
     // 타임아웃·정지 중에는 보관함을 비우지 않는다 (우회 방지 · 이용권은 규칙이 막는다)
-    if(!isStaff()){ const to=timeoutInfo(); if(to) return; if(roomChatOff(state.room)) return; }
+    // 선생님도 예외가 아니다 (총관리자만 예외)
+    if(!isAdmin()){ const to=timeoutInfo(); if(to) return; if(roomChatOff(state.room)) return; }
     const rest=[];
     for(const item of box){
       try{
@@ -7155,6 +8651,8 @@
   async function sendMessage(form, attachment=null, roomIdArg=null){
     if(!state.room || !state.profile) return;
     if(!isAdmin() && !licenseActiveInfo().active){ refreshComposer(); return toast(licenseFrozenMessage()); }
+    // 타임아웃 중에는 내부망 메시지까지 포함해 모든 전송을 막는다 (이용 정지相当)
+    if(!isAdmin() && chatLockActive()){ state.sending=false; try{ refreshComposer(); }catch(e){} chatLockToast(); return; }
     // 엔터 2번·연타로 같은 메시지가 2번 전송되는 것을 막는다
     if(state.sending) return;
     // 수정 모드면 저장 흐름으로 넘긴다 (파일 전송이면 수정 취소 후 새 메시지로 보낸다)
@@ -7171,17 +8669,27 @@
     const text=(ta?.value||'').trim();
     if(!text && !attachment) return;
     if(text.length>MSG_MAX_LEN){ if(ta) ta.value=text.slice(0,MSG_MAX_LEN); return toast(`메시지는 ${MSG_MAX_LEN}자까지만 보낼 수 있어요.`); }
+    const badMention=validateMentions(text);
+    if(badMention) return toast(`@${badMention}님을 찾을 수 없어요. 이름을 다시 확인해 주세요.`);
+    const room=state.room;
+    if(!room){ state.sending=false; return; }
+    if(isInternalRoom(room)){
+      if(attachment){ state.sending=false; sendInternalFile(attachment); return; }
+      return sendInternalMessage(room, text);
+    }
+    if(text&&!state.dlpOk){ const __dlp=dlpHit(text); if(__dlp){ openDlpModal(form, __dlp); return; } }
+    state.dlpOk=false;
     const now=Date.now();
     if(text && state.lastSendText===text && state.lastSendRoom===state.room?.id && (now-(state.lastSendAt||0))<900) return;
     state.sending=true;
-    const room=state.room;
     // 사진 압축 등으로 시간이 걸리는 동안 사용자가 다른 방으로 옮겼다면 엉뚱한 방에 보내지 않는다
     if(roomIdArg && room.id!==roomIdArg){ state.sending=false; return toast('채팅방이 바뀌었어요. 다시 시도해 주세요.'); }
     const allowed = isAdmin() || (room.type==='notice' ? isTeacher() : room.visibility==='all' || (room.memberIds||[]).includes(uid()));
     if(!allowed){state.sending=false;toast('이 채팅방에서는 메시지를 보낼 수 없어요.');return;}
-    if(!isStaff()){
+    if(!isAdmin()){
       const to=timeoutInfo();
-      if(to){ state.sending=false; return toast(to.permanent?'채팅 이용이 정지되어 있어요.':`타임아웃 중이에요. ${fmtRemain(to.ms)} 남았어요.`); }
+      // 선생님·학생 구분 없이 타임아웃이면 전송 불가 (총관리자만 예외)
+      if(to){ state.sending=false; try{ refreshComposer(); }catch(e){} chatLockToast(); return; }
       if(roomChatOff(room)){ state.sending=false; return toast('관리자가 채팅을 정지한 방이에요. 지금은 대화할 수 없어요.'); }
       if(state.warnCount>=warnLimit()){ state.sending=false; return toast('경고가 쌓여 메시지를 보낼 수 없어요. 선생님께 이야기해 주세요.'); }
       // 관리자가 '예외 단어'로 등록한 말이 들어 있으면 1차 차단을 건너뛴다 (예: 시발역)
@@ -7205,6 +8713,7 @@
       const doc={text,senderId:uid(),senderName:state.profile?.displayName||'사용자',senderRole:state.profile?.role||'student',replyToText:state.replyText||null,createdAt:ts(),deleted:false};
       if(attachment) doc.attachment=attachment;
       if(state.noReactions) doc.noReactions=true;
+      try{ doc.importance=currentImportance(); }catch(e){}
       batch.set(msgRef,doc);
       batch.update(db.collection('channels').doc(room.id),{lastText,lastSenderId:uid(),lastSenderName:state.profile?.displayName||'사용자',lastCreatedAt:ts(),updatedAt:ts()});
       await batch.commit();
@@ -7405,7 +8914,7 @@
     if(!String(file.type||'').startsWith('image/')) return sendAttachment(file);   // 일반 파일은 바로 보낸다
     let url='';
     try{ url=URL.createObjectURL(file); }catch(e){}
-    const panel=openModal(`<h2>사진을 보낼까요?</h2><p class="desc">${esc(file.name||'사진')} · ${esc(fmtBytes(file.size))}</p><p class="desc" style="margin-top:-8px">사진은 기기를 벗어나지 않고 이 기기에서만 자동 검사돼요.</p>${url?`<img class="attach-view" src="${url}" alt="보낼 사진 미리보기">`:'<p class="desc">미리보기를 만들지 못했어요.</p>'}<div class="modal-actions"><button class="cancel" data-close-modal>취소</button><button class="confirm" data-action="attach-confirm-send">보내기</button></div>`);
+    const panel=openModal(`<h2>사진을 보낼까요?</h2><p class="desc">${esc(file.name||'사진')} · ${esc(fmtBytes(file.size))}</p><p class="desc" style="margin-top:2px">사진은 기기를 벗어나지 않고 이 기기에서만 자동 검사돼요.</p>${url?`<img class="attach-view" src="${url}" alt="보낼 사진 미리보기">`:'<p class="desc">미리보기를 만들지 못했어요.</p>'}<div class="modal-actions"><button class="cancel" data-close-modal>취소</button><button class="confirm" data-action="attach-confirm-send">보내기</button></div>`);
     state.attachDraft={ file, url, panel, risk:false, score:0 };
   }
   // '보내기'를 누르면 사진을 검사하고, 주의가 필요하면 경고 화면을 보여 준다.
@@ -7418,6 +8927,47 @@
     if(risk.checked && risk.risk){ paintAttachRisk(draft,risk); return; }
     closeModal();
     sendAttachment(draft.file,{risk:false,score:risk.score});
+  }
+  // 여러 장·여러 개 보내기: 사진은 한 화면에서 확인하고 순서대로, 문서는 바로 순서대로
+  function openAttachMulti(files){
+    const list=(files||[]).filter(Boolean).slice(0,10);
+    if(!list.length) return;
+    if(!state.room) return toast('채팅방을 먼저 골라 주세요.');
+    const imgs=list.filter(f=>String(f.type||'').startsWith('image/'));
+    const docs=list.filter(f=>!String(f.type||'').startsWith('image/'));
+    if(!imgs.length){ sendMultiDocs(docs); return; }
+    const items=imgs.map(f=>{ let url=''; try{url=URL.createObjectURL(f);}catch(e){} return {file:f,url}; });
+    const panel=openModal(`<h2>${imgs.length}장을 보낼까요?</h2><p class="desc">사진은 기기를 벗어나지 않고 이 기기에서만 자동 검사돼요.${docs.length?` 문서 ${docs.length}개도 함께 보내요.`:''}</p><div class="list modal-scroll" style="max-height:240px">${items.map((it,i)=>`${it.url?`<img class="attach-view" style="max-height:120px;margin-top:6px" src="${it.url}" alt="사진 ${i+1}">`:''}<p class="desc" style="margin:4px 0 8px;font-size:12px">${esc(it.file.name||'사진')} · ${esc(fmtBytes(it.file.size))}</p>`).join('')}</div><div class="modal-actions"><button class="cancel" data-close-modal>취소</button><button class="confirm" data-action="attach-multi-send">보내기</button></div>`);
+    state.attachMulti={items,docs,panel};
+  }
+  async function sendMultiDocs(docs){
+    for(const f of (docs||[])){
+      try{ await sendAttachment(f); }catch(e){ console.error(e); }
+    }
+  }
+  async function sendAttachMulti(btn){
+    const job=state.attachMulti; if(!job||!job.items.length) return;
+    if(btn){ btn.disabled=true; btn.textContent='사진을 살펴보는 중…'; }
+    const internalRoom=!!(state.room&&isInternalRoom(state.room));
+    let sent=0, skipped=0;
+    for(const it of job.items){
+      if(state.attachMulti!==job) return;
+      try{
+        const risk=await analyzeImageSrc(it.url);
+        if(risk.checked&&risk.risk){
+          skipped++;
+          if(!internalRoom){ try{ await logImageFlag('image',risk,'사진'); }catch(e){} }
+          continue;
+        }
+      }catch(e){}
+      if(state.attachMulti!==job) return;
+      try{ await sendAttachment(it.file,{risk:false,score:0}); sent++; }catch(e){ console.error(e); }
+    }
+    for(const d of (job.docs||[])){ if(state.attachMulti!==job) return; try{ await sendAttachment(d); sent++; }catch(e){ console.error(e); } }
+    job.items.forEach(it=>{ try{ if(it.url) URL.revokeObjectURL(it.url); }catch(e){} });
+    if(state.attachMulti===job){ state.attachMulti=null; closeModal(); }
+    if(skipped) toast(`${skipped}장은 주의가 필요해서 빼고 보냈어요.`);
+    else if(sent) toast(`${sent}개를 보냈어요.`);
   }
   function paintAttachRisk(draft,risk){
     draft.risk=true; draft.score=risk.score;
@@ -7436,6 +8986,25 @@
   }
   async function sendAttachment(file, screen){
     if(!file) return;
+    if(!requireChatFree()) return;
+    if(state.room&&isInternalRoom(state.room)){
+      if(file.size>32*1024*1024) return toast('파일이 너무 커요. 32MB 이하로 보내 주세요.');
+      if(file.size===0) return toast('빈 파일은 보낼 수 없어요.');
+      toast('파일을 준비하고 있어요...');
+      try{
+        let data='';
+        if(String(file.type||'').startsWith('image/')){
+          const c=await compressImage(file);
+          if(!c) return toast('사진을 처리하지 못했어요. 다른 사진으로 다시 시도해 주세요.');
+          data=c.data;
+        } else {
+          data=await readAsDataUrl(file);
+          if(!data) return toast('파일을 읽지 못했어요.');
+        }
+        await sendInternalFile({name:file.name||'파일',type:file.type||'',data});
+      }catch(e){ console.error(e); toast('파일을 읽지 못했어요.'); }
+      return;
+    }
     if(!state.room) return toast('채팅방을 먼저 골라 주세요.');
     const roomId=state.room.id;   // 준비하는 사이에 방이 바뀌어도 원래 방으로만 보낸다
     const isImage=String(file.type||'').startsWith('image/');
@@ -7568,12 +9137,15 @@
   }
   async function deleteMessage(id){
     const m=state.messages.find(x=>x.id===id); if(!m) return;
+    if(state.room&&isInternalRoom(state.room)) return toast('내부망 방의 메시지는 회수를 이용해 주세요.');
     const roomId=state.room?.id; if(!roomId) return;
     if(canPurgeMsg(m)){
       const staffDel=m.senderId!==uid() && canStaffPurge() && state.room?.createdBy!==uid();
       // 방장·본인은 모두의 화면에서 숨긴다 (즉시 파기하지 않고 deleted_at 을 남긴다)
-      // 1번: 교사/관리자가 지우면 문구를 구분한다
-      return confirmModal(staffDel?'이 메시지를 관리자로 삭제할까요?':'이 메시지를 지울까요?',staffDel?'학생에게 보이는 화면에서 사라지고, ‘관리자에 의해 삭제된 메시지예요’로 표시돼요.':'모두의 화면에서 사라져요. 원문도 함께 지워지고 30일 뒤 완전히 파기돼요.',async()=>{
+      // 교사/관리자가 지우면 역할별 문구를 구분한다
+      const myRoleDel=state.profile?.role||'';
+      const staffPhrase=myRoleDel==='school_admin'?'학교 관리자가 지운 메시지예요.':myRoleDel==='admin'?'운영자가 지운 메시지예요.':myRoleDel==='teacher'?'선생님이 지운 메시지에요.':'관리자에 의해 삭제된 메시지예요.';
+      return confirmModal(staffDel?'이 메시지를 관리자로 삭제할까요?':'이 메시지를 지울까요?',staffDel?`학생에게 보이는 화면에서 사라지고, ‘${staffPhrase}’로 표시돼요.`:'모두의 화면에서 사라져요. 원문도 함께 지워지고 30일 뒤 완전히 파기돼요.',async()=>{
         try{
           const patch={...softDeletePatch(),text:'',attachment:null};
           if(staffDel){ patch.staffDeleted=true; patch.deletedBy=uid(); patch.deletedByName=state.profile?.displayName||''; patch.deletedByRole=state.profile?.role||''; }
@@ -7645,7 +9217,7 @@
   }
 
   async function openRoomModal(){
-    state.roomDraft={visibility:'private',name:'',desc:'',targets:'friends',codes:[],joinPolicy:'approve',step:1};
+    state.roomDraft={kind:'chat',visibility:'private',name:'',desc:'',targets:'friends',codes:[],joinPolicy:'approve',step:1,schoolShareConfirmed:false};
     openModal(`<h2>채팅방 만들기</h2><form id="roomForm" autocomplete="off"><div id="roomPane" class="room-pane"></div><div class="modal-actions" id="roomActions"></div></form>`);
     paintRoomModal('');
   }
@@ -7659,12 +9231,14 @@
         <div class="field"><label>설명</label><textarea class="input" name="description" maxlength="120" placeholder="어떤 방인지 간단히 적어 주세요.">${esc(d.desc||'')}</textarea></div>
         <div class="field"><label>공개 범위</label>
           <div class="choice-row" style="gap:8px">
-            <button type="button" class="choice ${d.visibility==='private'?'active':''}" data-action="room-scope" data-scope="private" style="flex:1;height:44px">🔒 개인 채팅방</button>
-            <button type="button" class="choice ${d.visibility==='all'?'active':''}" data-action="room-scope" data-scope="all" style="flex:1;height:44px">👥 공유 채팅방</button>
+            <button type="button" class="choice ${d.kind!=='notice'&&d.visibility==='private'?'active':''}" data-action="room-scope" data-scope="private" style="flex:1;height:44px">🔒 개인 채팅방</button>
+            <button type="button" class="choice ${d.kind!=='notice'&&d.visibility==='all'?'active':''}" data-action="room-scope" data-scope="all" style="flex:1;height:44px">👥 공유 채팅방</button>
+            ${isTeacher()?`<button type="button" class="choice ${d.kind==='notice'?'active':''}" data-action="room-kind" data-kind="notice" style="flex:1;height:44px">📢 공지 전용</button>`:''}
           </div>
-          <p class="desc" style="margin:8px 0 0;font-size:12px" id="scopeHint">${d.visibility==='all'?'다음 화면에서 누구에게 공유할지 골라요.':'초대한 사람만 들어올 수 있어요. <b>개인 탭</b>으로 들어가요.'}</p>
-        </div>`;
-      act.innerHTML=`<button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" data-action="${d.visibility==='all'?'room-next':'room-create'}">${d.visibility==='all'?'다음':'만들기'}</button>`;
+          <p class="desc" style="margin:8px 0 0;font-size:12px" id="scopeHint">${d.kind==='notice'?'선생님과 학교 관리자만 글을 올릴 수 있어요. 학생들은 보기만 할 수 있어요.':d.visibility==='all'?'다음 화면에서 누구에게 공유할지 골라요.':'초대한 사람만 들어올 수 있어요. <b>개인 탭</b>으로 들어가요.'}</p>
+        </div>
+        ${(netMode()==='dual'&&d.kind!=='notice')?`<div class="field"><label>네트워크</label><div class="choice-row" style="gap:8px"><button type="button" class="choice ${d.net!=='in'?'active':''}" data-action="room-net" data-net="ex" style="flex:1;height:44px">🟢 외부망</button><button type="button" class="choice ${d.net==='in'?'active':''}" data-action="room-net" data-net="in" style="flex:1;height:44px">🔵 내부망</button></div><p class="desc" style="margin:8px 0 0;font-size:12px">${d.net==='in'?'학교 서버에만 저장되고 Firebase로는 가지 않아요. 학내망에서만 열 수 있어요.':'기존처럼 Firebase 외부망에 저장돼요.'}</p></div>`:''}`;
+      act.innerHTML=`<button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" data-action="${(d.kind!=='notice'&&d.visibility==='all')?'room-next':'room-create'}">${(d.kind!=='notice'&&d.visibility==='all')?'다음':'만들기'}</button>`;
     } else {
       pane.innerHTML=`<p class="desc">'${esc(d.name||'채팅방')}'을(를) 누구에게 공유할까요?</p>
         <div class="field"><div class="share-choices">
@@ -7693,16 +9267,57 @@
     if(f.description) d.desc=f.description.value;
   }
   function openPrivateRoomModal(){
-    state.roomDraft={visibility:'private',name:'',desc:'',targets:'friends',codes:[],joinPolicy:'approve',step:1};
+    state.roomDraft={kind:'chat',visibility:'private',name:'',desc:'',targets:'friends',codes:[],joinPolicy:'approve',step:1};
     openModal(`<h2>개인 채팅방 만들기</h2><p class="desc">처음에는 나만 들어가 있어요. 나중에 원하는 사람을 초대할 수 있어요.</p><form id="roomForm" autocomplete="off"><div class="field"><label>방 이름</label><input class="input" name="name" maxlength="40" placeholder="예: 우리 셋" required></div><div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" data-action="room-create">만들기</button></div></form>`);
+  }
+  // 학교 전체 공유는 만들기로 바로 만들지 않고 예/아니오 확인을 먼저 받는다 (예는 5초 카운트)
+  function confirmSchoolShare(onYes){
+    const desc=isTeacher()
+      ? '우리 학교 전체에 바로 공개되는 채팅방을 만들게요. 전체 학생 목록에 보여요.'
+      : '학교 관리자나 선생님에게 학교 전체 공유 채팅방 생성 요청을 보낼게요. 요청이 수락되면 전체 공유 채팅방을 만들 수 있어요.';
+    const panel=openModal(`<h2>학교 전체에 공유할까요?</h2><p class="desc">${esc(desc)}</p><div class="modal-actions"><button type="button" class="cancel" id="ssNo">아니오</button><button type="button" class="confirm countdown" id="ssYes" data-label="예" disabled><span class="cd-fill"></span><span class="cd-text">예 (5초)</span></button></div>`,{small:true,dismissible:false});
+    const yes=panel.querySelector('#ssYes');
+    wireCountdownButton(yes,5,'예');
+    panel.querySelector('#ssNo').onclick=()=>{ closeModal(); };
+    yes.onclick=()=>{ if(yes.disabled) return; closeModal(); onYes(); };
   }
   async function createRoom(){
     const d=state.roomDraft; if(!d) return;
     if(!isAdmin() && !licenseActiveInfo().active) return toast(licenseFrozenMessage());
+    if(!requireChatFree()) return;
     syncRoomDraftInputs();
     const name=(d.name||'').trim();
     if(!name) return toast('방 이름을 적어 주세요.');
+    // 공지 전용: 교사·학교 관리자만 만들 수 있다
+    if(d.kind==='notice'){
+      if(!isTeacher()) return toast('공지 채널은 선생님과 학교 관리자만 만들 수 있어요.');
+      const sidN=state.profile?.schoolId||'';
+      const ndata={name,description:(d.desc||'').trim(),type:'notice',typeLabel:'공지',visibility:'members',audience:'all',joinCode:'',joinPolicy:'approve',icon:'📌',createdBy:uid(),memberIds:[uid()],createdAt:ts(),updatedAt:ts(),lastText:'',...((sidN)?{schoolId:sidN,schoolName:state.profile?.schoolName||'',schoolIds:[sidN]}:{})};
+      let nref=null;
+      try{ nref=await db.collection('channels').add(ndata); }
+      catch(e){ console.error(e); return toast(errText(e)); }
+      state.rooms=[{id:nref.id,...ndata},...state.rooms];
+      closeAllModals(); renderRooms();
+      toast('공지 채널을 만들었어요.');
+      return openRoom(nref.id);
+    }
+    // 내부망 방 만들기 (듀얼·내부망 모드): Firebase를 거치지 않고 학교 서버에만 만든다
+    if(netMode()!=='cloud'&&d.kind!=='notice'&&(d.net==='in'||netMode()==='internal')){
+      if(!internalToken()){ closeAllModals(); openSettings('network'); return toast('내부망에 먼저 연결해 주세요.'); }
+      try{
+        const j=await inet('/api/rooms',{method:'POST',body:JSON.stringify({name})});
+        if(!j||!j.ok) return toast('내부망 방을 만들지 못했어요.');
+        await fetchInternalRooms();
+        closeAllModals(); renderRooms();
+        toast('내부망 방을 만들었어요. 채팅방 설정에서 참여자를 초대해 주세요.');
+        return openRoom('in:'+j.room.id);
+      }catch(e){ console.error(e); return toast('내부망 방을 만들지 못했어요.'); }
+    }
     const shared=d.visibility==='all';
+    if(shared&&d.targets==='school'&&!d.schoolShareConfirmed){
+      confirmSchoolShare(()=>{ d.schoolShareConfirmed=true; createRoom(); });
+      return;
+    }
     if(shared && d.targets==='code' && !(d.codes||[]).length) return toast('초대할 코드를 하나 이상 추가해 주세요.');
     const sid=state.profile?.schoolId||''; const ck=myClassKey();
     // 교사가 학교 전체 대상으로 만들면 처음부터 전체 공유방으로 만든다 (승인 요청 없음)
@@ -7712,6 +9327,7 @@
       description:(d.desc||'').trim(),
       type:shared?'group':'private',
       typeLabel:shared?'모둠/동아리':'개인',
+      network_type:'EXTERNAL',
       visibility:instantAllShare?'all':(shared?'members':'private'),
       joinCode:shared?randomCode(6):'',
       joinPolicy:d.joinPolicy||'approve',
@@ -7776,6 +9392,7 @@
   // 프로필에서 1:1 대화: 기존 1:1 방이 있으면 열고, 없으면 내 방을 만든 뒤 초대한다 (상대 수락 후 대화)
   async function startDM(targetUid,targetName){
     if(!targetUid||targetUid===uid()) return;
+    if(!requireChatFree()) return;
     if(!isAdmin() && !licenseActiveInfo().active) return toast(licenseFrozenMessage());
     if((state.profile?.blockedUsers||[]).includes(targetUid)) return toast('차단한 사용자예요. 차단을 풀고 시도해 주세요.');
     try{ if(await hasBlockedMe(targetUid)) return toast('상대방이 차단을 해서 초대를 보낼 수 없어요.'); }catch(e){}
@@ -7902,6 +9519,17 @@
   async function leaveRoom(id){
     const r=state.rooms.find(x=>x.id===id)||state.room||((state.allRooms||[]).find(x=>x.id===id));
     if(!r) return;
+    if(isInternalRoom(r)){
+      confirmModal('이 내부망 방에서 나갈까요?','목록에서 사라져요. 다시 초대받으면 들어올 수 있어요.',async()=>{
+        try{ await inet(`/api/rooms/${r.srvId}/members/me`,{method:'DELETE'}); }catch(e){ return toast('나가지 못했어요.'); }
+        state.internalRooms=(state.internalRooms||[]).filter(x=>x.id!==r.id);
+        mergeInternalRooms();
+        if(state.room?.id===r.id){ state.room=null; try{ clearChatPane(); }catch(e){} }
+        try{ renderRooms(); }catch(e){}
+        toast('채팅방에서 나왔어요.');
+      });
+      return;
+    }
     if(!(r.memberIds||[]).includes(uid())) return toast('이미 나와 있는 채팅방이에요.');
     if(!isAdmin() && !licenseActiveInfo().active) return toast(licenseFrozenMessage());
     const owner=r.createdBy===uid();
@@ -7909,28 +9537,46 @@
     confirmModal('이 채팅방에서 나갈까요?',
       owner?(othersCount>0?'방장이 나가면 다른 참여자에게 방장이 자동으로 넘어가요. 나간 방은 목록에서 사라져요.':'나간 방은 목록에서 사라져요. 다시 초대받으면 들어올 수 있어요.'):'나간 방은 목록에서 사라져요. 다시 초대받으면 들어올 수 있어요.',
       async()=>{
+        // 최신 명단으로 다시 확인한다 (표시가 오래됐으면 마지막 1인을 놓칠 수 있어서)
+        let freshIds=null;
+        try{ const s=await db.collection('channels').doc(id).get(); if(s.exists) freshIds=s.data().memberIds||[]; }catch(e){}
+        const others=(freshIds||r.memberIds||[]).filter(x=>x&&x!==uid());
+        const isOwnerNow=freshIds?((state.rooms.find(x=>x.id===id)?.createdBy||r.createdBy)===uid()):owner;
         try{
-          if(owner && othersCount>0){
+          if(isOwnerNow && others.length>0){
             await autoTransferOwnershipIfOwner(id);
           }
         }catch(e){ console.error(e); }
-        try{ await postSystemMessage(id,'leave',state.profile?.displayName||'사용자'); }catch(e){ console.error(e); }
-        try{ await db.collection('channels').doc(id).update({memberIds:firebase.firestore.FieldValue.arrayRemove(uid()),updatedAt:ts()}); }
+        // 마지막 1명이면 나가기와 동시에 방을 삭제 표시한다 (유령방 방지 · 30일 뒤 파기)
+        const lastOne=others.length===0;
+        try{
+          if(lastOne){
+            await db.collection('channels').doc(id).update({memberIds:firebase.firestore.FieldValue.arrayRemove(uid()),deleted:true,deleted_at:ts(),expire_at:expireTs(),updatedAt:ts()});
+          } else {
+            await db.collection('channels').doc(id).update({memberIds:firebase.firestore.FieldValue.arrayRemove(uid()),updatedAt:ts()});
+          }
+        }
         catch(e){ console.error(e); return toast(errText(e)); }
+        if(!lastOne){
+          try{ await postSystemMessage(id,'leave',state.profile?.displayName||'사용자'); }catch(e){ console.error(e); }
+        }
         // 내 타이핑·읽음 표시도 함께 지운다 (유령 표시 방지)
         try{ await db.collection('channels').doc(id).collection('typing').doc(uid()).delete().catch(()=>{}); }catch(e){}
         try{ await db.collection('channels').doc(id).collection('reads').doc(uid()).delete().catch(()=>{}); }catch(e){}
-        // 진짜 나가기: 나간 기록을 남기고, 목록에서 제거하고, 보고 있던 방·설정 화면도 닫는다
+        // 진짜 나가기: 나간 기록을 남기고, 목록에서 제거하고, 관련 화면을 전부 닫는다
+        // (채팅 설정·참여자·검색·대화 창 — 없던 것처럼)
         markRoomLeft(id);
         state.rooms=state.rooms.filter(x=>x.id!==id);
         if(state.allRooms) state.allRooms=state.allRooms.filter(x=>x.id!==id);
         if(state.unread && state.unread[id]!==undefined){ delete state.unread[id]; try{ renderUnreadSummary(); }catch(e){} }
+        state.searchMode=false; state.searchQuery=''; state.searchHits=[]; state.searchIndex=-1;
+        state.memberPanel=false; state.replyText=null; state.editingId=null;
         closeAllModals();
         closeRoomSettingsIfOpen(id);
         if(state.room?.id===id){ state.room=null; clearRoomListener(); clearChatPane(); }
         // 설정 화면에서 나간 경우 뒤에 남은 설정 화면이 현재 방을 가리키면 닫는다
         try{ renderRooms(); }catch(e){}
-        toast('채팅방에서 나왔어요.');
+        toast(lastOne?'마지막 인원이 나가서 채팅방을 지웠어요.':'채팅방에서 나왔어요.');
       });
   }
   async function leaveManyRooms(list){
@@ -7961,6 +9607,16 @@
   }
 
   function openRoomManage(id){
+    const rm0=state.rooms.find(x=>x.id===id)||(state.room?.id===id?state.room:null);
+    if(rm0&&isInternalRoom(rm0)){
+      const canDel0=state.internalUser&&(Number(rm0.created_by)===Number(state.internalUser.id)||state.internalUser.role==='ADMIN');
+      openModal(`<h2>채팅방 설정</h2><p class="desc">${esc(rm0.name||'채팅방')} · 내부망 전용 방이에요. 대화는 학교 서버에만 저장돼요.</p><div class="settings-list">
+        <button class="list-item" data-action="internal-members" data-room-id="${esc(rm0.id)}"><div class="grow"><div class="title">👥 참여자 보기</div><div class="meta">내부망 사용자 명단</div></div><span>›</span></button>
+        ${canDel0?`<button class="list-item" data-action="internal-delete" data-room-id="${esc(rm0.id)}"><div class="grow"><div class="title" style="color:var(--danger)">🗑️ 채팅방 삭제</div></div></button>`:''}
+        <button class="list-item" data-action="internal-leave" data-room-id="${esc(rm0.id)}"><div class="grow"><div class="title">🚪 나가기</div></div></button>
+      </div>`);
+      return;
+    }
     const r=state.rooms.find(x=>x.id===id)||state.room||((state.allRooms||[]).find(x=>x.id===id));
     if(!r) return;
     // PC처럼 넓은 화면(>820px)에서는 사이드바를 유지하고 메인만 설정 화면으로 바꾼다 (모션 포함)
@@ -7999,7 +9655,7 @@
         if(isOwner&&r.joinCode) general.push(`<button class="list-item" data-action="copy-invite-link" data-code="${esc(r.joinCode)}"><div class="grow"><div class="title">🔗 초대 링크 복사</div><div class="meta">코드로 바로 들어오는 링크</div></div><span>›</span></button>`);
         if(isAdmin()) general.push(`<button class="list-item" data-action="room-chat-off" data-room-id="${esc(r.id)}"><div class="grow"><div class="title" style="color:${off?'var(--blue)':'var(--danger)'}">${off?'▶ 채팅 정지 풀기':'⏸ 이 방 채팅 정지'}</div></div></button>`);
         if(state.room&&state.room.id===r.id) general.push(`<button class="list-item" data-action="export-room" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">💾 대화 내보내기</div></div></button>`);
-        general.push(`<button class="list-item" data-action="poll-open" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">📊 투표 만들기</div></div></button>`);
+        if(!(r.type==='notice'&&!isTeacher())) general.push(`<button class="list-item" data-action="poll-open" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">📊 투표 만들기</div></div></button>`);
         if(state.room&&state.room.id===r.id) general.push(`<button class="list-item" data-action="file-box" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">🖼️ 사진·파일함</div></div></button>`);
         general.push(`<button class="list-item" data-action="todo-open" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">✅ 할 일</div><div class="meta">모둠 할 일을 관리해요 (일정 탭에서도 볼 수 있어요)</div></div></button>`);
         general.push(`<button class="list-item" data-action="attend-open" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">📝 출석 체크</div></div></button>`);
@@ -8064,7 +9720,7 @@
     if(shared2&&isTeacher()) items2.push(`<button class="list-item" data-action="notice-from-room" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">📌 공지방 만들기</div></div></button>`);
     if(canEdit2) items2.push(`<button class="list-item" data-action="invite" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">➕ 사람 초대하기</div></div></button>`);
     if(state.room&&state.room.id===r.id) items2.push(`<button class="list-item" data-action="export-room" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">💾 대화 내보내기</div></div></button>`);
-    if(isMember2) items2.push(`<button class="list-item" data-action="poll-open" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">📊 투표 만들기</div></div></button>`);
+    if(isMember2&&!(r.type==='notice'&&!isTeacher())) items2.push(`<button class="list-item" data-action="poll-open" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">📊 투표 만들기</div></div></button>`);
     if(isAdmin()&&!isMember2) items2.push(`<button class="list-item" data-action="admin-join" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">👑 관리자로 참가하기</div></div></button>`);
     if(state.room&&state.room.id===r.id){
       items2.push(`<button class="list-item" data-action="file-box" data-room-id="${esc(r.id)}"><div class="grow"><div class="title">🖼️ 사진·파일함</div></div></button>`);
@@ -8151,6 +9807,8 @@
   }
   async function renderTodos(roomId){
     const host=$('#todoList'); if(!host) return;
+    const r0=state.rooms.find(x=>x.id===roomId)||(state.room?.id===roomId?state.room:null);
+    if(r0&&isInternalRoom(r0)) return renderTodosInternal(roomId);
     let rows=[];
     try{
       const s=await db.collection('channels').doc(roomId).collection('todos').orderBy('createdAt','asc').limit(100).get();
@@ -8166,9 +9824,40 @@
         return `<div class="list-item todo-item${t.done?' done':''}"><button type="button" class="todo-check${t.done?' on':''}" data-action="todo-toggle" data-room-id="${esc(roomId)}" data-id="${esc(t.id)}" aria-label="완료 표시">✓</button><div class="grow"><div class="title">${esc(t.text||'')}</div><div class="meta">${esc(t.done?`완료${who}`:'미완료')}</div></div>${canDel?`<button type="button" class="soft-btn" style="flex:0 0 60px;color:var(--danger)" data-action="todo-del" data-room-id="${esc(roomId)}" data-id="${esc(t.id)}">삭제</button>`:''}</div>`;
       }).join('')||'<div class="empty-side">아직 할 일이 없어요.</div>';
   }
+  async function renderTodosInternal(roomId){
+    const host=$('#todoList'); if(!host) return;
+    const room=(state.rooms||[]).find(x=>x.id===roomId)||state.room||{};
+    let rows=[];
+    try{
+      const j=await inet(`/api/rooms/${room.srvId}/todos`);
+      if(!host.isConnected) return;
+      if(!j||!j.ok){ host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; return; }
+      rows=j.todos||[];
+    }catch(e){ if(host.isConnected) host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; return; }
+    const done=rows.filter(t=>t.done).length;
+    const meId=Number(state.internalUser?.id||0);
+    const isAdm=state.internalUser?.role==='ADMIN';
+    host.innerHTML=(rows.length?`<div class="empty-side" style="padding:6px 0 10px">${done}/${rows.length}개 완료</div>`:'')
+      +rows.map(t=>{
+        const mine=Number(t.created_by)===meId;
+        const canDel=isAdm||mine||Number(room.created_by)===meId;
+        return `<div class="list-item todo-item${t.done?' done':''}"><button type="button" class="todo-check${t.done?' on':''}" data-action="todo-toggle" data-room-id="${esc(roomId)}" data-id="${esc(t.id)}" aria-label="완료 표시">✓</button><div class="grow"><div class="title">${esc(t.text||'')}</div><div class="meta">${esc(t.done?`완료${t.done_by_name?` · ${t.done_by_name}`:''}`:'미완료')}</div></div>${canDel?`<button type="button" class="soft-btn" style="flex:0 0 60px;color:var(--danger)" data-action="todo-del" data-room-id="${esc(roomId)}" data-id="${esc(t.id)}">삭제</button>`:''}</div>`;
+      }).join('')||'<div class="empty-side">아직 할 일이 없어요.</div>';
+  }
   async function addTodo(roomId){
+    if(!requireChatFree()) return;
     const v=($('#todoInput')?.value||'').trim();
     if(!v) return toast('할 일을 적어 주세요.');
+    const r0=state.rooms.find(x=>x.id===roomId)||(state.room?.id===roomId?state.room:null);
+    if(r0&&isInternalRoom(r0)){
+      try{
+        const j=await inet(`/api/rooms/${r0.srvId}/todos`,{method:'POST',body:JSON.stringify({text:v.slice(0,200)})});
+        if(!j.ok) return toast('할 일을 추가하지 못했어요.');
+      }catch(e){ return toast('할 일을 추가하지 못했어요.'); }
+      const inp=$('#todoInput'); if(inp) inp.value='';
+      await renderTodosInternal(roomId);
+      return;
+    }
     try{
       await db.collection('channels').doc(roomId).collection('todos').add({text:v.slice(0,200),done:false,doneBy:'',doneByName:'',createdBy:uid(),createdAt:ts(),updatedAt:ts()});
     }catch(e){ console.error(e); return toast(errText(e)); }
@@ -8178,6 +9867,14 @@
   }
   async function toggleTodo(roomId,todoId){
     if(!roomId||!todoId) return;
+    if(!requireChatFree()) return;
+    const r0=state.rooms.find(x=>x.id===roomId)||(state.room?.id===roomId?state.room:null);
+    if(r0&&isInternalRoom(r0)){
+      try{ await inet(`/api/todos/${todoId}/toggle`,{method:'POST'}); }
+      catch(e){ return toast('바꾸지 못했어요.'); }
+      await renderTodosInternal(roomId);
+      return;
+    }
     try{
       const ref=db.collection('channels').doc(roomId).collection('todos').doc(todoId);
       const s=await ref.get(); if(!s.exists) return;
@@ -8190,6 +9887,17 @@
   }
   async function deleteTodo(roomId,todoId){
     if(!roomId||!todoId) return;
+    if(!requireChatFree()) return;
+    const r0=state.rooms.find(x=>x.id===roomId)||(state.room?.id===roomId?state.room:null);
+    if(r0&&isInternalRoom(r0)){
+      try{
+        const j=await inet(`/api/todos/${todoId}`,{method:'DELETE'});
+        if(!j.ok) return toast('지울 수 없어요.');
+      }catch(e){ return toast('지우지 못했어요.'); }
+      await renderTodosInternal(roomId);
+      try{ await hapticMedium(); }catch(e){} toast('할 일을 지웠어요.');
+      return;
+    }
     try{ await db.collection('channels').doc(roomId).collection('todos').doc(todoId).delete(); }
     catch(e){ console.error(e); return toast(errText(e)); }
     await renderTodos(roomId);
@@ -8207,6 +9915,7 @@
   async function renderAttendance(roomId){
     const host=$('#attendHost'); if(!host) return;
     const r=state.rooms.find(x=>x.id===roomId)||state.room||{};
+    if(r&&isInternalRoom(r)) return renderAttendanceInternal(roomId);
     const canRun=r.createdBy===uid()||isAdmin()||(isTeacherOrAdmin()&&(r.schoolId||'')!==''&&(r.schoolId||'')===(state.profile?.schoolId||''));
     let s=null;
     try{ const d=await db.collection('channels').doc(roomId).collection('attendance').doc(attendTodayId()).get(); if(d.exists) s={id:d.id,...d.data()}; }catch(e){ console.error(e); }
@@ -8223,18 +9932,76 @@
       <div class="list modal-scroll" style="max-height:220px">${present.map(id=>{ const p=state.profileCache.get(id)||{}; return `<div class="list-item"><div>${avatarHtml(p)}</div><div class="grow"><div class="title">${esc(p.displayName||'사용자')}${id===uid()?' (나)':''}</div></div></div>`; }).join('')||'<div class="empty-side">아직 출석한 사람이 없어요.</div>'}</div>
       <div class="admin-toolbar" style="margin-top:12px">${(s.open&&!mine)?`<button type="button" class="soft-btn" data-action="attend-mark" data-room-id="${esc(roomId)}">출석하기</button>`:''}${(s.open&&canRun)?`<button type="button" class="soft-btn" data-action="attend-close" data-room-id="${esc(roomId)}">마감</button>`:''}<button type="button" class="soft-btn" data-action="attend-refresh" data-room-id="${esc(roomId)}">새로고침</button></div>`;
   }
+  async function renderAttendanceInternal(roomId){
+    const host=$('#attendHost'); if(!host) return;
+    const room=(state.rooms||[]).find(x=>x.id===roomId)||state.room||{};
+    const meId=Number(state.internalUser?.id||0);
+    const canRun=Number(room.created_by)===meId||state.internalUser?.role==='ADMIN';
+    let s=null;
+    try{ const j=await inet(`/api/rooms/${room.srvId}/attendance/today`); if(j&&j.ok) s=j.session; }catch(e){}
+    if(!host.isConnected) return;
+    if(!s){
+      host.innerHTML=canRun
+        ?`<div class="empty-side">오늘 출석을 시작하지 않았어요.</div><button type="button" class="soft-btn" style="width:100%" data-action="attend-start" data-room-id="${esc(roomId)}">출석 시작</button>`
+        :'<div class="empty-side">진행 중인 출석이 없어요.</div>';
+      return;
+    }
+    const present=Array.isArray(s.present)?s.present:[];
+    const names=state.internalNames||{};
+    const mine=present.map(Number).includes(meId);
+    host.innerHTML=`<div class="empty-side" style="padding:6px 0 10px">${s.open?'진행 중':'마감됨'} · ${present.length}명 출석</div>
+      <div class="list modal-scroll" style="max-height:220px">${present.map(id=>`<div class="list-item"><div class="grow"><div class="title">${esc(names[id]||'사용자')}${Number(id)===meId?' (나)':''}</div></div></div>`).join('')||'<div class="empty-side">아직 출석한 사람이 없어요.</div>'}</div>
+      <div class="admin-toolbar" style="margin-top:12px">${(s.open&&!mine)?`<button type="button" class="soft-btn" data-action="attend-mark" data-room-id="${esc(roomId)}">출석하기</button>`:''}${(s.open&&canRun)?`<button type="button" class="soft-btn" data-action="attend-close" data-room-id="${esc(roomId)}">마감</button>`:''}<button type="button" class="soft-btn" data-action="attend-refresh" data-room-id="${esc(roomId)}">새로고침</button></div>`;
+  }
   async function startAttendance(roomId){
     if(!roomId) return;
+    if(!requireChatFree()) return;
+    const r0a=state.rooms.find(x=>x.id===roomId)||(state.room?.id===roomId?state.room:null);
+    if(r0a&&isInternalRoom(r0a)){
+      try{
+        const j=await inet(`/api/rooms/${r0a.srvId}/attendance/start`,{method:'POST'});
+        if(!j.ok) return toast('출석을 시작하지 못했어요.');
+        if(!j.existed&&inSocket&&inSocket.connected){
+          try{
+            inSocket.emit('message:send',{roomId:r0a.srvId,content:`📋 ${state.internalUser?.real_name||'선생님'}님이 출석 체크를 시작했어요.`},()=>{});
+          }catch(e){}
+        }
+      }catch(e){ return toast('출석을 시작하지 못했어요.'); }
+      await renderAttendanceInternal(roomId);
+      toast('출석을 시작했어요.');
+      return;
+    }
+    const attRoom=state.rooms.find(x=>x.id===roomId)||(state.room?.id===roomId?state.room:null);
+    if(attRoom&&attRoom.type==='notice'&&!isTeacher()) return toast('공지 채널에서는 선생님만 출석을 시작할 수 있어요.');
     try{
       const ex=await db.collection('channels').doc(roomId).collection('attendance').doc(attendTodayId()).get();
       if(ex.exists){ await renderAttendance(roomId); return toast(ex.data().open?'이미 진행 중이에요.':'오늘 출석은 마감됐어요.'); }
       await db.collection('channels').doc(roomId).collection('attendance').doc(attendTodayId()).set({roomId,date:attendTodayId(),open:true,byUid:uid(),byName:state.profile?.displayName||'사용자',present:[],createdAt:ts(),updatedAt:ts()});
     }catch(e){ console.error(e); return toast(errText(e)); }
+    // 투표처럼 채팅방에도 시작 메시지를 남긴다
+    try{
+      const msgRef=db.collection('channels').doc(roomId).collection('messages').doc();
+      const batch=db.batch();
+      batch.set(msgRef,{text:`📋 ${state.profile?.displayName||'선생님'}님이 출석 체크를 시작했어요.`,senderId:uid(),senderName:state.profile?.displayName||'사용자',senderRole:state.profile?.role||'student',replyToText:null,createdAt:ts(),deleted:false,attachment:null});
+      batch.update(db.collection('channels').doc(roomId),{lastText:'📋 출석 체크를 시작했어요.',lastSenderId:uid(),lastSenderName:state.profile?.displayName||'사용자',lastCreatedAt:ts(),updatedAt:ts()});
+      await batch.commit();
+    }catch(e){ console.error('attend msg',e); }
     await renderAttendance(roomId);
     toast('출석을 시작했어요.');
   }
   async function markAttendance(roomId){
+    if(!requireChatFree()) return;
     const rid=roomId||state.room?.id; if(!rid) return;
+    const r0m=state.rooms.find(x=>x.id===rid)||(state.room?.id===rid?state.room:null);
+    if(r0m&&isInternalRoom(r0m)){
+      try{
+        const j=await inet(`/api/rooms/${r0m.srvId}/attendance/mark`,{method:'POST'});
+        if(!j.ok) return toast('출석이 마감됐어요.');
+      }catch(e){ return toast('출석하지 못했어요.'); }
+      if($('#attendHost')) await renderAttendanceInternal(rid);
+      else toast('출석했어요.');
+      return;
+    }
     try{
       const chk=await db.collection('channels').doc(rid).collection('attendance').doc(attendTodayId()).get();
       if(!chk.exists || chk.data().open!==true){ const pill=$('#attendPill'); if(pill) pill.remove(); if($('#attendHost')) await renderAttendance(rid); return toast('출석이 마감됐어요.'); }
@@ -8246,6 +10013,17 @@
   }
   async function closeAttendance(roomId){
     if(!roomId) return;
+    if(!requireChatFree()) return;
+    const r0c=state.rooms.find(x=>x.id===roomId)||(state.room?.id===roomId?state.room:null);
+    if(r0c&&isInternalRoom(r0c)){
+      try{
+        const j=await inet(`/api/rooms/${r0c.srvId}/attendance/close`,{method:'POST'});
+        if(!j.ok) return toast('마감할 수 없어요.');
+      }catch(e){ return toast('마감하지 못했어요.'); }
+      await renderAttendanceInternal(roomId);
+      toast('출석을 마감했어요.');
+      return;
+    }
     try{ await db.collection('channels').doc(roomId).collection('attendance').doc(attendTodayId()).update({open:false,closedAt:ts(),updatedAt:ts()}); }
     catch(e){ console.error(e); return toast(errText(e)); }
     await renderAttendance(roomId);
@@ -8269,9 +10047,42 @@
       },e=>{});
     }catch(e){}
   }
+  async function openInternalFileBox(roomId){
+    const room=(state.rooms||[]).find(x=>x.id===roomId)||state.room;
+    if(!room) return;
+    openModal(`<h2>사진·파일함</h2><p class="desc">${esc(room.name||'채팅방')}</p><div id="inFileBoxHost"><div class="empty-side">불러오는 중…</div></div><div class="modal-actions"><button class="confirm" data-close-modal>닫기</button></div>`,{small:true});
+    try{
+      const j=await inet(`/api/rooms/${room.srvId}/files`);
+      const host=$('#inFileBoxHost'); if(!host) return;
+      if(!j||!j.ok){ host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; return; }
+      host.innerHTML=`<div class="list">${(j.files||[]).map(f=>{
+        const href=internalBase()+`/api/files/${f.id}?token=`+encodeURIComponent(internalToken());
+        return `<a class="attach-card" href="${esc(href)}" download="${esc(f.original_name||'파일')}"><span class="attach-ico">📎</span><span class="grow"><span class="attach-name">${esc(f.original_name||'파일')}</span><span class="attach-size">${esc(fmtBytes(f.file_size))}</span></span></a>`;
+      }).join('')||'<div class="empty-side">올라온 파일이 없어요.</div>'}</div>`;
+    }catch(e){ const host=$('#inFileBoxHost'); if(host) host.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; }
+  }
+  async function openInternalSearch(){
+    const room=state.room; if(!room||!isInternalRoom(room)) return;
+    openModal(`<h2>메시지 검색</h2><p class="desc">${esc(room.name||'채팅방')}</p><div class="field"><div class="row"><input id="inSearchInput" class="input" maxlength="40" placeholder="찾을 말을 입력해 주세요."><button type="button" class="soft-btn" style="flex:0 0 72px" id="inSearchGo">찾기</button></div></div><div id="inSearchHost"></div><div class="modal-actions"><button class="confirm" data-close-modal>닫기</button></div>`,{small:true});
+    const go=async()=>{
+      const q=($('#inSearchInput')?.value||'').trim();
+      const host=$('#inSearchHost'); if(!host) return;
+      if(!q){ host.innerHTML=''; return; }
+      host.innerHTML='<div class="empty-side">찾는 중…</div>';
+      try{
+        const j=await inet(`/api/rooms/${room.srvId}/search?q=`+encodeURIComponent(q));
+        if(!host.isConnected) return;
+        if(!j||!j.ok){ host.innerHTML='<div class="empty-side">검색하지 못했어요.</div>'; return; }
+        host.innerHTML=`<div class="list modal-scroll" style="max-height:300px">${(j.messages||[]).map(m=>`<div class="list-item"><div class="grow"><div class="title">${esc(m.sender_name||'사용자')}</div><div class="meta">${esc(String(m.content||'').slice(0,120))}</div></div></div>`).join('')||'<div class="empty-side">결과가 없어요.</div>'}</div>`;
+      }catch(e){ if(host.isConnected) host.innerHTML='<div class="empty-side">검색하지 못했어요.</div>'; }
+    };
+    const goBtn=$('#inSearchGo'); if(goBtn) goBtn.onclick=go;
+    const inp=$('#inSearchInput'); if(inp){ inp.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } }; setTimeout(()=>inp.focus(),60); }
+  }
   function openFileBox(roomId){
     const r=state.rooms.find(x=>x.id===roomId)||state.room;
     if(!r) return;
+    if(isInternalRoom(r)) return openInternalFileBox(roomId);
     if(!state.fileBoxSort) state.fileBoxSort='new';
     if(state.fileBoxHideRisk===undefined) state.fileBoxHideRisk=false;
     // 6번: 삭제된 메시지는 제외 (이미 !deleted 필터) — 혹시 남아있던 캐시도 다시 걸러낸다
@@ -8397,6 +10208,8 @@
     }catch(e){ /* 다음 기회에 다시 시도한다 */ try{ joinCodeBackfilled.delete(r.id); }catch(_){} }
   }
   async function joinByRoomCode(raw){
+    // 코드로 들어가는 것도 서비스 이용이므로 타임아웃 중에는 막는다
+    if(chatLockActive() && !isAdmin()){ toast(chatLockMessage()); return; }
     const msg=$('#joinCodeMsg');
     const say=(t,cls)=>{ if(msg){ msg.textContent=t; msg.className='reset-msg'+(cls?' '+cls:''); } };
     const code=normalizeCode(raw);
@@ -8451,6 +10264,8 @@
   }
   async function handleJoinRequest(id,ok){
     if(!id) return;
+    // 수락은 새 멤버를 들이는 행위라 타임아웃 중 방장도 할 수 없다 (거절은 허용)
+    if(ok && !requireChatFree()) return;
     try{
       const s=await db.collection('joinRequests').doc(id).get();
       if(!s.exists) return;
@@ -8486,6 +10301,7 @@
   }
   async function handleShareRequest(id,ok){
     if(!isTeacher()||!id) return;
+    if(ok && !requireChatFree()) return;
     let req=null;
     try{
       const s=await db.collection('shareRequests').doc(id).get(); if(!s.exists) return; req=s.data();
@@ -8557,6 +10373,7 @@
     setTimeout(()=>$('#inviteCodeInput')?.focus(),60);
   }
   async function inviteByUid(roomId,targetUid,targetName){
+    if(!requireChatFree()) return;
     const r=state.rooms.find(x=>x.id===roomId); if(!r||!targetUid) return;
     if((r.memberIds||[]).includes(targetUid)) return toast('이미 이 채팅방에 있는 사람이에요.');
     const p=state.profileCache.get(targetUid)||{};
@@ -8569,6 +10386,7 @@
     await createInvite(roomId,targetUid,targetName||p.displayName||'친구',p.invitePolicy||'ask',p.schoolId||'');
   }
   async function inviteByCode(roomId,raw){
+    if(!requireChatFree()) return;
     if(!checkInviteRate()) return;
     const r=state.rooms.find(x=>x.id===roomId); if(!r) return;
     const msg=$('#inviteCodeMsg');
@@ -8613,6 +10431,8 @@
   }
 
   async function acceptInvite(id){
+    // 초대를 받으면 채팅방에 들어가게 되므로 타임아웃 중에는 수락도 막는다 (거절은 허용)
+    if(!requireChatFree()) return;
     dismissStickyNotice(`invin_${id}`);
     let roomId='';
     let step='초대 읽기';
@@ -8679,6 +10499,7 @@
         <button class="tab ${tabActive('chat')}" data-settings-tab="chat"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 3V6Z"/></svg></span> 채팅/알림</button>
         <button class="tab ${tabActive('invite')}" data-settings-tab="invite"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-1.5a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4V21"/><circle cx="10" cy="7" r="3"/><circle cx="17.5" cy="7" r="2.5"/><path d="M18.5 13.5A4 4 0 0 1 21 17v4"/></svg></span> 초대/친구</button>
         <button class="tab ${tabActive('security')}" data-settings-tab="security"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><circle cx="12" cy="15" r="1"/></svg></span> 보안</button>
+        <button class="tab ${tabActive('network')}" data-settings-tab="network"><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M8.5 12a3.5 3.5 0 0 1 7 0"/><circle cx="12" cy="12" r="1"/></svg></span> 네트워크</button>
       </nav><div id="settingsPanel"></div></div></div><div class="settings-save-bar" id="settingsSaveBar"><div class="admin-wrap"><button class="primary" data-action="save-settings" id="settingsSaveBtn" style="width:100%;height:50px;border-radius:13px" disabled><span class="save-dot"></span>저장하기</button></div></div></div>`;
   }
   function renderSettingsPanel(tab){
@@ -8749,8 +10570,11 @@
         ${state.profile?.role==='student'?'<div class="setting-row"><div class="setting-label"><strong>교사 인증 신청</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="teacher-request">신청하기</button></div>':''}
       </div>
       `;
+    } else if(state.settingsTab==='network'){
+      html=networkSettingsHtml();
     }
     p.innerHTML=html;
+    try{ mountLabSettings(p); }catch(e){}
     // wire controls
     p.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{setTheme(b.dataset.theme);p.querySelectorAll('[data-theme]').forEach(x=>x.classList.toggle('active',x===b));});
     p.querySelectorAll('[data-setting-font]').forEach(b=>b.onclick=()=>{state.settings.fontSize=b.dataset.settingFont;p.querySelectorAll('[data-setting-font]').forEach(x=>x.classList.toggle('active',x===b));applyFontSize();});
@@ -8846,7 +10670,7 @@
         if(st==='denied'){
           bt.checked=false; bt.closest('.choice')?.classList.remove('active');
           persistBrowserPref();
-          toast('알림이 차단되어 있어요. 아이폰 설정 → 에듀톡 → 알림에서 허용해 주세요.');
+          toast('알림이 차단되어 있어요. 아이폰 설정 → 브리즈 → 알림에서 허용해 주세요.');
           return;
         }
         bt.closest('.choice')?.classList.add('active');
@@ -8933,9 +10757,18 @@
   }
 
   function closeSettings(){
+    if(state.view!=='settings'){ state.view='chat'; try{ history.replaceState({}, '', location.pathname); }catch(e){} renderShell(); return; }
     state.view='chat';
     try{ history.replaceState({}, '', location.pathname); }catch(e){}
-    renderShell();
+    // 나갈 때는 들어올 때의 반대 모션(화면이 살짝 멀어지며 사라짐) 뒤에 채팅 화면이 들어온다
+    if(prefersReducedMotion()){ renderShell(); return; }
+    const el=document.querySelector('.settings-page');
+    let done=false;
+    const go=()=>{ if(done) return; done=true; renderShell(); const app=document.querySelector('#app .app'); if(app) app.classList.add('screen-enter'); };
+    if(!el){ go(); return; }
+    el.classList.add('screen-exit');
+    setTimeout(go,250);
+    setTimeout(go,1200); // 안전망: 애니메이션 미발동해도 반드시 전환
   }
 
   function presenceModeLabel(m){
@@ -9075,6 +10908,7 @@
     }
   }
   async function saveSettings(f){
+    if(!requireChatFree()) return;
     const p=f.querySelector('[data-selected="invitePolicy"]')?.dataset.value||state.settings.invitePolicy;state.settings.invitePolicy=p;
     const pm0=f.querySelector('[data-selected="presenceMode"]')?.dataset.value||state.settings.presenceMode||'auto';
     const pm=(pm0==='away'||pm0==='dnd'||pm0==='offline'||pm0==='hidden'||pm0==='auto')?pm0:'auto';state.settings.presenceMode=pm;
@@ -9542,33 +11376,34 @@
     return `미개시 · ${l.days}일권`;
   }
   async function issueLicense(typeId, price, memo){
-    if(!isAdmin()) return toast('총관리자만 발급할 수 있어요.');
+    if(!isAdmin()) return toast('[E-AUTH-001] 총관리자만 발급할 수 있어요.');
     const days=licenseDaysOf(typeId);
+    const network=licenseNetworkOf(typeId), chatOnly=licenseChatOnlyOf(typeId);
     for(let t=0;t<5;t++){
       const code=genLicenseCode(16), authCode=genLicenseCode(8);
       try{
         const ref=db.collection('licenses').doc(code);
         const ex=await ref.get();
         if(ex.exists) continue;
-        await ref.set({ code, authCode, type:typeId, days, price:Number(price)||0, status:'issued', schoolId:'', purchasedBy:uid(), purchasedByName:state.profile?.displayName||'', purchaseAt:ts(), activatedAt:null, expiresAt:null, memo:String(memo||'').slice(0,200), createdAt:ts(), updatedAt:ts() });
+        await ref.set({ code, authCode, type:typeId, days, network, chatOnly, singleNet:null, price:Number(price)||0, status:'issued', schoolId:'', purchasedBy:uid(), purchasedByName:state.profile?.displayName||'', purchaseAt:ts(), activatedAt:null, expiresAt:null, memo:String(memo||'').slice(0,200), createdAt:ts(), updatedAt:ts() });
         return { code, authCode };
       }catch(e){ if(t===4) throw e; }
     }
     throw new Error('code-gen-failed');
   }
   function openLicenseIssueModal(){
-    if(!isAdmin()) return toast('총관리자만 발급할 수 있어요.');
+    if(!isAdmin()) return toast('[E-AUTH-001] 총관리자만 발급할 수 있어요.');
     const hasPw=(auth.currentUser?.providerData||[]).some(p=>p.providerId==='password');
-    openModal(`<h2>이용권 발급</h2><p class="desc">종류(1일·10일·1년·무제한)를 고르고 비밀번호로 확인하면 16자리 고유코드+인증코드가 만들어져요.</p>
-      <div class="field"><label>종류</label><div class="custom-select"><button type="button" class="select-button" data-select-open="licType"><span data-selected="licType" data-value="free_10d">무료 10일</span><span>⌄</span></button></div></div>
+    openModal(`<h2>이용권 발급</h2><p class="desc">통합 요금제 4종(단일망·듀얼망·소통전용) + 무료 체험형을 고르고 비밀번호로 확인하면 16자리 고유코드+인증코드가 만들어져요. 요금제는 학교당 1개만 쓸 수 있어요.</p>
+      <div class="field"><label>종류</label><div class="custom-select"><button type="button" class="select-button" data-select-open="licType"><span data-selected="licType" data-value="single_1y">단일망 이용권 1년</span><span>⌄</span></button></div></div>
       <div class="field"><label>금액 (원 · 유료만)</label><input id="licPrice" class="input" inputmode="numeric" placeholder="0"></div>
-      <div class="field"><label>메모</label><input id="licMemo" class="input" placeholder="예: ○○초 체험용"></div>
+      <div class="field"><label>메모</label><input id="licMemo" class="input" placeholder="예: ○○초 단일망 외부용"></div>
       ${hasPw?'<div class="field"><label>비밀번호 확인 (필수)</label><input id="licPw" class="input" type="password" autocomplete="current-password" placeholder="지금 쓰는 비밀번호"></div>':'<div class="warn-box">Google 로그인 계정은 발급 확인을 위해 Google 재인증이 필요해요.</div>'}
       <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="licGo">발급하기</button></div>`);
     const tb=$('[data-select-open="licType"]');
-    if(tb) wireDropdown(tb, LICENSE_TYPES.map(t=>({value:t.id,label:t.label})), (v,l)=>{ tb.querySelector('[data-selected]').textContent=l; tb.querySelector('[data-selected]').dataset.value=v; });
+    if(tb) wireDropdown(tb, LICENSE_TYPES.map(t=>({value:t.id,label:`${t.label}${t.chatOnly?' · 소통전용(시간표 차단)':''}${t.network==='single'?' · 단일망':t.network==='dual'?' · 듀얼망':''}`})), (v,l)=>{ tb.querySelector('[data-selected]').textContent=l; tb.querySelector('[data-selected]').dataset.value=v; });
     $('#licGo').onclick=()=>runAsync(async()=>{
-      const type=$('[data-selected="licType"]')?.dataset.value||'free_10d';
+      const type=$('[data-selected="licType"]')?.dataset.value||'single_1y';
       const price=Number(($('#licPrice')?.value||'').replace(/[^0-9]/g,''))||0;
       const memo=$('#licMemo')?.value||'';
       try{
@@ -9584,7 +11419,7 @@
       }catch(e){ return toast('본인 확인에 실패했어요.'); }
       try{
         const r=await issueLicense(type, price, memo);
-        openModal(`<h2>발급 완료</h2><p class="desc">아래 두 코드를 함께 전달해야 등록할 수 있어요. 인증코드까지 일치해야 정보가 뜹니다.</p>
+        openModal(`<h2>발급 완료</h2><p class="desc">아래 두 코드를 함께 전달해야 등록할 수 있어요. 인증코드까지 일치해야 정보가 뜹니다.${licenseChatOnlyOf(type)?'<br><b>소통 전용: 시간표 사용 불가.</b>':''}${licenseNetworkOf(type)==='single'?'<br>단일망: 등록 시 외부/내부 1택, 이후 변경 불가.':''}</p>
           <div class="code-box">${esc(r.code)}</div>
           <p class="desc">인증코드: <b class="code-chip">${esc(r.authCode)}</b> · ${esc(licenseTypeLabel(type))}</p>
           <div class="modal-actions"><button type="button" class="cancel" data-action="copy-license" data-code="${esc(r.code)}" data-auth="${esc(r.authCode)}">복사</button><button type="button" class="confirm" data-close-modal>닫기</button></div>`);
@@ -9592,21 +11427,26 @@
     });
   }
   function openLicenseBuyModal(){
-    // 실결제 연동 전 모의 구매: 1년 단위, 코드는 계정에 바로 들어가지 않고 코드로 발급
-    openModal(`<h2>1년 이용권 구매 (준비 중)</h2><p class="desc">실결제 연동 전이라 결제는 되지 않고 구성만 보여줘요. 구매하면 고유코드+인증코드가 발급돼요.</p>
-      <div class="list-item"><div class="grow"><div class="title">학교 1년 이용권</div><div class="meta">이용개시일로부터 1년 · 금액 미정</div></div><span>1년</span></div>
+    // 실결제 연동 전 모의 구매: 통합 요금제 4종 중 선택, 코드는 계정에 바로 들어가지 않고 코드로 발급
+    const plans=[{id:'single_1y',desc:'외부망 또는 내부망 중 1택 · 시간표 포함'},{id:'dual_unified_1y',desc:'내부+외부 동시 · 시간표 포함'},{id:'single_chat_1y',desc:'단일망 1택 · 소통만 (시간표 차단)'},{id:'dual_chat_1y',desc:'듀얼 동시 · 소통만 (시간표 차단)'}];
+    openModal(`<h2>통합 이용권 구매 (준비 중)</h2><p class="desc">실결제 연동 전이라 결제는 되지 않고 구성만 보여줘요. 구매하면 고유코드+인증코드가 발급돼요. 요금제는 1개만 쓸 수 있어요.</p>
+      <div class="field"><label>요금제 선택</label><div class="custom-select"><button type="button" class="select-button" data-select-open="buyType"><span data-selected="buyType" data-value="single_1y">단일망 이용권 1년</span><span>⌄</span></button></div></div>
+      <div class="mini muted" id="buyPlanDesc">${esc(plans[0].desc)}</div>
       <div class="field" style="margin-top:12px"><label>금액</label><input id="buyPrice" class="input" inputmode="numeric" placeholder="금액 미정 (예: 99000)"></div>
       <label class="consent" style="margin-top:12px"><input type="checkbox" id="buyAgree"><span>${esc(DIGITAL_VOUCHER_NOTICE)}</span></label>
       <label class="consent"><input type="checkbox" id="buyPrivacy"><span>이용권·환불 안내와 개인정보 처리방침에 동의해요.</span></label>
       <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="buyGo">구매하고 코드 받기</button></div>`);
+    const tb2=$('[data-select-open="buyType"]');
+    if(tb2) wireDropdown(tb2, plans.map(p=>({value:p.id,label:licenseTypeLabel(p.id)})), (v,l)=>{ tb2.querySelector('[data-selected]').textContent=l; tb2.querySelector('[data-selected]').dataset.value=v; const d=plans.find(x=>x.id===v); const host=$('#buyPlanDesc'); if(host&&d) host.textContent=d.desc; });
     $('#buyGo').onclick=()=>runAsync(async()=>{
       if(!$('#buyAgree')?.checked) return toast('디지털 이용권 안내에 동의해 주세요.');
       if(!$('#buyPrivacy')?.checked) return toast('이용권·환불 안내에 동의해 주세요.');
+      const type=$('[data-selected="buyType"]')?.dataset.value||'single_1y';
       const price=Number(($('#buyPrice')?.value||'').replace(/[^0-9]/g,''))||0;
       try{
-        const r=await issueLicense('paid_1y', price, '모의구매');
-        openModal(`<h2>구매 완료 (모의)</h2><p class="desc">아래 코드를 학교 관리자 계정에서 등록하고 이용 시작을 눌러야 1년이 시작돼요.</p>
-          <div class="code-box">${esc(r.code)}</div><p class="desc">인증코드: <b class="code-chip">${esc(r.authCode)}</b></p>
+        const r=await issueLicense(type, price, '모의구매');
+        openModal(`<h2>구매 완료 (모의)</h2><p class="desc">아래 코드를 학교 관리자 계정에서 등록하고 이용 시작을 눌러야 1년이 시작돼요.${licenseNetworkOf(type)==='single'?'<br>단일망: 외부/내부 1택 후 변경 불가.':''}${licenseChatOnlyOf(type)?'<br><b>소통 전용: 시간표 사용 불가.</b>':''}</p>
+          <div class="code-box">${esc(r.code)}</div><p class="desc">인증코드: <b class="code-chip">${esc(r.authCode)}</b> · ${esc(licenseTypeLabel(type))}</p>
           <div class="modal-actions"><button type="button" class="cancel" data-action="copy-license" data-code="${esc(r.code)}" data-auth="${esc(r.authCode)}">복사</button><button type="button" class="confirm" data-close-modal>닫기</button></div>`);
       }catch(e){ console.error(e); toast(errText(e)); }
     });
@@ -9647,7 +11487,9 @@
       const issuer=l.purchasedByName||l.issuedByName||'';
       const issuerUid=l.purchasedBy||l.issuedBy||l.createdBy||'';
       const issuerText=issuer?`${issuer}${issuerUid?` · ${String(issuerUid).slice(0,8)}…`:''}`:(issuerUid?`uid ${String(issuerUid).slice(0,8)}…`:'기록 없음');
-      return `<div class="list-item"><input type="checkbox" data-action="license-toggle" data-code="${esc(code)}"${checked} ${deletable?'':'disabled'} title="${deletable?'회수·만료된 이용권만 지울 수 있어요':'이용 중·미사용 이용권은 지울 수 없어요'}"><div class="grow"><div class="title">${esc(l.code||l.id)} · ${esc(licenseTypeLabel(l.type))} · ${esc(licenseStatusLabel(l.status))}</div><div class="meta">인증 ${esc(l.authCode||'-')} · ${esc(licenseExpiryText(l))} · ${l.price?Number(l.price).toLocaleString()+'원':'무료'}${l.schoolId?` · 학교 ${esc(l.schoolId)}`:''}</div><div class="admin-meta"><span class="admin-chip">발급 ${esc(issuerText)}</span>${l.memo?`<span class="admin-chip">${esc(String(l.memo).slice(0,20))}</span>`:''}<span class="admin-chip">${esc(fmtDateTime(l.purchaseAt||l.createdAt))}</span></div></div><span style="display:flex;gap:6px;flex:0 0 auto"><button class="soft-btn" style="flex:0 0 64px" data-action="license-revoke" data-code="${esc(code)}">회수</button>${deletable?`<button class="soft-btn" style="flex:0 0 64px;color:var(--danger)" data-action="license-delete" data-code="${esc(code)}">삭제</button>`:''}</span></div>`;
+      const net=(l.singleNet||l.lockedNet)?` · ${(l.singleNet||l.lockedNet)==='EXTERNAL'?'외부망 고정':'내부망 고정'}`:(l.network==='dual'||licenseNetworkOf(l.type)==='dual'?' · 듀얼':' · 단일');
+      const chat=(l.chatOnly||licenseChatOnlyOf(l.type))?' · 소통전용(시간표 차단)':'';
+      return `<div class="list-item"><input type="checkbox" data-action="license-toggle" data-code="${esc(code)}"${checked} ${deletable?'':'disabled'} title="${deletable?'회수·만료된 이용권만 지울 수 있어요':'이용 중·미사용 이용권은 지울 수 없어요'}"><div class="grow"><div class="title">${esc(l.code||l.id)} · ${esc(licenseTypeLabel(l.type))} · ${esc(licenseStatusLabel(l.status))}</div><div class="meta">인증 ${esc(l.authCode||'-')} · ${esc(licenseExpiryText(l))} · ${l.price?Number(l.price).toLocaleString()+'원':'무료'}${l.schoolId?` · 학교 ${esc(l.schoolId)}`:''}${esc(net)}${esc(chat)}</div><div class="admin-meta"><span class="admin-chip">발급 ${esc(issuerText)}</span>${l.memo?`<span class="admin-chip">${esc(String(l.memo).slice(0,20))}</span>`:''}<span class="admin-chip">${esc(fmtDateTime(l.purchaseAt||l.createdAt))}</span></div></div><span style="display:flex;gap:6px;flex:0 0 auto"><button class="soft-btn" style="flex:0 0 64px" data-action="license-revoke" data-code="${esc(code)}">회수</button>${deletable?`<button class="soft-btn" style="flex:0 0 64px;color:var(--danger)" data-action="license-delete" data-code="${esc(code)}">삭제</button>`:''}</span></div>`;
     }).join('');
   }
   async function deleteLicense(code){
@@ -9703,30 +11545,91 @@
       }catch(e){ host.innerHTML='<div class="empty-side">불러오지 못했어요. 규칙을 확인해 주세요.</div>'; }
     });
   }
-  // ---------- 학교 이용권 일수 조정 (총관리자만 · 5초 확인) ----------
+  // ---------- 학교 이용권한 직접 부여/회수/일수 조정 (총관리자만 · 5초 확인) ----------
   async function renderLicenseAdjust(host){
     if(!isAdmin()||!host) return;
     if($('#licenseAdjustCard')) return;
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="admin-card" id="licenseAdjustCard"><h3>학교 이용권 일수 조정</h3><p class="desc">학교의 이용 기간을 직접 늘리거나 줄여요. 줄여서 오늘보다 과거가 되면 즉시 만료돼요.</p>
-      <div class="admin-toolbar"><select id="licSchool" class="input"><option value="">학교를 골라 주세요</option></select><input id="licDays" class="input" type="number" style="flex:0 0 110px" placeholder="일수" value="30"><button type="button" class="soft-btn" style="flex:0 0 96px" data-action="license-days-plus">늘리기</button><button type="button" class="soft-btn" style="flex:0 0 96px" data-action="license-days-minus">줄이기</button></div>
+    wrap.innerHTML=`<div class="admin-card" id="licenseAdjustCard"><h3>학교 이용 권한 직접 관리</h3><p class="desc">총관리자가 학교에 이용 권한을 임의로 넣고 뺄 수 있어요. 부여하면 즉시 이용 가능, 회수하면 즉시 중지돼요. 일수 조정으로 기간을 늘리거나 줄일 수도 있어요.</p>
+      <div class="admin-toolbar"><select id="licSchool" class="input"><option value="">학교를 골라 주세요</option></select><input id="licDays" class="input" type="number" style="flex:0 0 110px" placeholder="일수" value="30"></div>
+      <div class="admin-toolbar"><button type="button" class="soft-btn" style="flex:1" data-action="license-grant">이용 권한 부여 (활성화)</button><button type="button" class="soft-btn" style="flex:1" data-action="license-revoke-school">이용 권한 회수 (중지)</button></div>
+      <div class="admin-toolbar"><button type="button" class="soft-btn" style="flex:0 0 96px" data-action="license-days-plus">늘리기</button><button type="button" class="soft-btn" style="flex:0 0 96px" data-action="license-days-minus">줄이기</button><button type="button" class="soft-btn" data-action="license-toggle-active">사용중지/복구 토글</button></div>
       <div id="licSchoolInfo" class="mini muted"></div></div>`;
     const list=$('#licenseList',host); if(list) list.before(wrap.firstElementChild); else host.prepend(wrap.firstElementChild);
     try{
       const s=await db.collection('schools').limit(200).get();
       const sel=$('#licSchool'); if(!sel) return;
       sel.innerHTML='<option value="">학교를 골라 주세요</option>'+s.docs.map(d=>{ const v=d.data()||{}; return `<option value="${esc(d.id)}">${esc(v.name||d.id)}</option>`; }).join('');
-      sel.onchange=async()=>{
-        const info=$('#licSchoolInfo'); if(!info) return;
-        if(!sel.value){ info.textContent=''; return; }
-        try{
-          const d=await db.collection('schools').doc(sel.value).get();
-          const v=d.exists?(d.data()||{}):{};
-          const ms=(v.licenseExpiresAt&&v.licenseExpiresAt.toDate)?v.licenseExpiresAt.toDate().getTime():(typeof v.licenseExpiresAt==='number'?v.licenseExpiresAt:0);
-          info.textContent=`현재: ${v.licenseStatus||'없음'} · 만료 ${ms?fmtDateTime(v.licenseExpiresAt):'-'}`;
-        }catch(e){ info.textContent=''; }
-      };
+      sel.onchange=()=>renderLicenseAdjustRefresh();
     }catch(e){}
+  }
+  // 총관리자: 학교에 이용 권한 임의 부여 (이용권 코드 없이도 active 처리)
+  async function grantSchoolAccess(){
+    if(!isAdmin()) return toast('[E-AUTH-001] 총관리자만 부여할 수 있어요.');
+    const sid=$('#licSchool')?.value||'';
+    const days=Math.abs(Math.round(Number($('#licDays')?.value||365)));
+    if(!sid) return toast('학교를 골라 주세요.');
+    let cur=null;
+    try{ const s=await db.collection('schools').doc(sid).get(); if(s.exists) cur=s.data()||null; }catch(e){ return toast(errText(e,'school-write')); }
+    const curMs=(cur?.licenseExpiresAt&&cur.licenseExpiresAt.toDate)?cur.licenseExpiresAt.toDate().getTime():(typeof cur?.licenseExpiresAt==='number'?cur.licenseExpiresAt:0);
+    const base=Math.max(Date.now(),curMs||0);
+    const next=new Date(base+(days>0?days:365)*86400000);
+    openDangerConfirm({
+      title:`${cur?.name||sid}에 이용 권한을 부여할까요?`,
+      desc:`부여 후 만료일: ${next.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}. 학교는 즉시 이용 가능해져요.`,
+      requireText:'', seconds:5, confirmLabel:'부여하기',
+      checkLabel:'위 내용을 이해했고, 부여해도 됩니다.',
+      onConfirm: async ()=>{
+        try{ await db.collection('schools').doc(sid).set({licenseStatus:'active',licenseExpiresAt:firebase.firestore.Timestamp.fromMillis(next.getTime()),licenseType:'admin_grant',licenseNetwork:'single',licenseChatOnly:false,active:true,updatedAt:ts()},{merge:true}); }
+        catch(e){ console.error(e); toast(errText(e,'school-write')); return; }
+        toast('이용 권한을 부여했어요.');
+        try{ await logAdminAudit('license-grant',`${cur?.name||sid} 부여`,null); }catch(e){}
+        renderLicenseAdjustRefresh();
+      }
+    });
+  }
+  // 총관리자: 학교 이용 권한 임의 회수
+  async function revokeSchoolAccess(){
+    if(!isAdmin()) return toast('[E-AUTH-001] 총관리자만 회수할 수 있어요.');
+    const sid=$('#licSchool')?.value||'';
+    if(!sid) return toast('학교를 골라 주세요.');
+    let cur=null;
+    try{ const s=await db.collection('schools').doc(sid).get(); if(s.exists) cur=s.data()||null; }catch(e){ return toast(errText(e,'school-write')); }
+    openDangerConfirm({
+      title:`${cur?.name||sid}의 이용 권한을 회수할까요?`,
+      desc:`회수하면 학교는 즉시 중지돼요. 이 학교에 연결된 이용 중(active) 이용권도 함께 revoked 처리해요. 학교 문서는 revoked로 바뀌어요.`,
+      requireText:'', seconds:5, confirmLabel:'회수하기',
+      checkLabel:'위 내용을 이해했고, 회수해도 됩니다.',
+      onConfirm: async ()=>{
+        try{
+          await db.collection('schools').doc(sid).set({licenseStatus:'revoked',updatedAt:ts()},{merge:true});
+          // schools에 코드를 두지 않으므로 licenses에서 schoolId로 찾아 함께 회수
+          try{
+            const act=await db.collection('licenses').where('schoolId','==',sid).where('status','==','active').limit(10).get();
+            for(const doc of act.docs){
+              try{ await db.collection('licenses').doc(doc.id).update({status:'revoked',updatedAt:ts()}); }catch(e){ console.warn('license revoke link', doc.id, e?.code||e); }
+            }
+          }catch(e){ console.warn('license revoke query', e?.code||e); }
+        }
+        catch(e){ console.error(e); toast(errText(e,'school-write')); return; }
+        toast('이용 권한을 회수했어요.');
+        try{ await logAdminAudit('license-revoke-school',`${cur?.name||sid} 회수`,null); }catch(e){}
+        renderLicenseAdjustRefresh();
+      }
+    });
+  }
+  async function toggleSchoolActive(){
+    if(!isAdmin()) return toast('[E-AUTH-001] 총관리자만 변경할 수 있어요.');
+    const sid=$('#licSchool')?.value||'';
+    if(!sid) return toast('학교를 골라 주세요.');
+    try{
+      const s=await db.collection('schools').doc(sid).get();
+      const cur=s.exists?(s.data()||{}):{};
+      const nextActive=!(cur.active!==false);
+      await db.collection('schools').doc(sid).set({active:nextActive,updatedAt:ts()},{merge:true});
+      toast(nextActive?'학교를 사용으로 바꿨어요.':'학교를 사용중지로 바꿨어요.');
+      renderLicenseAdjustRefresh();
+    }catch(e){ console.error(e); toast(errText(e,'school-write')); }
   }
   async function adjustSchoolLicense(deltaSign){
     if(!isAdmin()) return;
@@ -9756,54 +11659,124 @@
   async function renderLicenseAdjustRefresh(){
     try{
       const sel=$('#licSchool'); const sid=sel?.value||'';
-      if(sid){ const d=await db.collection('schools').doc(sid).get(); const v=d.exists?(d.data()||{}):{}; const info=$('#licSchoolInfo'); if(info) info.textContent=`현재: ${v.licenseStatus||'없음'} · 만료 ${v.licenseExpiresAt?fmtDateTime(v.licenseExpiresAt):'-'}`; }
+      const info=$('#licSchoolInfo'); if(!info) return;
+      if(!sid){ info.textContent=''; return; }
+      const d=await db.collection('schools').doc(sid).get(); const v=d.exists?(d.data()||{}):{};
+      // 코드는 schools가 아닌 licenses에서 조회 (총관리자만 볼 수 있음, 공개 문서에 코드 미저장)
+      let codeTxt='-';
+      try{
+        const act=await db.collection('licenses').where('schoolId','==',sid).where('status','==','active').limit(3).get();
+        if(!act.empty) codeTxt=act.docs.map(x=>`${String(x.id).slice(0,4)}…${String(x.id).slice(-2)}`).join(', ');
+      }catch(e){}
+      const netTxt=v.licenseSingleNet?` · 망 ${v.licenseSingleNet}`:(v.licenseNetwork?` · ${v.licenseNetwork}`:'');
+      const chatTxt=(v.licenseChatOnly?' · 소통전용(시간표 차단)':'');
+      info.innerHTML=`현재: <b>${esc(v.licenseStatus||'없음')}</b> · 만료 ${v.licenseExpiresAt?esc(fmtDateTime(v.licenseExpiresAt)):'-'} · 사용 ${v.active!==false?'사용중':'중지중'}${esc(netTxt)}${esc(chatTxt)} · 이용중 코드 ${esc(codeTxt)} · 종류 ${esc(licenseTypeLabel(v.licenseType||''))}`;
     }catch(e){}
   }
+  const LICENSE_CONFIRM_PHRASE = '(확인했으며, 이용권을 등록합니다.)';
   function renderLicenseRedeem(p){
     const sid=state.profile?.schoolId||'';
-    p.innerHTML=`<div class="admin-card"><h3>이용권 등록</h3><p class="desc">학교 관리자 계정에서 고유코드+인증코드를 입력하면 이용권 정보가 떠요. 이용 시작을 눌러야 이용개시일부터 기산돼요.</p>
-      <div class="field"><label>고유코드 (16자리)</label><input id="rdCode" class="input code-input" placeholder="예: AB12CD34EF56GH78" maxlength="16"></div>
-      <div class="field"><label>인증코드</label><input id="rdAuth" class="input code-input" placeholder="8자리" maxlength="8"></div>
+    p.innerHTML=`<div class="admin-card"><h3>이용권 등록</h3><p class="desc">학교 관리자 계정에서 고유코드+인증코드를 입력하면 이용권 정보가 떠요. 이용 시작을 눌러야 이용개시일부터 기산돼요. 등록은 서버를 경유해 안전하게 처리돼요. (직접 쓰기 차단 → [E-AUTH-001] 해결)</p>
+      <div class="field"><label>고유코드 (16자리)</label><input id="rdCode" class="input code-input" placeholder="예: AB12CD34EF56GH78" maxlength="16" autocomplete="off"></div>
+      <div class="field"><label>인증코드</label><input id="rdAuth" class="input code-input" placeholder="8자리" maxlength="8" autocomplete="off"></div>
       <div class="admin-toolbar"><button class="soft-btn" id="rdCheck">정보 확인</button><button class="soft-btn" data-action="refund-request">환불 요청</button></div>
-      <div id="rdInfo"></div></div>`;
+      <div id="rdInfo"></div>
+      <div class="mini muted" style="margin-top:8px">오류코드가 뜨면 코드 아래 원인·해결을 확인해 주세요. 예: [E-LIC-001] 코드 없음, [E-LIC-005] 인증코드 불일치, [E-AUTH-001] 권한 없음(역할·학교 확인).</div></div>`;
     $('#rdCheck').onclick=()=>runAsync(async()=>{
       const code=($('#rdCode')?.value||'').trim().toUpperCase(), auth=($('#rdAuth')?.value||'').trim().toUpperCase();
       const host=$('#rdInfo'); if(!host) return;
-      if(code.length!==16) return toast('고유코드 16자리를 입력해 주세요.');
-      if(!auth) return toast('인증코드를 입력해 주세요.');
+      if(code.length!==16){ host.innerHTML=permErrorBox('[E-LIC-004]','고유코드 16자리가 아니에요.','16자리 영문·숫자 코드를 다시 확인해 주세요.'); return; }
+      if(!auth){ host.innerHTML=permErrorBox('[E-LIC-005]','인증코드가 비어 있어요.','발급 시 함께 전달된 8자리 인증코드를 입력해 주세요.'); return; }
+      host.innerHTML='<div class="empty-side">확인 중…</div>';
       try{
         const d=await db.collection('licenses').doc(code).get();
-        if(!d.exists) return toast('코드를 확인해 주세요.');
+        if(!d.exists){ host.innerHTML=permErrorBox('[E-LIC-001]','존재하지 않는 이용권 코드예요.','코드를 다시 확인하거나 총관리자에게 발급을 요청해 주세요.'); return; }
         const l={id:d.id,...d.data()};
-        if(String(l.authCode||'').toUpperCase()!==auth) return toast('인증코드가 맞지 않아요.');
-        if(l.status && l.status!=='issued'){ host.innerHTML=`<div class="warn-box">이미 쓰인 이용권이에요. (${esc(licenseStatusLabel(l.status))})</div>`; return; }
-        host.innerHTML=`<div class="list-item"><div class="grow"><div class="title">${esc(licenseTypeLabel(l.type))} · ${l.days?l.days+'일':'무제한'}</div><div class="meta">고유 ${esc(l.code)} · 미사용 · ${l.price?Number(l.price).toLocaleString()+'원':'무료'}</div></div></div>
+        if(String(l.authCode||'').toUpperCase()!==auth){ host.innerHTML=permErrorBox('[E-LIC-005]','인증코드가 맞지 않아요.','고유코드와 짝이 맞는 인증코드인지 확인해 주세요.'); return; }
+        if(l.status && l.status!=='issued'){ host.innerHTML=`<div class="warn-box">이미 쓰인 이용권이에요. (${esc(licenseStatusLabel(l.status))}) [E-LIC-006]</div>`; return; }
+        const isSingle = licenseIsSingleNet(l.type);
+        const chatOnly = licenseChatOnlyOf(l.type) || !!l.chatOnly;
+        const netLabel = l.type==='single_1y'||l.type==='paid_1y' ? '단일망' : l.type.startsWith('dual')||l.type==='dual_unified_1y' ? '듀얼망' : (licenseNetworkOf(l.type)==='dual'?'듀얼망':'단일망');
+        host.innerHTML=`<div class="list-item"><div class="grow"><div class="title">${esc(licenseTypeLabel(l.type))} · ${l.days?l.days+'일':'무제한'}</div><div class="meta">고유 ${esc(l.code)} · 미사용 · ${l.price?Number(l.price).toLocaleString()+'원':'무료'}${chatOnly?' · 소통 전용(시간표 사용 불가)':''}${isSingle?' · 단일망(외부/내부 1택)':''}</div></div></div>
+          ${isSingle?`<div class="field" style="margin-top:12px"><label>이용할 망 선택 (등록 후 변경 불가)</label><div class="choice-row" style="gap:8px"><button type="button" class="choice" data-rd-net="EXTERNAL">🌐 외부망 전용으로 쓰기</button><button type="button" class="choice" data-rd-net="INTERNAL">🏫 내부망 전용으로 쓰기</button></div><div class="mini muted" id="rdNetMsg" style="margin-top:6px">외부망/내부망 중 하나를 골라 주세요.</div></div>`:''}
           <label class="consent" style="margin-top:12px"><input type="checkbox" id="rdAgree"><span>${esc(DIGITAL_VOUCHER_NOTICE)}</span></label>
           <div class="admin-toolbar"><button class="soft-btn" id="rdStart">이용 시작</button></div>`;
+        let rdNet = '';
+        if(isSingle){
+          host.querySelectorAll('[data-rd-net]').forEach(b=>b.onclick=()=>{
+            rdNet=b.dataset.rdNet||'';
+            host.querySelectorAll('[data-rd-net]').forEach(x=>x.classList.toggle('active',x===b));
+            const msg=host.querySelector('#rdNetMsg');
+            if(msg) msg.innerHTML = rdNet
+              ? `<b>${rdNet==='EXTERNAL'?'외부망':'내부망'}</b>으로 이용을 시작할게요. 이용 시작 후엔 ${rdNet==='EXTERNAL'?'내부망':'외부망'}으로 변경이 불가능하고, 단순 변심으로 인한 환불이 불가해요. 또한 브리즈 이용 약관에 동의하는 것으로 간주해요.`
+              : '외부망/내부망 중 하나를 골라 주세요.';
+          });
+        }
         $('#rdStart').onclick=()=>{
-          if(!$('#rdAgree')?.checked) return toast('안내에 동의해 주세요.');
-          if(!sid) return toast('학교 정보가 없어요.');
-          const panel=openModal(`<h2>이용을 시작할까요?</h2><p class="desc">이용을 시작하시면 취소할 수 없고 환불이 불가능해요.<br>${esc(licenseTypeLabel(l.type))} · 고유 ${esc(l.code)} · ${l.days?l.days+'일':'무제한'}</p>
-            <label class="consent"><input type="checkbox" id="rdConfirmCheck"><span>위 내용을 이해했고, 이용 시작에 동의해요. (취소·환불 불가)</span></label>
-            <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="rdGo" data-label="이용 시작">이용 시작</button></div>`, {small:true, dismissible:false});
+          if(!$('#rdAgree')?.checked){ host.insertAdjacentHTML('beforeend', permErrorBox('[E-LIC-010]','디지털 이용권 안내에 동의하지 않았어요.','위 안내 체크박스에 동의해 주세요.')); return; }
+          if(!sid && !isAdmin()){ host.insertAdjacentHTML('beforeend', permErrorBox('[E-LIC-003]','학교 정보가 없어요.','학교 관리자로 로그인했는지, 학교가 배정됐는지 확인해 주세요.')); return; }
+          if(isSingle && !rdNet){ toast('외부망/내부망 중 하나를 골라 주세요.'); return; }
+          const netTxt = isSingle ? (rdNet==='EXTERNAL'?'외부망':'내부망') : netLabel;
+          const panel=openModal(`<h2>이용을 시작할까요?</h2><p class="desc">${esc(netTxt)}으로 이용을 시작할게요. 이용 시작 후엔 ${isSingle?(rdNet==='EXTERNAL'?'내부망':'외부망')+'으로 변경이 불가능하고':netLabel+' 외 다른 요금제로 변경이 불가능하고'}, 단순 변심으로 인한 환불이 불가해요. 또한 브리즈 이용 약관에 동의하는 것으로 간주해요.<br><br>${esc(licenseTypeLabel(l.type))} · 고유 ${esc(l.code)} · ${l.days?l.days+'일':'무제한'}${chatOnly?'<br><b>소통 전용 이용권은 시간표 기능을 쓸 수 없어요. (우회 시도 차단)</b>':''}</p>
+            <div class="field"><label>아래 문구를 똑같이 입력해야 버튼이 켜져요</label><div class="mini muted" style="margin-bottom:6px"><b>${esc(LICENSE_CONFIRM_PHRASE)}</b></div><input id="rdPhrase" class="input" placeholder="${esc(LICENSE_CONFIRM_PHRASE)}" autocomplete="off"></div>
+            <label class="consent"><input type="checkbox" id="rdConfirmCheck"><span>위 내용을 이해했고, 이용 시작에 동의해요. (취소·환불 불가${isSingle?', 망 변경 불가':''})</span></label>
+            <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="rdGo" data-label="이용 시작" disabled style="opacity:.5">이용 시작</button></div>`, {small:true, dismissible:false});
           const go=panel.querySelector('#rdGo');
-          wireCountdownButton(go, 5, '이용 시작');
+          const phrase=panel.querySelector('#rdPhrase');
+          const chk=panel.querySelector('#rdConfirmCheck');
+          const syncGo=()=>{
+            const ok = phrase?.value.trim()===LICENSE_CONFIRM_PHRASE && chk?.checked;
+            if(go){ go.disabled=!ok; go.style.opacity=ok?'1':'.5'; }
+          };
+          phrase?.addEventListener('input',syncGo); chk?.addEventListener('change',syncGo);
           go.onclick=()=>runAsync(async()=>{
             if(go.disabled) return;
-            if(!panel.querySelector('#rdConfirmCheck')?.checked) return toast('동의에 체크해 주세요.');
-            const now=new Date();
-            const expires=(l.days>0)?firebase.firestore.Timestamp.fromMillis(now.getTime()+l.days*86400000):null;
+            go.disabled=true; go.textContent='등록 중…';
             try{
-              await db.collection('licenses').doc(code).update({ status:'active', schoolId:sid, activatedBy:uid(), activatedAt:ts(), expiresAt:expires, updatedAt:ts() });
-              await db.collection('schools').doc(sid).set({ licenseCode:code, licenseStatus:'active', licenseActivatedAt:ts(), licenseExpiresAt:expires, updatedAt:ts() }, {merge:true});
+              // 1순위: 서버 함수 경유 (학교관리자 직접쓰기 금지 문제 해결)
+              // Functions 리전이 서울(asia-northeast3)이라 클라이언트도 같은 리전으로 호출해야 닿는다
+              // compat SDK는 firebase.app().functions(region) 형태 (firebase.functions(region)은 app 자리라 오동작)
+              const fn = (firebase.functions ? firebase.app().functions('asia-northeast3').httpsCallable('redeemLicense') : null);
+              if(!fn) throw { code:'permission-denied', message:'[E-LIC-002] 서버 등록 기능을 쓸 수 없어요. Functions 미배포 가능.' };
+              const payload = { code, authCode:auth, ...(isSingle?{singleNet:rdNet}:{}) };
+              const res = await fn(payload);
               closeAllModals();
-              toast('이용이 시작됐어요.');
+              toast(`이용이 시작됐어요. (${esc(netTxt)}${res?.data?.chatOnly?' · 소통전용':''})`);
               try{ await refreshSchoolLicense(); }catch(e){}
               renderAdminPanel();
-            }catch(e){ console.error(e); toast(errText(e)); }
+            }catch(e){
+              console.error('redeem', e);
+              // 총관리자는 구형 직접쓰기로 폴백 시도 (함수 미배포 환경 대비)
+              const msg=String(e?.message||e?.code||'');
+              if(isAdmin() && !/\[E-LIC-00[6789]\]/.test(msg)){
+                try{
+                  const now=new Date();
+                  const expires=(l.days>0)?firebase.firestore.Timestamp.fromMillis(now.getTime()+l.days*86400000):null;
+                  await db.collection('licenses').doc(code).update({ status:'active', schoolId:sid||state.profile?.schoolId||'', activatedBy:uid(), activatedAt:ts(), expiresAt:expires, singleNet:isSingle?rdNet:null, network:licenseNetworkOf(l.type), chatOnly:licenseChatOnlyOf(l.type), updatedAt:ts() });
+                  // 보안: 이용권 코드 원문은 schools에 저장하지 않는다 (schools는 공개 읽기). 상태만 저장.
+                  await db.collection('schools').doc(sid||state.profile?.schoolId||'').set({ licenseStatus:'active', licenseActivatedAt:ts(), licenseExpiresAt:expires, licenseType:l.type, licenseNetwork:licenseNetworkOf(l.type), licenseSingleNet:isSingle?rdNet:null, licenseChatOnly:licenseChatOnlyOf(l.type), updatedAt:ts() }, {merge:true});
+                  closeAllModals(); toast('이용이 시작됐어요. (총관리자 직접 등록)');
+                  try{ await refreshSchoolLicense(); }catch(_){}
+                  renderAdminPanel(); return;
+                }catch(e2){ console.error('admin fallback', e2); }
+              }
+              go.disabled=false; go.textContent='이용 시작';
+              const codeTxt=/\[E-LIC-[0-9]{3}\]/.exec(msg)?.[0]||'[E-LIC-000]';
+              const reasonMap={
+                '[E-LIC-000]':`서버에 닿지 못했어요 (${String(e?.code||msg).slice(0,80)}). 잠시 후 다시 시도해 주세요.`,
+                '[E-LIC-001]':'존재하지 않는 코드예요.', '[E-LIC-002]':'학교 관리자 권한이 아니거나 서버 등록이 막혔어요.',
+                '[E-LIC-003]':'학교 정보가 없어요.', '[E-LIC-005]':'인증코드 불일치예요.',
+                '[E-LIC-006]':'이미 쓰인 코드예요.', '[E-LIC-007]':'단일망 선택이 필요해요.',
+                '[E-LIC-008]':'망 변경은 불가해요.', '[E-LIC-009]':'이미 이용 중인 이용권이 있어 요금제 중복 불가예요.'
+              };
+              toast(`${codeTxt} ${reasonMap[codeTxt]||'등록하지 못했어요.'} 아래 박스를 확인해 주세요.`);
+              let box=panel.querySelector('#rdErrBox');
+              if(!box){ go.insertAdjacentHTML('beforebegin','<div id="rdErrBox"></div>'); box=panel.querySelector('#rdErrBox'); }
+              if(box) box.innerHTML=permErrorBox(codeTxt, `${reasonMap[codeTxt]||msg.slice(0,120)}`, '역할(학교관리자)·학교 일치·코드·망 선택·중복 이용권을 확인해 주세요. 총관리자에게 코드와 오류코드를 함께 알려주면 빨리 해결돼요.');
+            }
           });
         };
-      }catch(e){ console.error(e); toast(errText(e)); }
+      }catch(e){ console.error(e); host.innerHTML=permErrorBox('[E-AUTH-001]', '이용권을 확인하지 못했어요.', permFixHint('license-read')+' 다시 시도해 주세요.'); }
     });
   }
   function renderMembersAdmin(p){
@@ -9877,16 +11850,41 @@
   function renderPricingAdmin(p){
     if(!isAdmin()){ p.innerHTML='<div class="empty-side">총관리자만 볼 수 있어요.</div>'; return; }
     const c=landingCfg();
-    p.innerHTML=`<div class="admin-card"><h3>요금 안내</h3><p class="desc">소개페이지에 separately 뜨는 요금표예요. 금액 미정 상태로 틀만 공개돼요.</p>
+    p.innerHTML=`<div class="admin-card"><h3>요금 안내</h3><p class="desc">소개페이지에 뜨는 요금표예요. 요금마다 정가를 넣으면 프로모션(앵커링) 표시가 돼요. 할인율은 자동 계산되고, 직접 적으면 직접 적은 값이 우선돼요. (예: 20% 할인, 런칭 특가)</p>
       <div class="field"><label>제목</label><input id="prTitle" class="input" value="${esc(c.pricingTitle||'요금 안내')}"></div>
       <div class="field"><label>설명</label><input id="prDesc" class="input" value="${esc(c.pricingDesc||'')}"></div>
-      <div class="field"><label>요금표 (이름 | 기간 | 금액 | 설명 · 줄바꿈 구분)</label><textarea id="prPlans" class="input" rows="5" placeholder="학교 1년 이용권 | 1년 | 금액 미정 | ...">${esc((c.pricing||[]).map(x=>[x.name,x.period,x.price,x.desc].join(' | ')).join('\n'))}</textarea></div>
-      <div class="admin-toolbar"><button class="soft-btn" id="prSave">저장</button></div></div>`;
-    $('#prSave').onclick=()=>runAsync(async()=>{
-      const plans=($('#prPlans')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,4).map(s=>{
-        const [name,period,price,desc]=s.split('|').map(x=>(x||'').trim());
-        return { name:(name||'').slice(0,30), period:(period||'').slice(0,20), price:(price||'').slice(0,20), desc:(desc||'').slice(0,160), cta:'문의하기' };
+      <div id="prRows"></div>
+      <div class="admin-toolbar"><button class="soft-btn" id="prPlanAdd">요금 추가</button><button class="soft-btn" id="prSave">저장</button></div></div>`;
+    const __prRow=(x)=>{
+      const g=(k,v,mx,ph)=>`<div class="field"><label>${esc(k)}</label><input class="input" data-pr="${v}" value="${esc(x[v]||'')}" maxlength="${mx}" placeholder="${esc(ph||'')}"></div>`;
+      const auto = discountRateOf(x.orig, x.price);
+      return `<div class="pr-row" style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px">`+
+        g('이름','name',30)+`<div class="admin-grid">`+g('기간','period',20)+g('판매가','price',20)+`</div>`+
+        `<div class="admin-grid">`+g('정가 (비우면 프로모션 끄기)','orig',20,'예: 700,000원')+g('할인율 직접 입력 (비우면 자동)','discount',20,'예: 29% 할인')+`</div>`+
+        (auto>0?`<div class="mini muted" style="margin:4px 0">자동 계산: <b style="color:var(--danger)">-${auto}%</b> (${esc(String(x.orig||''))} → ${esc(String(x.price||''))})</div>`:`<div class="mini muted" style="margin:4px 0">할인율: 정가보다 판매가가 낮으면 자동 표시돼요.</div>`)+
+        g('설명','desc',160)+
+        `<div class="admin-toolbar"><button type="button" class="soft-btn" data-pr-del>이 요금 삭제</button></div></div>`;
+    };
+    const __prPaint=()=>{
+      const host=p.querySelector('#prRows'); if(!host) return;
+      const cur=Array.isArray(c.pricing)&&c.pricing.length?c.pricing:[{}];
+      host.innerHTML=cur.slice(0,4).map(__prRow).join('');
+      host.querySelectorAll('[data-pr-del]').forEach(b=>b.onclick=()=>{
+        const row=b.closest('.pr-row'); if(row) row.remove();
       });
+    };
+    __prPaint();
+    $('#prPlanAdd').onclick=()=>{
+      const host=p.querySelector('#prRows'); if(!host) return;
+      if(host.querySelectorAll('.pr-row').length>=4) return toast('요금은 최대 4개까지예요.');
+      host.insertAdjacentHTML('beforeend', __prRow({}));
+      { const __del=host.lastElementChild?host.lastElementChild.querySelector('[data-pr-del]'):null; if(__del) __del.onclick=(e)=>{ const __row=e.target.closest('.pr-row'); if(__row) __row.remove(); }; }
+    };
+    $('#prSave').onclick=()=>runAsync(async()=>{
+      const plans=[...p.querySelectorAll('#prRows .pr-row')].slice(0,4).map(r=>{
+        const v=k=>String(r.querySelector(`[data-pr="${k}"]`)?.value||'').trim();
+        return { name:v('name').slice(0,30), period:v('period').slice(0,20), price:v('price').slice(0,20), orig:v('orig').slice(0,20), discount:v('discount').slice(0,20), desc:v('desc').slice(0,160), cta:'문의하기' };
+      }).filter(x=>x.name||x.desc);
       try{
         await db.collection('siteLanding').doc('main').set({ pricingTitle:$('#prTitle')?.value||'요금 안내', pricingDesc:$('#prDesc')?.value||'', pricing:plans, updatedAt:ts() }, {merge:true});
         toast('요금 안내를 저장했어요.');
@@ -9960,14 +11958,16 @@
       const sid=l.schoolId||'';
       await db.collection('licenses').doc(code).update({ status:'revoked', updatedAt:ts() });
       if(sid){
-        try{ await db.collection('schools').doc(sid).set({ licenseCode:'', licenseStatus:'revoked', updatedAt:ts() }, {merge:true}); }catch(e){}
+        // 코드 원문은 schools에 두지 않으므로 상태만 revoked로 바꾸고, 남아있던 구형 코드는 지운다
+        try{ await db.collection('schools').doc(sid).update({ licenseStatus:'revoked', licenseCode:firebase.firestore.FieldValue.delete(), updatedAt:ts() }); }
+        catch(e){ try{ await db.collection('schools').doc(sid).set({ licenseStatus:'revoked', updatedAt:ts() }, {merge:true}); }catch(_){} }
       }
       toast('학교 권한을 회수하고 환불 처리했어요.');
       renderAdminPanel();
     }catch(e){ console.error(e); toast(errText(e)); }
   }
   function richToolbarHtml(id){
-    return `<div class="rich-toolbar" data-rich-toolbar="${id}"><button type="button" class="re-btn" data-cmd="bold" title="굵게"><b>B</b></button><button type="button" class="re-btn" data-cmd="italic" title="기울임"><i>I</i></button><button type="button" class="re-btn" data-cmd="underline" title="밑줄"><u>U</u></button><button type="button" class="re-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button><button type="button" class="re-btn" data-cmd="h2" title="제목">H</button><button type="button" class="re-btn" data-cmd="ul" title="목록">☰</button><button type="button" class="re-btn" data-cmd="hr" title="구분선">―</button><button type="button" class="re-btn" data-cmd="image" title="사진 넣기">🖼</button><label class="re-color" title="글자색"><input type="color" value="#3F9BFF" data-cmd-color="1"></label><button type="button" class="re-btn" data-cmd="createLink" title="링크">🔗</button><button type="button" class="re-btn" data-cmd="removeFormat" title="서식 지우기">⌫</button></div>`;
+    return `<div class="rich-toolbar" data-rich-toolbar="${id}"><button type="button" class="re-btn" data-cmd="bold" title="굵게"><b>B</b></button><button type="button" class="re-btn" data-cmd="italic" title="기울임"><i>I</i></button><button type="button" class="re-btn" data-cmd="underline" title="밑줄"><u>U</u></button><button type="button" class="re-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button><button type="button" class="re-btn" data-cmd="h2" title="제목">H</button><button type="button" class="re-btn" data-cmd="ul" title="목록">☰</button><button type="button" class="re-btn" data-cmd="hr" title="구분선">―</button><button type="button" class="re-btn" data-cmd="image" title="사진 넣기">🖼</button><label class="re-color" title="글자색"><input type="color" value="#0082C8" data-cmd-color="1"></label><button type="button" class="re-btn" data-cmd="createLink" title="링크">🔗</button><button type="button" class="re-btn" data-cmd="removeFormat" title="서식 지우기">⌫</button></div>`;
   }
   // 에디터 사진을 가볍게 줄여 data URL로 넣는다 (별도 서버 없이 페이지에 바로 저장)
   function compressImageToDataUrl(file, maxW=960, quality=0.72){
@@ -10048,7 +12048,7 @@
   }
   function updateNoticePreview(){
     const f=$('#siteNoticeForm'); const host=$('#bannerPreview'); if(!f||!host) return;
-    host.style.color=safeColor(f.bannerTextColor?.value,'#3F9BFF');
+    host.style.color=safeColor(f.bannerTextColor?.value,'#0082C8');
     host.style.background=safeColor(f.bannerBgColor?.value,'#EAF4FF');
     host.style.textAlign=currentAlign('bannerAlign');
     host.style.fontSize=clampSize(f.bannerFontSize?.value,11,20,14)+'px';
@@ -10070,7 +12070,7 @@
         <div class="admin-grid">
           <div class="field"><label>정렬</label>${alignSegHtml('bannerAlign',b.align)}</div>
           <div class="field"><label>글자 크기 (11~20)</label><input class="input" type="number" min="11" max="20" name="bannerFontSize" value="${clampSize(b.fontSize,11,20,14)}"></div>
-          <div class="field"><label>글자색</label><input class="input" type="color" name="bannerTextColor" value="${safeColor(b.textColor,'#3F9BFF')}" style="padding:5px"></div>
+          <div class="field"><label>글자색</label><input class="input" type="color" name="bannerTextColor" value="${safeColor(b.textColor,'#0082C8')}" style="padding:5px"></div>
           <div class="field"><label>배경색</label><input class="input" type="color" name="bannerBgColor" value="${safeColor(b.bgColor,'#EAF4FF')}" style="padding:5px"></div>
           <div class="field"><label>링크 글자 (선택)</label><input class="input" name="bannerLinkText" maxlength="30" value="${esc(b.linkText||'')}" placeholder="자세히 보기"></div>
           <div class="field"><label>링크 주소 (선택)</label><input class="input" name="bannerLinkUrl" maxlength="300" value="${esc(b.linkUrl||'')}" placeholder="https://..."></div>
@@ -10329,7 +12329,7 @@
           <div class="field"><label>로그인 버튼 글자</label><input class="input" data-landing="login" maxlength="16" value="${esc(L.loginLabel)}"></div>
           <div class="field"><label>회원가입 버튼 글자</label><input class="input" data-landing="signup" maxlength="16" value="${esc(L.signupLabel)}"></div>
         </div>
-        <div class="field"><label>브랜드 이름 (한 줄에 하나씩 · 2개 이상이면 번갈아 나와요)</label><textarea class="input" data-landing="brandTexts" style="min-height:80px" placeholder="에듀톡">${esc((L.brandTexts||[L.brandName||'에듀톡']).join('\n'))}</textarea></div>
+        <div class="field"><label>브랜드 이름 (한 줄에 하나씩 · 2개 이상이면 번갈아 나와요)</label><textarea class="input" data-landing="brandTexts" style="min-height:80px" placeholder="브리즈">${esc((L.brandTexts||[L.brandName||'브리즈']).join('\n'))}</textarea></div>
         <p class="desc" style="margin:-6px 0 14px">왼쪽 위 로고와 로그인 화면 이름에 쓰여요. 첫 번째 이름은 소개 페이지 대표 이름으로도 쓰여요.</p>
       </div>
       <div class="admin-card"><h3>상단 메뉴</h3><p class="desc">메뉴에 마우스를 올리면 하위 항목이 차라락 내려와요. 왼쪽부터 순서대로 보이고, 로그인 버튼은 오른쪽 끝에 고정돼요.</p>
@@ -10453,7 +12453,7 @@
   async function saveSiteNotice(){
     if(!isAdmin()) return;
     const f=$('#siteNoticeForm'); if(!f) return;
-    const banner={ enabled:!!f.bannerEnabled?.checked, html:editorHtml('bannerEditor'), align:currentAlign('bannerAlign'), fontSize:clampSize(f.bannerFontSize?.value,11,20,14), textColor:safeColor(f.bannerTextColor?.value,'#3F9BFF'), bgColor:safeColor(f.bannerBgColor?.value,'#EAF4FF'), linkText:(f.bannerLinkText?.value||'').trim().slice(0,30), linkUrl:(f.bannerLinkUrl?.value||'').trim().slice(0,300) };
+    const banner={ enabled:!!f.bannerEnabled?.checked, html:editorHtml('bannerEditor'), align:currentAlign('bannerAlign'), fontSize:clampSize(f.bannerFontSize?.value,11,20,14), textColor:safeColor(f.bannerTextColor?.value,'#0082C8'), bgColor:safeColor(f.bannerBgColor?.value,'#EAF4FF'), linkText:(f.bannerLinkText?.value||'').trim().slice(0,30), linkUrl:(f.bannerLinkUrl?.value||'').trim().slice(0,300) };
     const popup={ enabled:!!f.popupEnabled?.checked, title:(f.popupTitle?.value||'').trim().slice(0,60), html:editorHtml('popupEditor'), align:currentAlign('popupAlign'), fontSize:clampSize(f.popupFontSize?.value,11,20,15), textColor:safeColor(f.popupTextColor?.value,'#191f28'), primaryText:(f.popupPrimaryText?.value||'').trim().slice(0,20)||'확인', primaryUrl:(f.popupPrimaryUrl?.value||'').trim().slice(0,300), secondaryText:(f.popupSecondaryText?.value||'').trim().slice(0,20) };
     const bottom={ enabled:!!f.bottomEnabled?.checked, html:editorHtml('bottomEditor'), align:currentAlign('bottomAlign'), fontSize:clampSize(f.bottomFontSize?.value,11,24,13), textColor:safeColor(f.bottomTextColor?.value,'#5B6472'), bgColor:safeColor(f.bottomBgColor?.value,'#F1F2F7') };
     try{ await db.collection('siteNotices').doc('main').set({banner,popup,bottom,updatedAt:ts(),updatedBy:uid()},{merge:true}); }
@@ -10471,8 +12471,128 @@
   }
   function renderSchoolAdmin(p){
     p.innerHTML=`<div class="admin-card"><h3>우리 학교</h3><p class="desc">학교를 등록하면 학생이 가입할 때 쓸 <b>가입 코드</b>가 만들어져요. 코드가 있어야 가입할 수 있어요.</p><div id="mySchools" class="list"><div class="empty-side">불러오는 중이에요.</div></div></div>
+    <div class="admin-card"><h3>내부망 라이선스 (유료 듀얼)</h3><p class="desc">유료 듀얼 이용권을 쓰면 학교 서버용 <b>license.key</b>가 자동으로 만들어져요. 서버 등록 코드는 학교 PC 관리 페이지에서 확인해 여기에 1번만 등록하면 돼요.</p><div id="ilCard"><div class="empty-side">불러오는 중…</div></div></div>
     <div class="admin-card"><h3>전국 학교 검색</h3><p class="desc">교육부 나이스(NEIS)에서 전국 학교를 찾아 등록할 수 있어요. 무료이고 따로 가입할 필요가 없어요.</p><div class="admin-toolbar"><input id="neisSearch" class="input" placeholder="학교 이름 (예: 가락고등학교)"><button type="button" class="soft-btn" style="flex:0 0 84px" data-action="neis-search">검색</button></div><div id="neisResults" class="list"></div></div>`;
     renderMySchools();
+    renderInternalLicenseCard();
+  }
+  async function renderInternalLicenseCard(){
+    const host=$('#ilCard'); if(!host) return;
+    const sid=state.profile?.schoolId||'';
+    if(!sid){ host.innerHTML='<div class="empty-side">학교 정보가 없어요.</div>'; return; }
+    let lic=null, dual=null;
+    try{ const s=await db.collection('internalLicenses').doc(sid).get(); if(s.exists) lic={id:s.id,...s.data()}; }catch(e){}
+    try{ const q=await db.collection('licenses').where('schoolId','==',sid).where('status','==','active').where('type','==','dual_1y').limit(1).get(); if(!q.empty) dual={id:q.docs[0].id,...q.docs[0].data()}; }catch(e){}
+    // 결제+등록이 끝났는데 키가 없으면 자동으로 만든다 (저절로 오토)
+    if(dual&&!lic){
+      try{
+        const k=await issueInternalLicenseLocal('');
+        if(k){ try{ const s=await db.collection('internalLicenses').doc(sid).get(); if(s.exists) lic={id:s.id,...s.data()}; }catch(e){} }
+      }catch(e){}
+    }
+    if(!$('#ilCard')) return;
+    const expTxt=lic&&lic.expiresAt?fmtDateTime(lic.expiresAt):(dual&&dual.expiresAt?fmtDateTime(dual.expiresAt):'-');
+    host.innerHTML=`<div class="admin-meta" style="margin-bottom:10px">
+        <span class="admin-chip">유료 듀얼: ${dual?'이용 중':'없음'}</span>
+        <span class="admin-chip">라이선스: ${lic?'발급됨':'미발급'}</span>
+        ${lic?`<span class="admin-chip">만료 ${esc(expTxt)}</span>`:''}
+        ${lic&&lic.hwidBound?'<span class="admin-chip">PC 묶음</span>':''}
+      </div>
+      <div class="field"><label>서버 등록 코드 (학교 PC 관리 페이지에서 확인)</label><input id="ilSecret" class="input" autocomplete="off" placeholder="내부 서버의 등록 코드를 붙여넣으세요"></div>
+      <div class="row" style="margin-top:8px"><button type="button" class="soft-btn" data-action="il-secret-save" style="flex:1">등록 코드 저장</button></div>
+      <div class="field" style="margin-top:10px"><label>PC 고유값 (비우면 어느 PC에서든 사용 가능 · 관리 페이지에서 확인)</label><input id="ilHwid" class="input" autocomplete="off" placeholder="예: 9F3A…" style="text-transform:uppercase"></div>
+      <div class="row" style="margin-top:8px"><button type="button" class="soft-btn" data-action="il-issue" style="flex:1">발급·재발급</button></div>
+      ${lic&&lic.key?`<div class="field" style="margin-top:10px"><label>license.key (학교 PC의 license.key 파일에 통째로 저장)</label><textarea class="input" rows="3" readonly style="font-family:monospace;font-size:11px;word-break:break-all">${esc(lic.key)}</textarea></div>
+      <div class="row" style="margin-top:8px"><button type="button" class="soft-btn" data-action="il-copy" style="flex:1">복사</button><button type="button" class="soft-btn" data-action="il-download" style="flex:1">파일로 받기</button></div>`:dual?'<p class="desc" style="margin:10px 0 0;font-size:12px">서버 등록 코드를 저장하면 키가 자동으로 만들어져요.</p>':'<p class="desc" style="margin:10px 0 0;font-size:12px">유료 듀얼 이용권을 먼저 등록해 주세요.</p>'}`;
+  }
+  async function issueInternalLicenseCall(hwid){
+    const sid=state.profile?.schoolId||'';
+    if(!sid) return toast('학교 정보가 없어요.');
+    // Functions가 배포돼 있으면 서버에서 발급, 아니면 학교 비밀을 아는 관리자가 직접 서명 (같은 형식)
+    try{
+      if(firebase.functions){
+        const fn=firebase.app().functions('asia-northeast3').httpsCallable('issueInternalLicense');
+        const r=await fn({schoolId:sid,hwid:hwid||''});
+        if(r&&r.data&&r.data.key){ toast('라이선스를 발급했어요.'); renderInternalLicenseCard(); return; }
+      }
+    }catch(e){ console.warn('callable fallback',e?.code||e); }
+    const key=await issueInternalLicenseLocal(hwid);
+    if(key){ toast('라이선스를 발급했어요.'); renderInternalLicenseCard(); }
+    else toast('유료 듀얼 이용권과 서버 등록 코드를 먼저 확인해 주세요.');
+  }
+  // 순수 JS SHA-256 + HMAC (보안 WebView가 아니어도 동작하도록 내장)
+  function sha256Bytes(bytes){
+    const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    const l=bytes.length, bitLen=l*8, total=(((l+8)>>6)+1)*64;
+    const msg=new Uint8Array(total); msg.set(bytes); msg[l]=0x80;
+    const dv=new DataView(msg.buffer);
+    dv.setUint32(total-4,bitLen>>>0); dv.setUint32(total-8,Math.floor(bitLen/0x100000000));
+    const w=new Array(64);
+    const rotr=(x,n)=>(x>>>n)|(x<<(32-n));
+    for(let off=0;off<total;off+=64){
+      for(let t=0;t<16;t++) w[t]=dv.getUint32(off+t*4);
+      for(let t=16;t<64;t++){
+        const s0=rotr(w[t-15],7)^rotr(w[t-15],18)^(w[t-15]>>>3);
+        const s1=rotr(w[t-2],17)^rotr(w[t-2],19)^(w[t-2]>>>10);
+        w[t]=(w[t-16]+s0+w[t-7]+s1)|0;
+      }
+      let a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+      for(let t=0;t<64;t++){
+        const S1=rotr(e,6)^rotr(e,11)^rotr(e,25);
+        const ch=(e&f)^(~e&g);
+        const t1=(h+S1+ch+K[t]+w[t])|0;
+        const S0=rotr(a,2)^rotr(a,13)^rotr(a,22);
+        const maj=(a&b)^(a&c)^(b&c);
+        const t2=(S0+maj)|0;
+        h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
+      }
+      H=[(H[0]+a)|0,(H[1]+b)|0,(H[2]+c)|0,(H[3]+d)|0,(H[4]+e)|0,(H[5]+f)|0,(H[6]+g)|0,(H[7]+h)|0];
+    }
+    const out=new Uint8Array(32), odv=new DataView(out.buffer);
+    H.forEach((x,i)=>odv.setUint32(i*4,x>>>0));
+    return out;
+  }
+  function hmacSha256Bytes(keyBytes,msgBytes){
+    let k=keyBytes;
+    if(k.length>64) k=sha256Bytes(k);
+    const kk=new Uint8Array(64); kk.set(k);
+    const ipad=new Uint8Array(64), opad=new Uint8Array(64);
+    for(let i=0;i<64;i++){ ipad[i]=kk[i]^0x36; opad[i]=kk[i]^0x5c; }
+    const inner=new Uint8Array(64+msgBytes.length); inner.set(ipad); inner.set(msgBytes,64);
+    const outer=new Uint8Array(96); outer.set(opad); outer.set(sha256Bytes(inner),64);
+    return sha256Bytes(outer);
+  }
+  function b64uBytes(bytes){
+    let s=''; for(let i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function signInternalLicenseLocal(payload, secret){
+    const te=new TextEncoder();
+    const body=b64uBytes(te.encode(JSON.stringify(payload)));
+    return body+'.'+b64uBytes(hmacSha256Bytes(te.encode(String(secret)),te.encode(body)));
+  }
+  // 결제(듀얼 이용권 활성화) + 서버 등록이 끝나면 키를 자동으로 만든다
+  async function issueInternalLicenseLocal(hwid){
+    try{
+      const sid=state.profile?.schoolId||'';
+      if(!sid) return null;
+      const q=await db.collection('licenses').where('schoolId','==',sid).where('status','==','active').where('type','==','dual_1y').limit(1).get();
+      if(q.empty) return null;
+      const dual={id:q.docs[0].id,...q.docs[0].data()};
+      const ss=await db.collection('schoolSecrets').doc(sid).get();
+      const secret=ss.exists?String((ss.data()||{}).secret||''):'';
+      if(secret.length<16) return null;
+      let schoolName='';
+      try{ const sc=await db.collection('schools').doc(sid).get(); if(sc.exists) schoolName=String((sc.data()||{}).name||''); }catch(e){}
+      let expIso='';
+      try{ expIso=dual.expiresAt&&dual.expiresAt.toDate?dual.expiresAt.toDate().toISOString():new Date(dual.expiresAt).toISOString(); }catch(e){ return null; }
+      const payload={school:schoolName,schoolId:sid,expiresAt:expIso,isPaidDualNetworkActive:true,maxUsers:0,issuedAt:new Date().toISOString()};
+      if(hwid) payload.hwid=String(hwid).toUpperCase();
+      const key=signInternalLicenseLocal(payload,secret);
+      await db.collection('internalLicenses').doc(sid).set({schoolId:sid,schoolName,key,hwidBound:!!hwid,expiresAt:dual.expiresAt,licenseId:dual.id,updatedAt:ts(),auto:true},{merge:true});
+      return key;
+    }catch(e){ console.error(e); return null; }
   }
   async function renderMySchools(){
     const host=$('#mySchools'); if(!host) return;
@@ -10499,6 +12619,27 @@
       const code=(state.schoolCodes||{})[s.id]||'';
       return `<div class="list-item tappable" data-action="open-school-settings" data-sid="${esc(s.id)}"><div class="grow"><div class="title">${esc(s.name||'이름 없는 학교')}${s.active===false?' <span class="mini muted">(사용 중지)</span>':''}${state.profile?.schoolId===s.id?' <span class="mini" style="color:var(--blue)">우리 학교</span>':''}</div><div class="meta">${esc(s.atpt||'')}${s.kind?` · ${esc(s.kind)}`:''} · ${(s.grades||[]).length}개 학년</div><div class="admin-meta"><span class="admin-chip">가입 코드 ${esc(code||'없음')}</span></div></div><span>›</span></div>`;
     }).join('');
+    runAsync(async()=>{
+      try{
+        if(!isAdmin()) return;
+        const items=host.querySelectorAll('[data-sid]');
+        if(!items.length) return;
+        let licMap={};
+        try{ const qs=await db.collection('licenses').where('status','==','active').limit(200).get(); qs.forEach(d=>{ const v=d.data()||{}; if(v.schoolId) licMap[v.schoolId]={code:d.id,type:v.type||'',expiresAt:v.expiresAt||null}; }); }catch(e){}
+        let memoMap={};
+        try{ const ms=await db.collection('schoolMemos').limit(300).get(); ms.forEach(d=>{ memoMap[d.id]=String((d.data()||{}).memo||''); }); }catch(e){}
+        items.forEach(el=>{
+          try{
+            const sid=el.dataset.sid; if(!sid||el.dataset.badged) return; el.dataset.badged='1';
+            const grow=el.querySelector('.grow'); if(!grow) return;
+            const lic=licMap[sid]; const memo=memoMap[sid]||'';
+            const div=document.createElement('div'); div.className='admin-meta';
+            div.innerHTML=`<span class="admin-chip">${lic?('\uC774\uC6A9\uC911 \u00B7 '+esc(lic.type||'active')):'\uBBF8\uC774\uC6A9'}`+`</span>`+(memo?`<span class="admin-chip">\uBA54\uBAA8: ${esc(memo.slice(0,40))}</span>`:`<span class="admin-chip">\uBA54\uBAA8 \uC5C6\uC74C</span>`);
+            grow.appendChild(div);
+          }catch(e){}
+        });
+      }catch(e){}
+    });
   }
   async function neisSearch(){
     const q=$('#neisSearch')?.value?.trim();
@@ -10553,6 +12694,18 @@
     if(code===undefined){ try{ const cs=await db.collection('schoolCodes').doc(sid).get(); code=cs.exists?(cs.data().code||''):''; }catch(e){ code=''; } }
     state.schoolEdit={id:sid,data:s,code};
     renderSchoolSettingsModal();
+    runAsync(async()=>{
+      try{
+        if(!isAdmin()) return;
+        const modal=document.querySelector('.modal'); if(!modal||modal.dataset.memoBox) return; modal.dataset.memoBox='1';
+        let memo='';
+        try{ const d=await db.collection('schoolMemos').doc(sid).get(); if(d.exists) memo=String((d.data()||{}).memo||''); }catch(e){}
+        const form=modal.querySelector('form'); if(!form) return;
+        form.insertAdjacentHTML('beforeend', `<div class="field"><label>\uCD1D\uAD00\uB9AC\uC790 \uBA54\uBAA8 (\uB098\uB9CC \uBCF4\uC784)</label><textarea id="schoolAdminMemo" class="input" rows="3" maxlength="500" placeholder="\uC608: \uC7AC\uACC4\uC57D \uAC00\uB2A5\uC131 \uB192\uC74C, 10\uC6D4 \uBC29\uBB38 \uC608\uC815">${esc(memo)}</textarea><div class="admin-toolbar"><button type="button" class="soft-btn" id="schoolMemoSave">\uBA54\uBAA8 \uC800\uC7A5</button></div></div>`);
+        const btn=modal.querySelector('#schoolMemoSave');
+        if(btn){ btn.onclick=()=>runAsync(async()=>{ try{ await db.collection('schoolMemos').doc(sid).set({ memo: ($('#schoolAdminMemo')?.value||'').slice(0,500), updatedAt: ts(), updatedBy: uid() }, {merge:true}); toast('\uBA54\uBAA8\uB97C \uC800\uC7A5\uD588\uC5B4\uC694.'); state.schoolList=null; }catch(e){ console.error(e); toast(errText(e)); } }); }
+      }catch(e){}
+    });
   }
   function renderSchoolSettingsModal(){
     const ed=state.schoolEdit; if(!ed) return;
@@ -10563,7 +12716,7 @@
         <div class="field" style="margin-top:14px"><label>학년</label><div class="check-grid" id="schoolGradeChips">${Array.from({length:6},(_,i)=>i+1).map(g=>`<button type="button" class="check-chip ${grades.includes(g)?'on':''}" data-school-grade="${g}">${g}학년</button>`).join('')}</div></div>
         <div class="admin-grid" id="schoolCounts"></div>
         ${isAdmin()?`<div class="field"><label>교육청 이메일 도메인 (교사 인증용 · 한 줄에 하나)</label><textarea class="input" name="eduDomains" rows="3" style="min-height:70px;resize:vertical" placeholder="예: sen.go.kr">${esc(Array.isArray(s.eduDomains)?s.eduDomains.join('\n'):'')}</textarea></div><div class="field"><label>파일 보관 기한 (일 · 0이면 영구 보관)</label><input class="input" type="number" min="0" max="3650" name="fileRetentionDays" value="${Number(s.fileRetentionDays||0)}"></div>`:''}
-        <div class="setting-row" style="margin-top:8px"><div class="setting-label"><strong>사용</strong></div><label class="choice ${s.active!==false?'active':''}"><input type="checkbox" name="schoolActive" ${s.active!==false?'checked':''}> 사용</label></div>
+        ${isAdmin()?`<div class="setting-row" style="margin-top:8px"><div class="setting-label"><strong>사용</strong><span>총관리자만 바꿀 수 있어요</span></div><label class="choice ${s.active!==false?'active':''}"><input type="checkbox" name="schoolActive" ${s.active!==false?'checked':''}> 사용</label></div>`:`<div class="setting-row" style="margin-top:8px"><div class="setting-label"><strong>사용</strong><span>현재 ${s.active!==false?'사용중':'중지중'} · 변경은 총관리자에게 요청해 주세요</span></div></div>`}
         <div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button><button class="confirm">저장하기</button></div>
       </form>
       <div class="divider"></div>
@@ -10582,17 +12735,19 @@
     renderCounts();
   }
   async function saveSchoolSettings(f){
+    if(!requireChatFree()) return;
     const sid=f?.dataset?.sid; if(!sid) return;
     const panel=f.closest('.modal')||document;
     const grades=[...panel.querySelectorAll('#schoolGradeChips .check-chip')].filter(b=>b.classList.contains('on')).map(b=>Number(b.dataset.schoolGrade)).sort((a,b)=>a-b);
     const classCounts={};
     grades.forEach(g=>{ classCounts[g]=Math.min(60,Math.max(1,Number(f[`grade-${g}`]?.value||1))); });
-    const active=!!f.schoolActive?.checked;
-    const patch={grades,classCounts,active,updatedAt:ts()};
+    const patch={grades,classCounts,updatedAt:ts()};
+    // 사용중지/복구는 총관리자 전용 (학교관리자가 스스로 끄는 실수 방지 + 권한 분리)
+    if(isAdmin()) patch.active=!!f.schoolActive?.checked;
     if(isAdmin()&&f.eduDomains){ patch.eduDomains=String(f.eduDomains?.value||'').split('\n').map(x=>x.trim().toLowerCase()).filter(x=>/^[a-z0-9.-]+\.[a-z]{2,}$/.test(x)).slice(0,20); }
     if(isAdmin()&&f.fileRetentionDays){ patch.fileRetentionDays=Math.min(3650,Math.max(0,Math.round(Number(f.fileRetentionDays?.value||0)))); }
     try{ await db.collection('schools').doc(sid).update(patch); }
-    catch(e){ console.error(e); return toast(errText(e)); }
+    catch(e){ console.error(e); return toast(errText(e,'school-write')); }
     state.schoolList=null;
     if(state.profile?.schoolId===sid){ state.school={grades,classCounts}; state.schoolInfo={...(state.schoolInfo||{}),id:sid,grades,classCounts}; }
     closeModal(); toast('학교 설정을 저장했어요.'); renderAdminPanel('school');
@@ -11084,6 +13239,7 @@
     return [u.displayName,u.grade,u.classNum,u.email,roleLabel(u.role),u.grade?`${u.grade}학년`:'',u.classNum?`${u.classNum}반`:''].filter(v=>v!=null&&v!=='').join(' ').toLowerCase().includes(s);
   }
   async function sendNotice(f){
+    if(!requireChatFree()) return;
     const t=f.querySelector('[name="targetUid"]:checked'); if(!t)return toast('받는 사람을 골라 주세요.');
     const text=(f.text.value||'').trim(); if(!text)return toast('내용을 적어 주세요.');
     try{ await db.collection('directNotices').add({targetUid:t.value,senderId:uid(),senderName:state.profile.displayName,text,read:false,createdAt:ts()}); }
@@ -11830,8 +13986,51 @@
       toast('학급 정보를 바꿨어요.');
     });
   }
+  function suspendUntilMs(v){
+    try{
+      if(v==null) return 0;
+      if(typeof v==='number') return v||0;
+      if(typeof v.toMillis==='function') return v.toMillis()||0;
+      if(v.toDate){ const d=v.toDate(); return d instanceof Date?d.getTime():0; }
+      if(v instanceof Date) return v.getTime();
+      return 0;
+    }catch(e){ return 0; }
+  }
+  function readSuspendDurationMs(){
+    try{
+      const sel=document.querySelector('input[name="suspendDur"]:checked');
+      if(!sel) return null;
+      if(sel.value==='perm') return null;
+      const ms=Number(sel.value);
+      return Number.isFinite(ms)&&ms>0?ms:null;
+    }catch(e){ return null; }
+  }
+  function injectSuspendDurationUI(){
+    const ta=document.querySelector('#suspendReason');
+    if(!ta) return;
+    const modal=ta.closest('.modal')||document;
+    if(!modal||modal.dataset.suspendDur) return;
+    modal.dataset.suspendDur='1';
+    const wrap=document.createElement('div');
+    wrap.className='field';
+    wrap.innerHTML=`<label>\uAE30\uAC04 (\uC2DC\uAC04\uC774 \uC9C0\uB098\uBA74 \uC790\uB3D9 \uD574\uC81C)</label><div class="seg" id="suspendDurSeg">`+
+      `<button type="button" class="seg-btn" data-suspend-dur="perm">\uC601\uAD6C</button>`+
+      `<button type="button" class="seg-btn" data-suspend-dur="3600000">1\uC2DC\uAC04</button>`+
+      `<button type="button" class="seg-btn active" data-suspend-dur="86400000">24\uC2DC\uAC04</button>`+
+      `<button type="button" class="seg-btn" data-suspend-dur="604800000">7\uC77C</button>`+
+      `<button type="button" class="seg-btn" data-suspend-dur="2592000000">30\uC77C</button></div>`+
+      `<input type="hidden" name="suspendDur" value="86400000">`;
+    ta.closest('.field')?.before(wrap);
+    wrap.querySelectorAll('[data-suspend-dur]').forEach(b=>b.onclick=()=>{
+      wrap.querySelectorAll('[data-suspend-dur]').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      const h=wrap.querySelector('input[name="suspendDur"]');
+      if(h) h.value=b.dataset.suspendDur;
+    });
+  }
   function openSuspendModal(targetUid,targetName){
     if(!isAdmin()||!targetUid) return;
+    setTimeout(()=>{ try{ injectSuspendDurationUI(); }catch(e){} },0);
     openModal(`<h2>이용 정지</h2><p class="desc">${esc(targetName||'사용자')}님의 계정 이용을 멈춰요. 교사·관리자 계정도 정지할 수 있어요.</p>
       <div class="field"><label>사유</label><textarea id="suspendReason" class="input" maxlength="200" style="min-height:96px" placeholder="예: 같은 반 친구를 여러 번 놀림"></textarea><p class="desc" style="margin:7px 0 0;font-size:12px">적은 사유는 그 사람 화면에 그대로 보여요.</p></div>
       <div class="modal-actions"><button class="cancel" data-close-modal>취소</button><button class="confirm" data-action="suspend-apply" data-uid="${esc(targetUid)}" data-name="${esc(targetName||'')}">정지하기</button></div>`);
@@ -11847,7 +14046,9 @@
       requireText:'', seconds:5, confirmLabel:'정지하기',
       checkLabel:'위 내용을 이해했고, 정지해도 됩니다.',
       onConfirm: async ()=>{
-        await db.collection('users').doc(targetUid).update({suspended:true,suspendReason:reason,suspendedAt:ts(),suspendedBy:uid(),updatedAt:ts()});
+        const __durMs=readSuspendDurationMs();
+        const __until=(__durMs&&__durMs>0)?firebase.firestore.Timestamp.fromMillis(Date.now()+__durMs):null;
+        await db.collection('users').doc(targetUid).update({suspended:true,suspendReason:reason,suspendedAt:ts(),suspendedBy:uid(),suspendedUntil:__until,updatedAt:ts()});
         state.profileCache.delete(targetUid); state.adminUsers=null;
         closeAllModals();
         if(state.view==='admin') renderAdminPanel(state.adminTab);
@@ -11860,7 +14061,7 @@
   async function unsuspendUser(targetUid,targetName){
     if(!isAdmin()||!targetUid) return;
     confirmModal(`${targetName||'사용자'}님의 정지를 풀까요?`,'다시 정상적으로 이용할 수 있어요.',async()=>{
-      await db.collection('users').doc(targetUid).update({suspended:false,suspendReason:'',suspendedAt:null,updatedAt:ts()});
+      await db.collection('users').doc(targetUid).update({suspended:false,suspendReason:'',suspendedAt:null,suspendedUntil:null,updatedAt:ts()});
       state.profileCache.delete(targetUid); state.adminUsers=null;
       closeAllModals();
       if(state.view==='admin') renderAdminPanel(state.adminTab);
@@ -11883,7 +14084,7 @@
     const run=async()=>{
       await db.collection('appeals').doc(id).update({status:'resolved',handledBy:uid(),handledAt:ts()});
       if(unblock && targetUid){
-        await db.collection('users').doc(targetUid).update({suspended:false,suspendReason:'',suspendedAt:null,updatedAt:ts()});
+        await db.collection('users').doc(targetUid).update({suspended:false,suspendReason:'',suspendedAt:null,suspendedUntil:null,updatedAt:ts()});
         state.profileCache.delete(targetUid); state.adminUsers=null;
       }
       closeAllModals();
@@ -12105,10 +14306,12 @@
   let schedTimer=null;
   function startSchedTimer(){
     if(schedTimer) return;
-    schedTimer=setInterval(()=>{ runAsync(()=>tickScheduledNotices()); },45000);
+    // 과금 다이어트: 서버 함수(15분 간격)가 발송을 보장하므로 클라이언트는 5분마다 백업 확인만
+    schedTimer=setInterval(()=>{ if(document.hidden) return; runAsync(()=>tickScheduledNotices()); },300000);
     runAsync(()=>tickScheduledNotices());
   }
   async function tickScheduledNotices(){
+    if(document.hidden) return;
     if(!uid()||!isTeacher()) return;
     const sid=state.profile?.schoolId||'';
     let rows=[];
@@ -12162,6 +14365,7 @@
   }
   async function addScheduled(){
     if(!isTeacher()) return;
+    if(!requireChatFree()) return;
     const roomId=$('[data-selected="schedRoom"]')?.dataset.value||'';
     const when=$('#schedWhen')?.value||'';
     const text=($('#schedText')?.value||'').trim();
@@ -12234,7 +14438,17 @@
   }
   function schoolYearSem(d){
     const y=d.getFullYear(), m=d.getMonth()+1;
-    return m>=3?{ay:String(y),sem:'1'}:{ay:String(y-1),sem:'2'};
+    // 1학기: 3~7월, 2학기: 8월~다음해 2월 (9월에 1학기로 조회하면 시간표가 비어 나온다)
+    if(m>=3&&m<=7) return {ay:String(y),sem:'1'};
+    if(m>=8) return {ay:String(y),sem:'2'};
+    return {ay:String(y-1),sem:'2'};
+  }
+  // NEIS 공개 API는 가끔 응답이 멈춘다. 타임아웃을 걸어 '불러오는 중'에서 굳지 않게 한다
+  async function fetchNeisJson(url, timeoutMs){
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>{ try{ctrl.abort();}catch(e){} }, timeoutMs||12000);
+    try{ const r=await fetch(url,{signal:ctrl.signal}); return await r.json(); }
+    finally{ clearTimeout(timer); }
   }
   function ttEndpoint(){
     const kind=String(state.school?.kind||state.profile?.schoolName||'');
@@ -12244,8 +14458,35 @@
     if(/특수/.test(kind)) return 'spsTimetable';
     return 'hisTimetable';
   }
+  // 기술·가정처럼 합쳐진 과목을 따로 보여주기 (원본 베끼기 없이 NEIS ITRT_CNTNT만 가공)
+  function splitSubjectParts(raw){
+    const s=String(raw||'').trim();
+    if(!s) return [];
+    // 1) 구분자로 갈라보기 (· . ・ / ／ , + 공백+· 혼합)
+    const parts=s.split(/[·․・\/／,+]|\.(?!\d)/).map(x=>x.trim()).filter(Boolean);
+    let list = parts.length>1 ? parts : [s];
+    // 2) 구분자 없이 '기술가정' '기가'처럼 붙어 있으면 분리
+    if(list.length===1){
+      const one=list[0].replace(/\s+/g,'');
+      if(/기술.*가정|가정.*기술/.test(one) && one.length<=8) return ['기술','가정'];
+      if(/^기가(?!.*[A-Za-z])/.test(one) && one.length<=6) return ['기술','가정'];
+    }
+    // 3) '스포츠 축구'처럼 공백 1개로 붙은 이중과목은 그대로 두되, 너무 길면 분리하지 않음
+    return list.slice(0,3);
+  }
+  function formatTtRow(perio, subject){
+    const parts=splitSubjectParts(subject);
+    if(!parts.length) return `${perio}교시 -`;
+    if(parts.length===1) return `${perio}교시 ${parts[0]}`;
+    return `${perio}교시 ${parts.join(' / ')}`;
+  }
+  function sortTtRows(tt){
+    return [...(tt||[])].sort((a,b)=>Number(a.PERIO||a.perio||0)-Number(b.PERIO||b.perio||0));
+  }
   async function loadMealWidget(force){
     const host=$('#mealWidget'); if(!host) return;
+    // 소통 전용 이용권은 시간표 차단 (우회 방지: 진입점에서 즉시 차단, NEIS 호출 자체를 막음)
+    const ttGuard = timetableAllowed();
     const codes=neisSchoolCodes();
     if(!codes){ host.innerHTML='<div class="empty-side">NEIS 등록 학교가 아니에요.<br><button type="button" class="text-btn" style="margin-top:8px" data-action="neis-manual">NEIS 코드 직접 입력</button></div>'; return; }
     const now=new Date();
@@ -12254,8 +14495,25 @@
     const paint=(diet,tt)=>{
       const lunch=diet?String(diet.DDISH_NM||'').replace(/<br\s*\/?>/gi,' · ').replace(/\([^)]*\)/g,'').trim():'';
       const cal=diet?String(diet.CAL_INFO||'').trim():'';
-      const rows=(tt||[]).map(r=>`${r.PERIO}교시 ${r.ITRT_CNTNT||''}`);
-      host.innerHTML=`<div class="meal-box"><div class="meal-title">🍱 오늘 중식${cal?` · ${esc(cal)}`:''}</div><div class="meal-text">${lunch?esc(lunch):'급식 정보가 없어요.'}</div>${rows.length?`<div class="meal-title" style="margin-top:8px">📚 오늘 시간표</div><div class="meal-text">${rows.map(esc).join('<br>')}</div>`:''}</div>`;
+      let ttHtml='';
+      if(!ttGuard.ok){
+        ttHtml=`<div class="meal-title" style="margin-top:8px">📚 오늘 시간표</div><div class="meal-text">소통 전용 이용권은 시간표 기능을 쓸 수 없어요. [E-TT-001]<br>시간표가 필요하면 일반 이용권으로 변경해 주세요.</div>`;
+      } else {
+        const sorted=sortTtRows(tt||[]);
+        // 승인된 변경(override) 반영: 같은 PERIO면 override 우선, NEIS에 없는 교시도 추가
+        const ovMap={};
+        try{ (state.ttOverrides||[]).forEach(o=>{ if(o && o.perio) ovMap[String(o.perio)]=o.subject; }); }catch(e){}
+        const seen=new Set(sorted.map(r=>String(r.PERIO||'')));
+        Object.keys(ovMap).forEach(p=>{ if(!seen.has(p)) sorted.push({PERIO:p,ITRT_CNTNT:ovMap[p]}); });
+        const rows=sortTtRows(sorted).map(r=>{
+          const p=String(r.PERIO||'');
+          const subj = ovMap[p]!==undefined ? ovMap[p] : (r.ITRT_CNTNT||'');
+          return formatTtRow(p, subj);
+        });
+        ttHtml = rows.length?`<div class="meal-title" style="margin-top:8px">📚 오늘 시간표 (${rows.length}교시)</div><div class="meal-text">${rows.map(esc).join('<br>')}</div>`
+          : `<div class="meal-title" style="margin-top:8px">📚 오늘 시간표</div><div class="meal-text">오늘 정보가 없어요.${Number(state.profile?.grade||0)&&Number(state.profile?.classNum||0)?'':' 학년·반을 프로필에 입력하면 불러올 수 있어요.'}</div>`;
+      }
+      host.innerHTML=`<div class="meal-box"><div class="meal-title">🍱 오늘 중식${cal?` · ${esc(cal)}`:''}</div><div class="meal-text">${lunch?esc(lunch):'급식 정보가 없어요.'}</div>${ttHtml}${ttGuard.ok&&isTeacher()?`<div class="row" style="margin-top:8px;gap:6px"><button type="button" class="text-btn" data-action="tt-request">시간표 변경 요청</button><button type="button" class="text-btn" data-action="tt-approve-list">승인함</button></div>`:''}</div>`;
     };
     // 캐시가 있으면 먼저 보여주고, 30분마다 뒤에서 새로고침한다 (실패해도 캐시는 유지)
     let cached=null;
@@ -12266,8 +14524,8 @@
     try{
       let diet=cached?.diet||null, tt=cached?.tt||[];
       try{
-        const r=await fetch(`https://open.neis.go.kr/hub/mealServiceDietInfo?Type=json&pIndex=1&pSize=10&ATPT_OFCDC_SC_CODE=${encodeURIComponent(codes.atpt)}&SD_SCHUL_CODE=${encodeURIComponent(codes.school)}&MLSV_YMD=${ymd}`);
-        const j=await r.json();
+        const r=await fetchNeisJson(`https://open.neis.go.kr/hub/mealServiceDietInfo?Type=json&pIndex=1&pSize=10&ATPT_OFCDC_SC_CODE=${encodeURIComponent(codes.atpt)}&SD_SCHUL_CODE=${encodeURIComponent(codes.school)}&MLSV_YMD=${ymd}`);
+        const j=r;
         const rows=(j?.mealServiceDietInfo?.[1]?.row)||[];
         const found=rows.find(x=>String(x.MMEAL_SC_NM||'').includes('중식'))||rows[0]||null;
         if(found) diet=found;
@@ -12275,32 +14533,177 @@
       try{
         const {ay,sem}=schoolYearSem(now);
         const g=Number(state.profile?.grade||0), c=Number(state.profile?.classNum||0);
-        if(g&&c){
+        // 소통 전용이면 NEIS 시간표 호출 자체를 생략 (우회 방지)
+        if(timetableAllowed().ok && g&&c){
           // 학교급 추정이 틀릴 수 있어서 끝까지 돌아가며 맞는 것을 쓴다 (맞춘 것은 기억해 둔다)
+          // 5교시만 뜨는 원인: pSize 부족·CLASS_NM 형식·학기 추정 실패 → 전부 보정
           const eps=[ttEndpoint(),...['elsTimetable','misTimetable','hisTimetable','spsTimetable'].filter(e=>e!==ttEndpoint())];
           const saved=state.ttEndpoint||'';
           const ordered=saved?[saved,...eps.filter(e=>e!==saved)]:eps;
-          for(const ep of ordered){
-            try{
-              const r=await fetch(`https://open.neis.go.kr/hub/${ep}?Type=json&pIndex=1&pSize=20&ATPT_OFCDC_SC_CODE=${encodeURIComponent(codes.atpt)}&SD_SCHUL_CODE=${encodeURIComponent(codes.school)}&AY=${ay}&SEM=${sem}&GRADE=${g}&CLASS_NM=${c}&TI_FROM_YMD=${ymd}&TI_TO_YMD=${ymd}`);
-              const j=await r.json();
-              const rows=(j?.[ep]?.[1]?.row)||[];
-              if(rows.length){ tt=rows; state.ttEndpoint=ep; break; }
-            }catch(e){}
+          const sems=[`${ay}_${sem}`,...(sem==='1'?[`${ay}_2`]:[`${ay}_1`])];
+          const classVars=[String(c),String(c).padStart(2,'0')];
+          outer: for(const ep of ordered){
+            for(const ss of sems){
+              const [tryAy,trySem]=ss.split('_');
+              for(const cv of classVars){
+                try{
+                  const r=await fetchNeisJson(`https://open.neis.go.kr/hub/${ep}?Type=json&pIndex=1&pSize=100&ATPT_OFCDC_SC_CODE=${encodeURIComponent(codes.atpt)}&SD_SCHUL_CODE=${encodeURIComponent(codes.school)}&AY=${tryAy}&SEM=${trySem}&GRADE=${g}&CLASS_NM=${encodeURIComponent(cv)}&TI_FROM_YMD=${ymd}&TI_TO_YMD=${ymd}`);
+                  const j=r;
+                  const rows=(j?.[ep]?.[1]?.row)||[];
+                  if(rows.length){ tt=sortTtRows(rows); state.ttEndpoint=ep; break outer; }
+                }catch(e){}
+              }
+            }
           }
         }
+        // 승인된 시간표 변경(override) 불러오기 — 같은 학교·학년·반·오늘 것만
+        try{
+          const sid=state.profile?.schoolId||'';
+          if(sid && g && c && timetableAllowed().ok){
+            const dayKey=`${ymd}_${g}_${c}`;
+            const s=await db.collection('timetableOverrides').where('schoolId','==',sid).where('dayKey','==',dayKey).limit(20).get().catch(()=>null);
+            state.ttOverrides=(s?s.docs:[]).map(d=>{ const v=d.data()||{}; return { perio:String(v.perio||''), subject:String(v.subject||'') }; }).filter(x=>x.perio);
+          } else state.ttOverrides=[];
+        }catch(e){ state.ttOverrides=[]; }
       }catch(e){}
       if(diet||tt.length){
         try{ localStorage.setItem(ck,JSON.stringify({diet,tt})); }catch(e){}
         const h2=$('#mealWidget'); if(h2) paint(diet,tt);
+        state.mealRetryCk=ck; state.mealRetry=0;
       } else if(!cached){
         const h2=$('#mealWidget'); if(h2) h2.innerHTML='<div class="empty-side">오늘 정보가 없어요.</div>';
+        // 새로고침을 누르지 않아도 한 번은 자동으로 다시 불러온다 (일시적 실패 대비)
+        if(state.mealRetryCk!==ck){ state.mealRetryCk=ck; state.mealRetry=0; }
+        state.mealRetry=(state.mealRetry||0)+1;
+        if(state.mealRetry<=1){ setTimeout(()=>{ try{ if(!document.hidden) loadMealWidget(true); }catch(e){} },6000); }
       }
-    }catch(e){ if(!cached){ const h2=$('#mealWidget'); if(h2) h2.innerHTML='<div class="empty-side">불러오지 못했어요.</div>'; } }
+    }catch(e){ if(!cached){ const h2=$('#mealWidget'); if(h2) h2.innerHTML='<div class="empty-side">불러오지 못했어요. <button type="button" class="text-btn" data-action="meal-refresh">새로고침</button></div>'; } }
+    try{ scheduleClassNowTick(); }catch(e){}
+  }
+  // ---------- 시간표 변경 요청 → 승인 시 바로 반영 (메신저 연동, 컴시간 참고용 자체 구현) ----------
+  // 저작권 주의: 컴시간 코드를 베끼지 않고 NEIS 공개 API + 자체 override 구조로만 구현.
+  // 흐름: 교사 요청(timetableChanges/pending) → 교사/학교관리자 승인 → timetableOverrides 저장 + 채팅방 알림
+  function ttPeriodTimes(){
+    // 기본 교시 시간 (설정에서 바꿀 수 있음, 24h HH:MM)
+    try{
+      const raw=localStorage.getItem('edutalk_tt_times');
+      if(raw){ const j=JSON.parse(raw); if(Array.isArray(j)&&j.length) return j.slice(0,10); }
+    }catch(e){}
+    return [['09:00','09:50'],['10:00','10:50'],['11:00','11:50'],['13:00','13:50'],['14:00','14:50'],['15:00','15:50'],['16:00','16:50']];
+  }
+  function currentClassNow(){
+    try{
+      if(!timetableAllowed().ok) return null;
+      const d=new Date();
+      const hm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const times=ttPeriodTimes();
+      for(let i=0;i<times.length;i++){
+        const [s,e]=times[i];
+        if(hm>=s && hm<e) return { perio:String(i+1), start:s, end:e };
+      }
+      return null;
+    }catch(e){ return null; }
+  }
+  let classNowTimer=null;
+  function scheduleClassNowTick(){
+    if(classNowTimer) return;
+    const tick=()=>{
+      try{
+        const cur=currentClassNow();
+        state.classNow=cur;
+        // 사이드바·위젯에 수업중 뱃지 표시 (교사는 자동 수업중 상태로 보임)
+        $$('[data-class-now]').forEach(el=>{
+          if(cur && isTeacher()){ el.classList.remove('hidden'); el.textContent=`수업중${cur.perio?` ${cur.perio}교시`:''}`; }
+          else el.classList.add('hidden');
+        });
+      }catch(e){}
+    };
+    tick();
+    classNowTimer=setInterval(tick, 60000);
+  }
+  function openTimetableChangeModal(){
+    if(!isTeacher()) return toast('선생님만 요청할 수 있어요.');
+    if(!timetableAllowed().ok) return toast('[E-TT-001] 소통 전용 이용권은 시간표 기능을 쓸 수 없어요.');
+    const g=Number(state.profile?.grade||1), c=Number(state.profile?.classNum||1);
+    const rooms=(state.rooms||[]).filter(r=>!isInternalRoom(r)).slice(0,30);
+    openModal(`<h2>시간표 변경 요청</h2><p class="desc">교사가 변경을 요청하면 승인 즉시 시간표에 반영되고, 고른 채팅방에 자동으로 알려줘요.</p>
+      <div class="admin-grid"><div class="field"><label>학년</label><input id="ttG" class="input" type="number" min="1" max="6" value="${g}"></div><div class="field"><label>반</label><input id="ttC" class="input" type="number" min="1" max="30" value="${c}"></div></div>
+      <div class="admin-grid"><div class="field"><label>날짜 (YYYYMMDD)</label><input id="ttDate" class="input" maxlength="8" inputmode="numeric" value="${(()=>{const d=new Date();return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;})()}"></div><div class="field"><label>교시</label><input id="ttP" class="input" type="number" min="1" max="10" value="1"></div></div>
+      <div class="field"><label>바꿀 과목 (예: 수학, 기술 / 가정)</label><input id="ttSubj" class="input" maxlength="30" placeholder="예: 수학"></div>
+      <div class="field"><label>사유</label><input id="ttReason" class="input" maxlength="100" placeholder="예: 출장으로 교체"></div>
+      <div class="field"><label>알림 보낼 채팅방 (선택)</label><div class="custom-select"><button type="button" class="select-button" data-select-open="ttRoom"><span data-selected="ttRoom" data-value="">안 보내기</span><span>⌄</span></button></div></div>
+      <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="ttReqGo">요청하기</button></div>`);
+    const tb=$('[data-select-open="ttRoom"]');
+    if(tb) wireDropdown(tb, [{value:'',label:'안 보내기'},...rooms.map(r=>({value:r.id,label:r.name||'채팅방'}))], (v,l)=>{ tb.querySelector('[data-selected]').textContent=l; tb.querySelector('[data-selected]').dataset.value=v; });
+    $('#ttReqGo').onclick=()=>runAsync(async()=>{
+      const sid=state.profile?.schoolId||'';
+      if(!sid) return toast('[E-LIC-003] 학교 정보가 없어요.');
+      const gg=Math.min(6,Math.max(1,Number($('#ttG')?.value||g)));
+      const cc=Math.min(30,Math.max(1,Number($('#ttC')?.value||c)));
+      const date=String($('#ttDate')?.value||'').replace(/[^0-9]/g,'').slice(0,8);
+      const perio=String(Number($('#ttP')?.value||1));
+      const subject=($('#ttSubj')?.value||'').trim().slice(0,30);
+      const reason=($('#ttReason')?.value||'').trim().slice(0,100);
+      const roomId=$('[data-selected="ttRoom"]')?.dataset.value||'';
+      if(date.length!==8) return toast('날짜를 YYYYMMDD로 적어 주세요.');
+      if(!subject) return toast('바꿀 과목을 적어 주세요.');
+      try{
+        await db.collection('timetableChanges').add({ schoolId:sid, grade:gg, classNum:cc, date, perio, subject, reason, roomId, requestedBy:uid(), requestedByName:state.profile?.displayName||'', status:'pending', createdAt:ts(), updatedAt:ts() });
+        closeModal(); toast('변경 요청을 보냈어요. 승인되면 바로 반영돼요.');
+      }catch(e){ console.error(e); toast(errText(e,'timetable')); }
+    });
+  }
+  async function openTimetableApproveList(){
+    if(!isTeacher()) return toast('선생님만 승인할 수 있어요.');
+    openModal(`<h2>시간표 변경 승인</h2><p class="desc">수락을 누르면 바로 시간표가 바뀌고, 지정된 채팅방에 알려줘요.</p><div id="ttApprList"><div class="empty-side">불러오는 중…</div></div><div class="modal-actions"><button class="confirm" data-close-modal>닫기</button></div>`);
+    const host=$('#ttApprList'); if(!host) return;
+    try{
+      const sid=state.profile?.schoolId||'';
+      const s=await db.collection('timetableChanges').where('schoolId','==',sid).where('status','==','pending').limit(30).get();
+      const rows=s.docs.map(d=>({id:d.id,...d.data()}));
+      if(!rows.length){ host.innerHTML='<div class="empty-side">대기 중인 요청이 없어요.</div>'; return; }
+      host.innerHTML=rows.map(r=>`<div class="list-item"><div class="grow"><div class="title">${esc(String(r.date||'').slice(4,6))}/${esc(String(r.date||'').slice(6,8))} ${esc(r.grade)}-${esc(r.classNum)} ${esc(r.perio)}교시 → ${esc(r.subject||'')}</div><div class="meta">${esc(r.requestedByName||'')}${r.reason?` · ${esc(r.reason)}`:''}</div></div><span style="display:flex;gap:6px"><button class="soft-btn" data-action="tt-approve" data-id="${esc(r.id)}">수락</button><button class="soft-btn" data-action="tt-reject" data-id="${esc(r.id)}">거절</button></span></div>`).join('');
+    }catch(e){ host.innerHTML=permErrorBox('[E-AUTH-001]','목록을 불러오지 못했어요.',permFixHint('timetable')); }
+  }
+  async function approveTimetableChange(id, ok){
+    if(!isTeacher()||!id) return;
+    try{
+      const d=await db.collection('timetableChanges').doc(id).get();
+      if(!d.exists) return toast('요청을 찾을 수 없어요.');
+      const r={id:d.id,...d.data()};
+      if(r.schoolId!==(state.profile?.schoolId||'')) return toast('[E-AUTH-001] 우리 학교 요청만 처리할 수 있어요.');
+      if(ok){
+        const dayKey=`${r.date}_${r.grade}_${r.classNum}`;
+        const oid=`${r.schoolId}_${dayKey}_${r.perio}`;
+        await db.collection('timetableOverrides').doc(oid).set({ schoolId:r.schoolId, dayKey, date:r.date, grade:r.grade, classNum:r.classNum, perio:String(r.perio), subject:String(r.subject||''), fromChange:id, approvedBy:uid(), updatedAt:ts() },{merge:true});
+        await db.collection('timetableChanges').doc(id).update({status:'approved', handledBy:uid(), handledAt:ts(), updatedAt:ts()});
+        // 메신저 연동: 지정된 방에 자동 알림
+        if(r.roomId){
+          try{
+            const room=(state.rooms||[]).find(x=>x.id===r.roomId);
+            if(room && !isInternalRoom(room)){
+              const text=`📚 시간표 변경 승인: ${String(r.date).slice(4,6)}/${String(r.date).slice(6,8)} ${r.grade}-${r.classNum} ${r.perio}교시 → ${r.subject}${r.reason?` (${r.reason})`:''}`;
+              const msgRef=db.collection('channels').doc(room.id).collection('messages').doc();
+              const batch=db.batch();
+              batch.set(msgRef,{text,senderId:uid(),senderName:state.profile?.displayName||'사용자',senderRole:state.profile?.role||'teacher',replyToText:null,createdAt:ts(),deleted:false,timetableChange:true});
+              batch.update(db.collection('channels').doc(room.id),{lastText:text,lastSenderId:uid(),lastSenderName:state.profile?.displayName||'사용자',lastCreatedAt:ts(),updatedAt:ts()});
+              await batch.commit();
+            }
+          }catch(e){ console.warn('tt notify', e?.code||e); }
+        }
+        toast('승인해서 시간표에 바로 반영했어요.');
+        try{ await loadMealWidget(true); }catch(e){}
+      } else {
+        await db.collection('timetableChanges').doc(id).update({status:'rejected', handledBy:uid(), handledAt:ts(), updatedAt:ts()});
+        toast('거절했어요.');
+      }
+      closeModal();
+    }catch(e){ console.error(e); toast(errText(e,'timetable')); }
   }
   // ---------- 투표 (방 안에서 바로 만들기 · 마감은 작성자·교사만) ----------
   function openPollModal(){
     if(!state.room) return;
+    if(state.room.type==='notice'&&!isTeacher()) return toast('공지 채널에서는 선생님만 투표를 만들 수 있어요.');
     openModal(`<h2>투표 만들기</h2><p class="desc">${esc(state.room.name||'채팅방')}에서 바로 투표해요.</p>
       <div class="field"><label>질문</label><input id="pollQ" class="input" maxlength="80" placeholder="예: 소풍 장소 정하기"></div>
       <div class="field"><label>보기 (2~6개)</label><div id="pollOpts"><input class="input" data-poll-opt maxlength="30" placeholder="보기 1"><input class="input" data-poll-opt maxlength="30" placeholder="보기 2" style="margin-top:6px"></div><button type="button" class="soft-btn" style="margin-top:8px" data-action="poll-opt-add">+ 보기 추가</button></div>
@@ -12308,11 +14711,26 @@
   }
   async function createPoll(){
     if(!state.room) return;
+    if(!requireChatFree()) return;
+    if(state.room.type==='notice'&&!isTeacher()) return toast('공지 채널에서는 선생님만 투표를 만들 수 있어요.');
     const q=($('#pollQ')?.value||'').trim().slice(0,80);
     const opts=[...document.querySelectorAll('[data-poll-opt]')].map(i=>i.value.trim()).filter(Boolean).slice(0,6);
     if(!q) return toast('질문을 적어 주세요.');
     if(opts.length<2) return toast('보기를 2개 이상 적어 주세요.');
     const room=state.room;
+    if(isInternalRoom(room)){
+      if(!inSocket||!inSocket.connected) return toast('내부 서버에 연결되지 않았어요.');
+      try{
+        const ack=await new Promise((res)=>{
+          let done=false;
+          try{ inSocket.emit('message:send',{roomId:room.srvId,content:'',poll:{q,opts}},(r)=>{ if(!done){done=true;res(r);} }); }catch(e){ if(!done){done=true;res(null);} }
+          setTimeout(()=>{ if(!done){done=true;res(null);} },10000);
+        });
+        if(!ack||!ack.ok) return toast('투표를 올리지 못했어요.');
+        closeModal(); toast('투표를 올렸어요.');
+      }catch(e){ toast('투표를 올리지 못했어요.'); }
+      return;
+    }
     try{
       const msgRef=db.collection('channels').doc(room.id).collection('messages').doc();
       const batch=db.batch();
@@ -12323,6 +14741,7 @@
     }catch(e){ console.error(e); toast(errText(e)); }
   }
   function pollDataOf(m){
+    if(m&&m.internal&&m._pv) return {counts:m._pv.counts||[],total:m._pv.total||0,mine:m._pv.mine||[]};
     if(state.pollVotes instanceof Map&&state.pollVotes.has(m.id)) return state.pollVotes.get(m.id);
     fetchPollVotes(m);
     return {counts:(m.attachment?.poll?.opts||[]).map(()=>0),total:0,mine:[]};
@@ -12354,7 +14773,7 @@
     const opts=Array.isArray(poll.opts)?poll.opts:[];
     const d=pollDataOf(m);
     const closed=!!poll.closed;
-    const canClose=m.senderId===uid()||isTeacher();
+    const canClose=m.senderId===uid()||(m.internal?(state.internalUser?.role==='ADMIN'||state.internalUser?.role==='TEACHER'):isTeacher());
     return `<div class="poll-card"><div class="poll-q">📊 ${esc(poll.q||'투표')}${closed?' <span class="admin-chip">마감됨</span>':''}</div>`
       +opts.map((o,i)=>{
         const c=d.counts[i]||0, pct=d.total?Math.round(c/d.total*100):0;
@@ -12365,14 +14784,43 @@
   }
   async function votePoll(msgId,idx){
     if(!state.room) return;
+    if(!requireChatFree()) return;
     const m=(state.messages||[]).find(x=>x.id===msgId); if(!m||m.attachment?.poll?.closed) return;
+    if(m.internal){
+      if(!inSocket||!inSocket.connected) return toast('내부 서버에 연결되지 않았어요.');
+      try{
+        const ack=await new Promise((res)=>{
+          let done=false;
+          try{ inSocket.emit('poll:vote',{messageId:m.srvId,choices:[idx]},(r)=>{ if(!done){done=true;res(r);} }); }catch(e){ if(!done){done=true;res(null);} }
+          setTimeout(()=>{ if(!done){done=true;res(null);} },10000);
+        });
+        if(ack&&ack.ok){ m._pv=m._pv||{counts:[],total:0,mine:[]}; m._pv.mine=ack.mine||[idx]; renderMessages(false); }
+        else toast('투표하지 못했어요.');
+      }catch(e){ toast('투표하지 못했어요.'); }
+      return;
+    }
     try{ await db.collection('channels').doc(state.room.id).collection('messages').doc(msgId).collection('votes').doc(uid()).set({choices:[idx],at:ts()},{merge:true}); }catch(e){ console.error(e); return toast(errText(e)); }
     if(state.pollVotes instanceof Map) state.pollVotes.delete(msgId);
     fetchPollVotes(m);
   }
   async function closePoll(msgId){
     if(!state.room) return;
+    if(!requireChatFree()) return;
     const m=(state.messages||[]).find(x=>x.id===msgId); if(!m) return;
+    if(m.internal){
+      const can=m.senderId===uid()||state.internalUser?.role==='ADMIN';
+      if(!can) return;
+      try{
+        const ack=await new Promise((res)=>{
+          let done=false;
+          try{ inSocket.emit('poll:close',{messageId:m.srvId},(r)=>{ if(!done){done=true;res(r);} }); }catch(e){ if(!done){done=true;res(null);} }
+          setTimeout(()=>{ if(!done){done=true;res(null);} },10000);
+        });
+        if(ack&&ack.ok){ if(m.attachment&&m.attachment.poll) m.attachment.poll.closed=true; renderMessages(false); toast('투표를 마감했어요.'); }
+        else toast('마감하지 못했어요.');
+      }catch(e){ toast('마감하지 못했어요.'); }
+      return;
+    }
     if(!(m.senderId===uid()||isTeacher())) return;
     try{
       const att={...(m.attachment||{}),poll:{...(m.attachment?.poll||{}),closed:true}};

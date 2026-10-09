@@ -1,8 +1,8 @@
 {
-  "name": "edutalk",
+  "name": "breeze",
   "version": "1.0.0",
   "private": true,
-  "description": "에듀톡 - 학교 전용 메신저 (Capacitor Native)",
+  "description": "브리즈 - 학교 전용 메신저 (Capacitor Native)",
   "type": "module",
   "scripts": {
     "build": "echo \"web build is static public/ folder\"",

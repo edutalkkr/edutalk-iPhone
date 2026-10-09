@@ -34,3 +34,19 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# On-premise secrets (never commit)
+onprem/license.secret
+onprem/license.key
+onprem/license-vendor-private.key
+onprem/data/
+onprem/uploads/
+onprem/logs/
+onprem/dist/
+onprem/.test-data/
+onprem-electron/dist/
+
+# Rust / Tauri 빌드 산출물 (대용량 · 재생성 가능)
+**/target/
+edutalk-core/dist/
+edutalk-core/node_modules/

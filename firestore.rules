@@ -7,8 +7,9 @@ service cloud.firestore {
     // 내 실제 역할 (users 문서 기준). publicProfiles 에 자기 역할을 그대로 쓰도록 허용할 때 쓴다.
     function myRole() { return signedIn() && ('role' in userDoc(request.auth.uid)) ? userDoc(request.auth.uid).role : 'student'; }
     function isAdmin() { return signedIn() && role() == 'admin'; }
-    function isTeacher() { return signedIn() && role() == 'teacher'; }
-    function isTeacherOrAdmin() { return signedIn() && (role() == 'teacher' || role() == 'admin'); }
+    function isSchoolAdmin() { return signedIn() && role() == 'school_admin'; }
+    function isTeacher() { return signedIn() && (role() == 'teacher' || role() == 'school_admin'); }
+    function isTeacherOrAdmin() { return signedIn() && (role() == 'teacher' || role() == 'admin' || role() == 'school_admin'); }
     function self(uid) { return signedIn() && request.auth.uid == uid; }
     function mySchool() {
       return signedIn() && ('schoolId' in userDoc(request.auth.uid)) ? userDoc(request.auth.uid).schoolId : '';
@@ -26,15 +27,116 @@ service cloud.firestore {
         && ('blockedUsers' in userDoc(targetUid))
         && userDoc(targetUid).blockedUsers.hasAny([request.auth.uid]);
     }
+    // 타임아웃 중인 이용자의 쓰기 차단 (서버측 2차 방어 — 나가기·거절·삭제·신고·이의신청은 막지 않는다)
+    // 개인 타임아웃(chatTimeouts) + 전체 타임아웃(chatSettings/timeoutAllUntil) 둘 다 본다.
+    // exists()가 두 get()을 모두 감싼다 (|| 때문에 가드가 풀리면 문서 없는 사용자가 전부 막힌다)
+    function personalTimeoutActive() {
+      return exists(/databases/$(database)/documents/chatTimeouts/$(request.auth.uid))
+        && (
+          get(/databases/$(database)/documents/chatTimeouts/$(request.auth.uid)).data.get('permanent', false) == true
+          || get(/databases/$(database)/documents/chatTimeouts/$(request.auth.uid)).data.get('until', 0) > request.time.toMillis());
+    }
+    function globalTimeoutActive() {
+      return exists(/databases/$(database)/documents/chatSettings/main)
+        && get(/databases/$(database)/documents/chatSettings/main).data.get('timeoutAllUntil', 0) > request.time.toMillis();
+    }
+    function senderOk() { return isAdmin() || (!personalTimeoutActive() && !globalTimeoutActive()); }
 
     // 학교 목록은 가입 전에도 검색할 수 있어야 하므로 공개 읽기 (학교 이름/지역/학년 정보만)
     match /schools/{schoolId} {
       allow read: if true;
       allow write: if isAdmin();
     }
+    // 부서 (같은 학교 열람, 학교관리자·총관리자 편집)
+    match /orgDepts/{deptId} {
+      allow read: if signedIn() && (isAdmin() || resource.data.get('schoolId', '') == mySchool());
+      allow create: if (isAdmin() || (signedIn() && isSchoolAdmin() && mySchool() != '' && request.resource.data.get('schoolId', '') == mySchool()))
+        && request.resource.data.get('name', '') is string;
+      allow update: if (isAdmin() || (signedIn() && isSchoolAdmin() && resource.data.get('schoolId', '') == mySchool()))
+        && request.resource.data.get('schoolId', '') == resource.data.get('schoolId', '');
+      allow delete: if isAdmin() || (signedIn() && isSchoolAdmin() && resource.data.get('schoolId', '') == mySchool());
+    }
+    // 교사별 별명 (본인 것만, ownerUid 하위 컬렉션)
+    match /staffNotes/{ownerUid}/items/{targetUid} {
+      allow read, write: if self(ownerUid);
+    }
+    // Total-admin private memo per school (not visible to schools/teachers)
+    match /schoolMemos/{schoolId} {
+      allow read, write: if isAdmin();
+    }
     // 가입 코드는 관리자만 볼 수 있고, 가입 시에는 규칙에서만 검증한다
     match /schoolCodes/{schoolId} {
       allow read, write: if isAdmin();
+    }
+    // 내부망 서버 등록 코드 (학교 관리자가 자기 학교 것만 등록·수정, 발급은 Functions가 서명)
+    match /schoolSecrets/{schoolId} {
+      allow read: if isAdmin() || (signedIn() && mySchool() != '' && mySchool() == schoolId);
+      allow create: if isSchoolAdmin() && mySchool() != '' && mySchool() == schoolId
+        && request.resource.data.get('secret', '') is string
+        && request.resource.data.get('secret', '').size() >= 16;
+      allow update: if isSchoolAdmin() && mySchool() != '' && mySchool() == schoolId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['secret', 'hwid', 'updatedAt']);
+    }
+    // 내부망 라이선스 (Functions 또는 학교 관리자가 직접 발급, 학교 관리자·총관리자만 열람)
+    // 직접 발급도 학교 비밀을 아는 학교 관리자만 가능 (비밀 자체가 열람 제한됨)
+    match /internalLicenses/{schoolId} {
+      allow read: if isAdmin() || (signedIn() && mySchool() != '' && mySchool() == schoolId);
+      allow create, update: if (isAdmin() || (isSchoolAdmin() && mySchool() != '' && mySchool() == schoolId))
+        && request.resource.data.get('schoolId', '') == schoolId
+        && request.resource.data.get('key', '') is string
+        && request.resource.data.get('key', '').size() > 32
+        && request.resource.data.get('expiresAt', null) is timestamp;
+      allow delete: if isAdmin();
+    }
+    // 디지털 이용권 licenses/{16자리코드} (관리자 UI·환불·듀얼 확인이 전부 이 컬렉션 사용)
+    // - 단건 조회: 총관리자, 구매자·등록자 본인, 같은 학교 구성원 (환불 요청 흐름)
+    //   + 미사용(issued) 코드는 코드를 아는 학교 관리자/교사가 인증코드 대조용으로 1건 조회 가능 (E-LIC-001 수정)
+    //   코드는 16자리 랜덤이라 코드를 모르면 조회 불가. 목록 긁기는 여전히 불가.
+    // - 목록: 총관리자 전체, 그 외는 where schoolId==본인학교 쿼리만 (전수 긁기 불가)
+    // - 생성·수정·삭제: 총관리자만 (활성화는 Functions redeemLicense 경유. 직접 쓰기 금지)
+    match /licenses/{code} {
+      allow get: if isAdmin()
+        || (signedIn() && resource.data.get('purchasedBy', '') == request.auth.uid)
+        || (signedIn() && resource.data.get('activatedBy', '') == request.auth.uid)
+        || (signedIn() && resource.data.get('schoolId', '') != '' && resource.data.get('schoolId', '') == mySchool())
+        || (signedIn() && resource.data.get('status', '') == 'issued' && (isSchoolAdmin() || isTeacher()));
+      allow list: if isAdmin()
+        || (signedIn() && resource.data.get('schoolId', '') != '' && resource.data.get('schoolId', '') == mySchool());
+      allow create, update, delete: if isAdmin();
+    }
+    // 시간표 변경 요청 timetableChanges/{autoId} — 교사 요청 → 교사/학교관리자 승인 시 override 반영
+    // 읽기: 같은 학교 구성원 + 총관리자. 쓰기: 교사 이상이 같은 학교 것만. 삭제: 총관리자만.
+    match /timetableChanges/{cid} {
+      allow read: if signedIn() && (isAdmin() || resource.data.get('schoolId', '') == mySchool());
+      allow create: if signedIn() && (isTeacherOrAdmin())
+        && request.resource.data.get('schoolId', '') == mySchool()
+        && request.resource.data.get('status', '') == 'pending';
+      allow update: if isAdmin() || (signedIn() && isTeacher() && resource.data.get('schoolId', '') == mySchool()
+        && request.resource.data.get('schoolId', '') == resource.data.get('schoolId', ''));
+      allow delete: if isAdmin();
+    }
+    // 시간표 확정 덮어쓰기 timetableOverrides/{overrideId} — 승인된 변경만 저장, 읽기 같은 학교
+    match /timetableOverrides/{oid} {
+      allow read: if signedIn() && (isAdmin() || resource.data.get('schoolId', '') == mySchool());
+      allow create, update: if signedIn() && (isTeacherOrAdmin())
+        && request.resource.data.get('schoolId', '') == mySchool();
+      allow delete: if isAdmin() || (signedIn() && isTeacher() && resource.data.get('schoolId', '') == mySchool());
+    }
+    // 환불 요청 licenseRefunds/{autoId}
+    // - 생성: 로그인 사용자가 본인 명의로 pending만
+    // - 단건·목록: 총관리자 전체, 요청자는 본인 문서만 (중복검사는 본인 문서 기준, 실패해도 요청은 진행)
+    // - 수정·삭제: 총관리자만
+    match /licenseRefunds/{rid} {
+      allow create: if signedIn()
+        && request.resource.data.get('requestedBy', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending'
+        && request.resource.data.get('code', '') is string
+        && request.resource.data.get('code', '').size() == 16
+        && request.resource.data.get('reason', '') is string
+        && request.resource.data.get('reason', '').size() >= 2;
+      allow get: if isAdmin() || (signedIn() && resource.data.get('requestedBy', '') == request.auth.uid);
+      allow list: if isAdmin() || (signedIn() && resource.data.get('requestedBy', '') == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
     // 사용자 고유 초대 코드 (코드 -> 사용자). 남의 코드를 덮어쓸 수 없다.
@@ -60,6 +162,7 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.from == request.auth.uid
         && request.resource.data.status == 'pending'
+        && senderOk()
         && !blockedByTarget(request.resource.data.to);
       allow update: if signedIn() && (
         isAdmin()
@@ -95,6 +198,7 @@ service cloud.firestore {
         resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid || isAdmin()
       );
       allow create: if signedIn()
+        && senderOk()
         && request.resource.data.fromUid == request.auth.uid
         && request.resource.data.status == 'pending';
       allow update: if signedIn() && (
@@ -119,7 +223,15 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if self(uid) || isAdmin();
+      allow read: if self(uid) || isAdmin()
+        || (isSchoolAdmin() && mySchool() != '' && resource.data.get('schoolId', '') == mySchool());
+      // 학교 관리자는 우리 학교의 학생·교사에게만 권한 변경(학생↔교사)·학교에서 제거를 할 수 있다
+      function schoolAdminTargetOk(targetUid) {
+        return isSchoolAdmin() && request.auth.uid != targetUid && mySchool() != ''
+          && resource.data.get('schoolId', '') == mySchool()
+          && resource.data.get('deleted', false) == false
+          && resource.data.get('role', 'student') in ['student', 'teacher'];
+      }
       // 가입 시 필수 동의(만 14세 이상 · 개인정보 수집)를 서버에서도 강제한다
       allow create: if self(uid)
         && request.resource.data.role == 'student'
@@ -138,7 +250,23 @@ service cloud.firestore {
         // 학생이 스스로 이용 정지를 풀거나 사유를 지우지 못하게 한다 (관리자만 변경 가능)
         && request.resource.data.get('suspended', false) == resource.data.get('suspended', false)
         && request.resource.data.get('suspendReason', '') == resource.data.get('suspendReason', '')
-      ) || isAdmin();
+      ) || isAdmin() || (self(uid)
+        && resource.data.get('suspended', false) == true
+        && resource.data.get('suspendedUntil', null) is timestamp
+        && resource.data.get('suspendedUntil', null) < request.time
+        && request.resource.data.get('suspended', true) == false
+        && request.resource.data.get('suspendedUntil', null) == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['suspended', 'suspendReason', 'suspendedAt', 'suspendedUntil', 'updatedAt'])) || (schoolAdminTargetOk(uid) && (
+        // 권한 변경: 역할만 학생↔교사 + updatedAt
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt'])
+          && request.resource.data.get('role', 'student') in ['student', 'teacher'])
+        ||
+        // 학교에서 제거: 학교 연결만 끊기 (역할·정지 상태는 그대로)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schoolId', 'schoolName', 'schoolChangedAt', 'pendingSchoolCleanup', 'updatedAt'])
+          && request.resource.data.get('schoolId', '') == ''
+          && request.resource.data.get('schoolName', '') == ''
+          && request.resource.data.get('role', 'student') == resource.data.get('role', 'student'))
+      ));
       allow delete: if self(uid) || isAdmin();
     }
 
@@ -153,8 +281,14 @@ service cloud.firestore {
       allow read: if signedIn() && (isAdmin() || self(uid) || schoolOk(resource.data));
       // 자기 프로필은 만들거나 고칠 수 있다. 단, 역할(role)은 실제 내 역할과 같아야 한다
       // (학생이 스스로 관리자로 바꾸는 것을 막고, 역할 표시가 비어 있어도 저장이 되게 한다)
+      // 학교 관리자는 우리 학교 구성원의 학교 연결 끊기·역할(학생↔교사) 표시만 바꿀 수 있다
       allow create: if self(uid) && request.resource.data.get('role','student') == myRole();
-      allow update: if (self(uid) && request.resource.data.get('role','student') == myRole()) || isAdmin();
+      allow update: if (self(uid) && request.resource.data.get('role','student') == myRole()) || isAdmin()
+        || (isSchoolAdmin() && request.auth.uid != uid && mySchool() != '' && resource.data.get('schoolId', '') == mySchool()
+          && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schoolId', 'schoolName', 'updatedAt'])
+            && request.resource.data.get('schoolId', '') == '')
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'deptId', 'updatedAt'])
+              && request.resource.data.get('role', 'student') in ['student', 'teacher'])));
       allow delete: if self(uid) || isAdmin();
     }
 
@@ -200,9 +334,12 @@ service cloud.firestore {
       }
       allow read: if canReadRoom();
       allow create: if signedIn()
+        && senderOk()
         && request.resource.data.createdBy == request.auth.uid
         && request.auth.uid in request.resource.data.memberIds
         && request.resource.data.visibility in ['all','private','members']
+        // Firebase 방은 외부망 전용이다 (내부망 방은 학교 서버에만 만든다)
+        && request.resource.data.get('network_type', 'EXTERNAL') == 'EXTERNAL'
         && (
           !('schoolId' in request.resource.data) ||
           request.resource.data.schoolId == mySchool()
@@ -217,7 +354,9 @@ service cloud.firestore {
         (
           // 참가 코드만 입력하면 바로 들어오는 채팅방 (방장이 '바로 입장'으로 설정한 경우)
           // 코드는 클라이언트가 미리 남긴 증표(joinAttempts)와 대조해 서버에서 검증한다
+          // 타임아웃 중에는 코드 입장도 막는다 (나가기는 아래 별도 분기라 영향 없음)
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds','updatedAt','schoolIds','classKeys']) &&
+          senderOk() &&
           request.auth.uid in request.resource.data.get('memberIds', []) &&
           request.resource.data.get('memberIds', []).hasAll(resource.data.get('memberIds', [])) &&
           request.resource.data.get('memberIds', []).size() <= resource.data.get('memberIds', []).size() + 1 &&
@@ -237,7 +376,9 @@ service cloud.firestore {
         ) ||
         (
           // 초대를 받은 사람이 스스로 들어오는 경우 (이미 들어와 있으면 그대로 둔다)
+          // 타임아웃 중에는 수락 입장도 막는다 (거절·나가기는 별도라 영향 없음)
           request.auth.uid in request.resource.data.get('memberIds', []) &&
+          senderOk() &&
           request.resource.data.get('memberIds', []).hasAll(resource.data.get('memberIds', [])) &&
           request.resource.data.get('memberIds', []).size() <= resource.data.get('memberIds', []).size() + 1 &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds','updatedAt','schoolIds','classKeys']) &&
@@ -257,6 +398,14 @@ service cloud.firestore {
           !(request.auth.uid in request.resource.data.memberIds) &&
           resource.data.memberIds.size() == request.resource.data.memberIds.size() + 1 &&
           resource.data.memberIds.hasAll(request.resource.data.memberIds)
+        ) ||
+        (
+          // 방의 마지막 1명이 나갈 때: 본인 제거 + 삭제 표시를 한 번에 (유령방 방지, 30일 뒤 파기)
+          request.auth.uid in resource.data.memberIds &&
+          resource.data.memberIds.size() == 1 &&
+          request.resource.data.get('memberIds', ['__none__']).size() == 0 &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds','deleted','deleted_at','expire_at','updatedAt']) &&
+          request.resource.data.get('deleted', false) == true
         )
       );
       // 방도 즉시 지우지 않는다. deleted_at 을 남기고 30일 뒤 TTL이 영구 파기한다.
@@ -282,7 +431,7 @@ service cloud.firestore {
             );
         }
         allow read: if canReadMessages();
-        allow create: if signedIn() && (
+        allow create: if signedIn() && senderOk() && (
           (
             request.resource.data.senderId == request.auth.uid &&
             room().get('deleted', false) == false &&
@@ -338,7 +487,16 @@ service cloud.firestore {
             resource.data.get('senderId', '') == request.auth.uid
             && resource.data.get('deleted', false) == false
             && request.resource.data.get('deleted', false) == false
+            && senderOk()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','edited','editedAt','updatedAt'])
+          )
+          || (
+            // 메시지 회수: 작성자 본인만, 회수 표시 + 문구 교체만 허용
+            resource.data.get('senderId', '') == request.auth.uid
+            && resource.data.get('deleted', false) == false
+            && resource.data.get('isRecalled', false) == false
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRecalled','text','updatedAt'])
+            && request.resource.data.get('isRecalled', false) == true
           )
           || (
             (
@@ -349,6 +507,7 @@ service cloud.firestore {
           )
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+            && senderOk()
             && (
               amMember(room()) ||
               (roomOk() && room().get('visibility', '') == 'all')
@@ -359,10 +518,12 @@ service cloud.firestore {
         allow delete: if false;
 
         // 투표: 그 방을 볼 수 있는 멤버가 자기 문서(uid와 같은 번호)에 한 표만 쓰고 바꾼다
+        // 타임아웃 중에는 투표도 막는다 (서비스 이용)
         match /votes/{uid} {
           allow read: if canReadMessages();
           allow create, update: if signedIn()
             && request.auth.uid == uid
+            && senderOk()
             && (
               amMember(room()) ||
               (roomOk() && room().get('visibility', '') == 'all')
@@ -384,8 +545,10 @@ service cloud.firestore {
         }
         allow read: if canSeeTodo();
         allow create: if canSeeTodo()
+          && senderOk()
           && request.resource.data.createdBy == request.auth.uid;
         allow update: if canSeeTodo()
+          && senderOk()
           && (
             request.auth.uid in todoRoom().get('memberIds', [])
             || todoRoom().get('createdBy', '') == request.auth.uid
@@ -412,6 +575,7 @@ service cloud.firestore {
         }
         allow read: if canSeeAtt();
         allow create, update: if canSeeAtt()
+          && senderOk()
           && (
             request.auth.uid in attRoom().get('memberIds', [])
             || attRoom().get('createdBy', '') == request.auth.uid
@@ -486,6 +650,7 @@ service cloud.firestore {
     match /joinAttempts/{attemptId} {
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
       allow create: if signedIn()
+        && senderOk()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.roomId is string
         && request.resource.data.roomId.size() > 0
@@ -504,6 +669,7 @@ service cloud.firestore {
       allow get: if signedIn();
       allow list: if false;
       allow create: if signedIn()
+        && senderOk()
         && request.resource.data.roomId is string
         && request.resource.data.roomId.size() > 0
         && request.resource.data.createdBy == request.auth.uid;
@@ -542,6 +708,7 @@ service cloud.firestore {
       // (이 검증이 없으면 자기 방을 roomId 로 넣고 문서 번호만 남의 방으로 만들어 규칙을 우회할 수 있다)
       allow create: if signedIn()
         && request.resource.data.inviterId == request.auth.uid
+        && senderOk()
         && request.resource.data.roomId is string
         && request.resource.data.targetUid is string
         && request.resource.data.roomId.size() > 0
@@ -578,8 +745,42 @@ service cloud.firestore {
     // 개인별 채팅 타임아웃 (본인과 관리자·선생님만 볼 수 있다)
     // 학생은 경고 누적으로 생긴 자동 타임아웃만 스스로 기록할 수 있다.
     // (해제·단축 불가: 반드시 미래 시각이어야 하고, 기존보다 짧아질 수 없으며, 최대 하루)
+    // 예약 발송 (본인 것만 생성/조회/취소, 발송은 본인 클라이언트 또는 서버 함수가 처리)
+    match /scheduledNotices/{noticeId} {
+      allow create: if signedIn()
+        && senderOk()
+        && request.resource.data.get('byUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'waiting';
+      allow read: if signedIn() && resource.data.get('byUid', '') == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.get('byUid', '') == request.auth.uid
+        && request.resource.data.get('byUid', '') == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'sentAt', 'updatedAt']);
+      allow delete: if signedIn() && resource.data.get('byUid', '') == request.auth.uid;
+    }
+    // 개인 메모 (본인 것만, 서버 저장 포스트잇)
+    match /personalMemos/{memoId} {
+      allow create: if signedIn() && request.resource.data.get('uid', '') == request.auth.uid;
+      allow read: if signedIn() && resource.data.get('uid', '') == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('uid', '') == request.auth.uid;
+      allow delete: if signedIn() && resource.data.get('uid', '') == request.auth.uid;
+    }
     match /chatTimeouts/{targetUid} {
       allow read: if signedIn() && (self(targetUid) || isTeacherOrAdmin());
+      // 학교 관리자는 우리 학교 구성원에게만 최대 30일 타임아웃을 걸 수 있다 (계속 타임아웃은 총관리자만)
+      function timeoutTargetSchoolOk() {
+        return mySchool() != '' && exists(/databases/$(database)/documents/users/$(targetUid))
+          && get(/databases/$(database)/documents/users/$(targetUid)).data.get('schoolId', '') == mySchool()
+          && get(/databases/$(database)/documents/users/$(targetUid)).data.get('deleted', false) == false;
+      }
+      function schoolAdminTimeoutOk() {
+        return isSchoolAdmin() && request.auth.uid != targetUid && timeoutTargetSchoolOk()
+          && request.resource.data.get('permanent', false) == false
+          && request.resource.data.until > request.time.toMillis()
+          && request.resource.data.until <= request.time.toMillis() + 2592000000;
+      }
       function autoTimeoutOk() {
         return self(targetUid)
           && request.resource.data.auto == true
@@ -587,12 +788,12 @@ service cloud.firestore {
           && request.resource.data.until > request.time.toMillis()
           && request.resource.data.until <= request.time.toMillis() + 86400000;
       }
-      allow create: if isAdmin() || autoTimeoutOk();
-      allow update: if isAdmin() || (autoTimeoutOk()
+      allow create: if isAdmin() || autoTimeoutOk() || schoolAdminTimeoutOk();
+      allow update: if isAdmin() || (schoolAdminTimeoutOk() && resource.data.get('permanent', false) == false) || (autoTimeoutOk()
         && resource.data.get('auto', false) == true
         && resource.data.get('permanent', true) == false
         && request.resource.data.until >= resource.data.get('until', 0));
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isSchoolAdmin() && request.auth.uid != targetUid && timeoutTargetSchoolOk() && resource.data.get('permanent', false) == false);
     }
 
     // 공유 채팅방에 들어오려는 참가 요청 (방장이 수락/거절)
@@ -605,6 +806,7 @@ service cloud.firestore {
         || roomOfRes().get('createdBy', '') == request.auth.uid
       );
       allow create: if signedIn()
+        && senderOk()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.status == 'pending'
         && roomOf().get('joinPolicy', '') == 'approve'
@@ -617,9 +819,11 @@ service cloud.firestore {
     }
 
     // 우리 학교 전체 공유 승인 요청 (관리자·선생님이 승인)
+    // 타임아웃 중에는 공유 요청도 막는다 (취소는 본인 문서 기준이라 허용)
     match /shareRequests/{reqId} {
       allow read: if signedIn() && (resource.data.requestedBy == request.auth.uid || isTeacherOrAdmin());
       allow create: if signedIn()
+        && senderOk()
         && request.resource.data.requestedBy == request.auth.uid
         && request.resource.data.status == 'pending';
       allow update, delete: if signedIn() && (
@@ -704,7 +908,7 @@ service cloud.firestore {
     }
 
     match /directNotices/{id} {
-      allow create: if isTeacherOrAdmin() && request.resource.data.senderId == request.auth.uid;
+      allow create: if isTeacherOrAdmin() && senderOk() && request.resource.data.senderId == request.auth.uid;
       allow read: if signedIn() && (
         resource.data.targetUid == request.auth.uid
         || resource.data.get('senderId', '') == request.auth.uid
@@ -735,6 +939,59 @@ service cloud.firestore {
     match /pushTokens/{uid} {
       allow read: if self(uid) || isAdmin();
       allow write: if self(uid) || isAdmin();
+    }
+
+    // 쪽지 하이브리드 (데스크톱 1차 DLP 경유, 서버는 2차 검증): 발신자·수신자·관리자만
+    match /memos/{memoId} {
+      allow create: if signedIn()
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.body is string
+        && request.resource.data.body.size() <= 50000;
+      allow read: if signedIn() && (
+        resource.data.fromUid == request.auth.uid
+        || (resource.data.keys().hasAny(['toUids']) && request.auth.uid in resource.data.get('toUids', []))
+        || isAdmin()
+      );
+      // 수신확인(readBy)만 수신자가 갱신, 삭제는 발신자·관리자만 soft-delete相当(실삭제 금지 → delete false)
+      // 수신확인(readBy) 갱신은 읽을 수 있는 사람만 (누구나 덮으면 확인 조작이 된다)
+      function canReadMemo() {
+        return resource.data.fromUid == request.auth.uid
+          || (resource.data.keys().hasAny(['toUids']) && request.auth.uid in resource.data.get('toUids', []))
+          || isAdmin();
+      }
+      allow update: if signedIn() && (
+        isAdmin()
+        || resource.data.fromUid == request.auth.uid
+        || (canReadMemo() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'updatedAt']))
+      );
+      allow delete: if false;
+      // 쪽지 하단 댓글 스레드 (쪽지폭탄 방지용 가벼운 답장)
+      match /comments/{commentId} {
+        // 부모 쪽지를 읽을 수 있는 사람만 댓글을 본다 (하위 컬렉션은 따로 막아야 한다)
+        allow read: if signedIn() && (
+          isAdmin()
+          || get(/databases/$(database)/documents/memos/$(memoId)).data.get('fromUid', '') == request.auth.uid
+          || request.auth.uid in get(/databases/$(database)/documents/memos/$(memoId)).data.get('toUids', [])
+        );
+        allow create: if signedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.body is string
+          && request.resource.data.body.size() >= 1
+          && request.resource.data.body.size() <= 2000;
+        allow update, delete: if false;
+      }
+    }
+    // 구버전 호환: 최상위 memoThreads (상위 memoId 참조 필수)
+    match /memoThreads/{threadId} {
+      allow create: if signedIn()
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 1
+        && request.resource.data.body.size() <= 2000;
+      allow read: if signedIn();
+      allow update, delete: if false;
     }
 
     match /{document=**} { allow read, write: if false; }

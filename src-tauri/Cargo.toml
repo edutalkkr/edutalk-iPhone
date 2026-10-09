@@ -1,0 +1,23 @@
+[package]
+name = "edutalk-desktop"
+version = "1.0.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "notification", "dialog", "fs", "os", "single-instance"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+rusqlite = { version = "0.31", features = ["bundled"] }
+aes-gcm = "0.10"
+rand = "0.8"
+sha2 = "0.10"
+chrono = "0.4"
+tokio = { version = "1", features = ["full"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

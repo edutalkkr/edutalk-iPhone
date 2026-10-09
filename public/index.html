@@ -4,28 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#F6F8FC">
-  <title>에듀톡 - 학교 전용 메신저 | 학교 코드로 안전하게</title>
-  <meta name="description" content="에듀톡은 학교 코드로 가입하는 학교 전용 메신저예요. 모둠·동아리·개인 메시지와 사진·파일 전송, 새 메시지 알림까지 우리 학교 안에서 안전하게 대화할 수 있어요.">
-  <meta name="keywords" content="에듀톡, EduTalk, 학교 메신저, 학교 전용 메신저, 학급 채팅, 학교 코드, 모둠 채팅, 동아리 채팅">
+  <meta name="edutalk-edition" content="web-basic">
+  <!-- 에디션: 웹 기본(문자형 메신저). 교사 풀버전(조직도·시간표·대강·감사·P2P)은 Windows 설치판 전용 -->
+  <title>브리즈 - 학교 전용 메신저 | 학교 코드로 안전하게</title>
+  <meta name="description" content="브리즈는 학교 코드로 가입하는 학교 전용 메신저예요. 웹에서는 문자처럼 쓰는 기본 메시지를 쓰고, 교사 풀버전은 Windows 설치판에서 시간표·대강·조직도를 쓸 수 있어요.">
+  <meta name="keywords" content="브리즈, Breeze, 학교 메신저, 학교 전용 메신저, 학급 채팅, 학교 코드, 모둠 채팅, 동아리 채팅">
   <link rel="canonical" href="https://edutalk.cloud/">
   <meta name="robots" content="index, follow">
   <meta name="naver-site-verification" content="1d43d69b5d9428671a7db68b84af466fe5a2d6fb" />
   <meta name="google" content="notranslate">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="에듀톡">
-  <meta property="og:title" content="에듀톡 - 학교 전용 메신저">
+  <meta property="og:site_name" content="브리즈">
+  <meta property="og:title" content="브리즈 - 학교 전용 메신저">
   <meta property="og:description" content="학교 코드로 가입하고 우리 학교 친구들과 안전하게 대화해요.">
   <meta property="og:url" content="https://edutalk.cloud/">
   <meta property="og:locale" content="ko_KR">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="에듀톡 - 학교 전용 메신저">
+  <meta name="twitter:title" content="브리즈 - 학교 전용 메신저">
   <meta name="twitter:description" content="학교 코드로 가입하고 우리 학교 친구들과 안전하게 대화해요.">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "에듀톡",
-    "alternateName": "EduTalk",
+    "name": "브리즈",
+    "alternateName": "Breeze",
     "url": "https://edutalk.cloud/",
     "applicationCategory": "CommunicationApplication",
     "operatingSystem": "Web",
@@ -39,6 +41,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="memo-hybrid.css">
   <script>
     (function () {
       try {
@@ -52,13 +55,17 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
   <script src="firebase.js"></script>
   <!-- Capacitor Native Bridge (웹에서는 자동 스킵, 네이티브에서만 동작) -->
   <script src="native.js"></script>
+  <!-- Desktop-First: 역할 이원화(lite) + 쪽지 하이브리드(데스크톱 전용 UI) -->
+  <script src="lite.js" defer></script>
+  <script src="memo-hybrid.js" defer></script>
 </head>
 <body>
-  <div id="app"><div class="boot" role="status" aria-live="polite"><h1 class="sr-only">에듀톡 - 학교 전용 메신저</h1><div class="boot-visual" aria-hidden="true"><div class="boot-mark">E</div></div><div class="boot-word" aria-hidden="true"><span>E</span><span>D</span><span>U</span><span>T</span><span>A</span><span>L</span><span>K</span></div><div class="boot-copy"><strong>에듀톡</strong><span>불러오는 중이에요</span></div><div class="boot-dots" aria-hidden="true"><i></i><i></i><i></i></div></div></div>
-  <noscript><p style="padding:24px;text-align:center;font-size:15px;line-height:1.7">에듀톡은 학교 코드로 가입하는 <b>학교 전용 메신저</b>입니다. 이용하려면 브라우저에서 자바스크립트를 켜 주세요.</p></noscript>
+  <div id="app"><div class="boot" role="status" aria-live="polite"><h1 class="sr-only">브리즈 - 학교 전용 메신저</h1><div class="boot-visual" aria-hidden="true"><div class="boot-mark">B</div></div><div class="boot-word" aria-hidden="true"><span>B</span><span>R</span><span>E</span><span>E</span><span>Z</span><span>E</span></div><div class="boot-copy"><strong>브리즈</strong><span>불러오는 중이에요</span></div><div class="boot-dots" aria-hidden="true"><i></i><i></i><i></i></div></div></div>
+  <noscript><p style="padding:24px;text-align:center;font-size:15px;line-height:1.7">브리즈는 학교 코드로 가입하는 <b>학교 전용 메신저</b>입니다. 이용하려면 브라우저에서 자바스크립트를 켜 주세요.</p></noscript>
   <div id="toast" class="toast" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="app.js"></script>

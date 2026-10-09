@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>브리즈 서버</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #FFFFFF; color: #1a1d21;
+    font-family: -apple-system, "Malgun Gothic", "Segoe UI", sans-serif;
+    padding: 20px;
+  }
+  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 12px; background: #eef4ff;
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+  }
+  .title { font-size: 20px; font-weight: 800; }
+  .sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .badge {
+    margin-left: auto; font-size: 13px; font-weight: 700; padding: 6px 12px;
+    border-radius: 999px; white-space: nowrap;
+  }
+  .badge.on { background: #e7f8ee; color: #12805c; border: 1px solid #b9e8cd; }
+  .badge.off { background: #fdecec; color: #c03221; border: 1px solid #f5c2b8; }
+  .badge.starting { background: #fff7e5; color: #a16207; border: 1px solid #f5d78e; }
+  .card {
+    border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; margin-bottom: 12px;
+    background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card h3 { margin: 0 0 8px; font-size: 13px; color: #6b7280; font-weight: 700; }
+  .addr { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; word-break: break-all; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+  button {
+    border: 1px solid #d1d5db; background: #fff; border-radius: 10px;
+    padding: 9px 14px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  button:hover { background: #f3f4f6; }
+  button.primary {
+    background: #0069A8; border-color: #0069A8; color: #fff; width: 100%;
+    padding: 14px; font-size: 16px; border-radius: 12px;
+  }
+  button.primary:hover { background: #115E59; }
+  button.ghost { flex: 1; }
+  .kv { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-top: 1px dashed #f0f0f0; }
+  .kv:first-of-type { border-top: none; }
+  .kv b { font-weight: 800; }
+  .warn {
+    background: #fffbeb; border: 1px solid #f5d78e; color: #92400e;
+    border-radius: 12px; padding: 12px 14px; font-size: 13px; margin-bottom: 12px;
+  }
+  .foot { font-size: 12px; color: #9ca3af; text-align: center; margin-top: 14px; line-height: 1.7; }
+  .ips { font-size: 12px; color: #6b7280; margin-top: 8px; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🏫</div>
+    <div>
+      <div class="title">브리즈 서버</div>
+      <div class="sub" id="schoolLine">학교 내부망 메신저</div>
+    </div>
+    <div class="badge starting" id="badge">🟡 시작 중</div>
+  </div>
+
+  <div class="warn" id="setupWarn" style="display:none">
+    ⚠ 초기 설정이 필요해요. [관리자 페이지 열기] → 관리자 계정 + 이용권 등록을 마치면 채팅이 열립니다. (학교 PC 본체에서만 가능)
+  </div>
+
+  <div class="card">
+    <h3>학교 접속 주소 (휴대폰·PC 공통)</h3>
+    <div class="addr" id="lanUrl">확인 중…</div>
+    <div class="row">
+      <button class="ghost" id="copyBtn">📋 주소 복사</button>
+      <button class="ghost" id="refreshBtn">🔄 새로고침</button>
+    </div>
+    <div class="ips" id="ipList"></div>
+  </div>
+
+  <div class="card">
+    <button class="primary" id="adminBtn">관리자 페이지 열기</button>
+    <div class="row">
+      <button class="ghost" id="restartBtn">↻ 서버 재시작</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>라이선스 · 네트워크</h3>
+    <div class="kv"><span>학교</span><b id="schoolName">-</b></div>
+    <div class="kv"><span>라이선스</span><b id="licenseInfo">확인 중…</b></div>
+    <div class="kv"><span>듀얼 네트워크</span><b id="dualInfo">-</b></div>
+    <div class="kv"><span>포트</span><b id="portInfo">3000</b></div>
+  </div>
+
+  <div class="foot">
+    X를 눌러도 꺼지지 않고 시계 옆 트레이에 남아 계속 실행됩니다.<br />
+    트레이 우클릭 → [열기 / 관리자 페이지 열기 / 서버 종료]
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const badge = $('badge'), lanUrl = $('lanUrl'), ipList = $('ipList');
+  const schoolName = $('schoolName'), licenseInfo = $('licenseInfo'), dualInfo = $('dualInfo');
+  const portInfo = $('portInfo'), schoolLine = $('schoolLine'), setupWarn = $('setupWarn');
+
+  function render(s) {
+    if (!s) return;
+    const running = !!s.running;
+    if (s.backend === 'starting') {
+      badge.className = 'badge starting';
+      badge.textContent = '🟡 시작 중';
+    } else if (running) {
+      badge.className = 'badge on';
+      badge.textContent = '🟢 작동 중';
+    } else {
+      badge.className = 'badge off';
+      badge.textContent = '🔴 중지됨';
+    }
+    lanUrl.textContent = s.lanUrl || '확인 중…';
+    portInfo.textContent = String(s.port || 3000);
+    if (Array.isArray(s.ips) && s.ips.length) {
+      ipList.textContent = s.ips.map((x) => `http://${x.address}:${s.port} (${x.iface})`).join(' · ');
+    } else {
+      ipList.textContent = '';
+    }
+    const school = s.school || '';
+    schoolName.textContent = school || '-';
+    schoolLine.textContent = school ? `${school} · 학교 내부망 메신저` : '학교 내부망 메신저';
+    if (s.license) {
+      licenseInfo.textContent = s.license.message || (s.license.dual ? '유료' : '체험/일반');
+      dualInfo.textContent = s.license.dual ? '켜짐' : '꺼짐';
+    } else if (!running) {
+      licenseInfo.textContent = '서버 중지됨';
+      dualInfo.textContent = '-';
+    }
+    if (s.setupDone === false) setupWarn.style.display = 'block';
+    else setupWarn.style.display = 'none';
+  }
+
+  async function refresh() {
+    try {
+      if (!window.edutalk) return;
+      const s = await window.edutalk.getStatus();
+      render(s);
+    } catch (e) {}
+  }
+
+  $('copyBtn').addEventListener('click', async () => {
+    if (!window.edutalk) return;
+    const ok = await window.edutalk.copy(lanUrl.textContent);
+    $('copyBtn').textContent = ok ? '✅ 복사됨' : '❌ 실패';
+    setTimeout(() => { $('copyBtn').textContent = '📋 주소 복사'; }, 1500);
+  });
+  $('adminBtn').addEventListener('click', () => { if (window.edutalk) window.edutalk.openAdmin(); });
+  $('refreshBtn').addEventListener('click', refresh);
+  $('restartBtn').addEventListener('click', async () => {
+    if (!window.edutalk) return;
+    $('restartBtn').textContent = '재시작 중…';
+    await window.edutalk.restartServer();
+    setTimeout(() => { $('restartBtn').textContent = '↻ 서버 재시작'; refresh(); }, 2500);
+  });
+
+  if (window.edutalk) {
+    window.edutalk.onStatus(render);
+    refresh();
+    setInterval(refresh, 5000);
+  } else {
+    lanUrl.textContent = '브리즈 서버 앱에서 열어 주세요.';
+  }
+</script>
+</body>
+</html>

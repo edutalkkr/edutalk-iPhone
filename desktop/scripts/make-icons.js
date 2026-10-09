@@ -14,8 +14,8 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-const BRAND = { r: 0x3f, g: 0x9b, b: 0xff }; // #3F9BFF
-const STRONG = { r: 0x24, g: 0x72, b: 0xce }; // #2472CE
+const BRAND = { r: 0x00, g: 0x82, b: 0xc8 }; // #0082C8 (브리즈 스카이 블루)
+const STRONG = { r: 0x00, g: 0x69, b: 0xa8 }; // #0069A8
 const ASSETS_DIR = path.join(__dirname, '..', 'assets');
 const SUBSAMPLES = 4; // 픽셀당 4x4 슈퍼샘플링 (가장자리 안티에일리어싱)
 
@@ -162,7 +162,7 @@ function render(size) {
       const alpha = bgHits / total;
       const bubble = bubbleHits / bgHits; // 파랑 위에 덮이는 흰색 비율
       const dot = dotHits / bgHits; // 흰색 위에 찍히는 진한 파랑 비율
-      // 배경은 위(#3F9BFF) → 아래(#2472CE) 세로 그라데이션
+      // 배경은 위(#14B8A6) → 아래(#0F766E) 세로 그라데이션
       const t = py / (size - 1);
       const baseR = Math.round(BRAND.r + (STRONG.r - BRAND.r) * t);
       const baseG = Math.round(BRAND.g + (STRONG.g - BRAND.g) * t);

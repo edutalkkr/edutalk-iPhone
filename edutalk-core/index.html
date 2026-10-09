@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#F6F7FB" />
+    <title>브리즈</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+    <script>
+      try {
+        var l = localStorage.getItem("edutalk-layout");
+        document.documentElement.dataset.layout = l === "modern" ? "modern" : "classic";
+        var m = localStorage.getItem("edutalk-motion");
+        if (m === "full" || m === "fade" || m === "off") document.documentElement.dataset.motion = m;
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

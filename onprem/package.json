@@ -1,0 +1,39 @@
+{
+  "name": "breeze-onprem-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Breeze on-premise school LAN server (Express + Socket.io + SQLite)",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "start:service": "node server.js --service",
+    "service:install": "node install-service.js",
+    "service:uninstall": "node uninstall-service.js",
+    "test": "node test-self.js",
+    "pkg:win": "npx @yao-pkg/pkg package.json --targets node22-win-x64 --output dist/breeze-server.exe"
+  },
+  "bin": "server.js",
+  "pkg": {
+    "assets": [
+      "admin.html"
+    ],
+    "targets": [
+      "node22-win-x64"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "formidable": "^3.5.1",
+    "xlsx": "^0.18.5",
+    "node-cron": "^3.0.3",
+    "node-windows": "^1.0.0-beta.8"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.7.5"
+  }
+}

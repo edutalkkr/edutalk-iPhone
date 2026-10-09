@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>브리즈 학내망 서버 관리</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif; margin: 0; background: #f1f5f9; color: #0f172a; }
+  header { background: linear-gradient(135deg,#0082C8,#0069A8); color: #fff; padding: 16px 20px; }
+  header h1 { margin: 0; font-size: 19px; }
+  header p { margin: 4px 0 0; font-size: 12px; opacity: .85; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+  .card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(15,23,42,.06); }
+  .card h2 { margin: 0 0 10px; font-size: 16px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  input, select, button, textarea { font-size: 14px; }
+  input[type=text], input[type=password], input:not([type]) { border: 1px solid #cbd5e1; border-radius: 9px; padding: 9px 11px; }
+  textarea { width: 100%; min-height: 70px; border: 1px solid #cbd5e1; border-radius: 9px; padding: 9px 11px; font-family: monospace; }
+  button { border: 0; border-radius: 9px; padding: 10px 14px; background: #0069A8; color: #fff; font-weight: 700; cursor: pointer; }
+  button.ghost { background: #e2e8f0; color: #0f172a; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border-bottom: 1px solid #e2e8f0; padding: 8px 6px; text-align: left; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .pill.on { background: #dcfce7; color: #15803d; }
+  .pill.off { background: #fee2e2; color: #b91c1c; }
+  .pill.info { background: #dbeafe; color: #1d4ed8; }
+  .muted { color: #64748b; font-size: 12px; }
+  #log { white-space: pre-wrap; font-size: 12px; background: #0f172a; color: #a5f3fc; border-radius: 9px; padding: 10px; max-height: 160px; overflow: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>브리즈 학내망 서버 관리</h1>
+  <p>학교 PC 전용 · 학내망에서만 접속하세요</p>
+</header>
+<main id="main">
+  <div class="card" id="setupCard" style="display:none">
+    <h2>🔐 초기 설정 (1·2단계)</h2>
+    <p class="muted">관리자 계정을 만들고 이용권을 등록해야 채팅이 열립니다. 학교 PC 본체에서 진행해 주세요.</p>
+    <h2 style="margin-top:14px">1단계 · 관리자 계정</h2>
+    <div class="row">
+      <input id="suUser" type="text" placeholder="사번 (영문·숫자 3~20자)" style="flex:1;min-width:140px">
+      <input id="suName" type="text" placeholder="이름" style="flex:1;min-width:120px">
+      <input id="suPw" type="password" placeholder="비밀번호 4자 이상" style="flex:1;min-width:140px">
+      <button id="suGo">만들기</button>
+    </div>
+    <h2 style="margin-top:14px">2단계 · 이용권 등록</h2>
+    <textarea id="suKey" placeholder="license.key 내용을 붙여넣으세요 (없으면 아래 체험 시작)"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="suKeyGo" style="flex:1">키 저장</button>
+      <button id="suTrialGo" class="ghost" style="flex:1">30일 체험으로 시작</button>
+    </div>
+    <div id="setupMsg" class="muted" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h2>관리자 토큰</h2>
+    <div class="row">
+      <input id="token" type="password" placeholder="x-admin-token" style="flex:1;min-width:200px">
+      <button id="saveToken" class="ghost">저장</button>
+      <button id="load">상태 불러오기</button>
+    </div>
+    <p class="muted">서버를 처음 켤 때 콘솔에 나온 토큰을 입력하세요. 브라우저에만 저장돼요.</p>
+  </div>
+  <div class="card">
+    <h2>서버 상태</h2>
+    <div id="status" class="muted">토큰을 저장하고 [상태 불러오기]를 눌러 주세요.</div>
+  </div>
+  <div class="card">
+    <h2>유료 구독 관리 (license.key)</h2>
+    <p class="muted">서버 등록 코드(앱 학교 관리에 1번 등록): <code id="srvSecret">-</code> <button id="copySecret" class="ghost">복사</button></p>
+    <p class="muted">PC 고유값(키를 이 PC에만 묶을 때 사용): <code id="srvHwid">-</code></p>
+    <textarea id="lickey" placeholder="base64url(payload).base64url(서명)"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="saveLicense">라이선스 저장</button>
+    </div>
+    <p class="muted">엑셀 일괄 등록 시 유료 컬럼(is_paid_dual_network / 유료: 1·예·유료)으로 구독 여부를 함께 정할 수 있어요.</p>
+  </div>
+  <div class="card">
+    <h2>교직원 엑셀 일괄 등록</h2>
+    <div class="row">
+      <input id="xlfile" type="file" accept=".xlsx,.xls,.csv">
+      <button id="uploadXl">올리기</button>
+    </div>
+    <p class="muted">열: username(또는 사번/학번), real_name(또는 이름), password(또는 비밀번호, 비우면 사번), department(또는 부서, "교무부&gt;1학년부" 트리 가능), role(또는 권한), is_paid_dual_network(또는 유료)</p>
+    <div id="xlresult" class="muted"></div>
+  </div>
+  <div class="card">
+    <h2>부서 추가</h2>
+    <div class="row">
+      <input id="depName" type="text" placeholder="부서 이름 (예: 1학년부)" style="flex:1;min-width:160px">
+      <button id="addDep">추가</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>사용자 (최근 1000명)</h2>
+    <div id="users" class="muted">-</div>
+  </div>
+  <div class="card">
+    <h2>기록</h2>
+    <div id="log"></div>
+  </div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var tokenInput = document.getElementById('token');
+  tokenInput.value = localStorage.getItem('edutalk_admin_token') || '';
+  function log(m) {
+    var el = document.getElementById('log');
+    el.textContent = new Date().toLocaleTimeString() + ' ' + m + '\n' + el.textContent;
+  }
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ 'x-admin-token': localStorage.getItem('edutalk_admin_token') || '' }, opts.headers || {});
+    return fetch(path, opts).then(function (r) { return r.json(); });
+  }
+  function setupMsg(m) { document.getElementById('setupMsg').textContent = m; }
+  // 초기 설정이 안 끝났으면 마법사만 보여준다
+  fetch('/api/setup-state').then(function (r) { return r.json(); }).then(function (j) {
+    if (j && j.done === false) {
+      document.getElementById('setupCard').style.display = '';
+      Array.prototype.forEach.call(document.querySelectorAll('#main > .card:not(#setupCard)'), function (el) { el.style.display = 'none'; });
+      if (j.hasAdmin) {
+        document.getElementById('suUser').disabled = true;
+        document.getElementById('suName').disabled = true;
+        document.getElementById('suPw').disabled = true;
+        document.getElementById('suGo').disabled = true;
+        setupMsg('관리자 계정은 만들어져 있어요. 2단계만 마치면 됩니다.');
+      }
+    }
+  }).catch(function () {});
+  document.getElementById('suGo').onclick = function () {
+    fetch('/api/admin/setup/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: document.getElementById('suUser').value, real_name: document.getElementById('suName').value, password: document.getElementById('suPw').value }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { setupMsg('실패: ' + (j.error || '')); return; }
+        setupMsg('관리자 계정을 만들었어요. 2단계를 마치면 서버가 열립니다.');
+        location.reload();
+      }).catch(function () { setupMsg('연결 실패: 학교 PC 본체에서 열어 주세요.'); });
+  };
+  function setupLicenseDone(j) {
+    if (!j.ok) { setupMsg('실패: ' + (j.error || '')); return; }
+    setupMsg('이용권 등록됨. 확인 중…');
+    setTimeout(function () { location.reload(); }, 800);
+  }
+  document.getElementById('suKeyGo').onclick = function () {
+    fetch('/api/admin/setup/license', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: document.getElementById('suKey').value }) })
+      .then(function (r) { return r.json(); }).then(setupLicenseDone)
+      .catch(function () { setupMsg('연결 실패: 학교 PC 본체에서 열어 주세요.'); });
+  };
+  document.getElementById('suTrialGo').onclick = function () {
+    fetch('/api/admin/setup/license', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trial: true }) })
+      .then(function (r) { return r.json(); }).then(setupLicenseDone)
+      .catch(function () { setupMsg('연결 실패: 학교 PC 본체에서 열어 주세요.'); });
+  };
+  document.getElementById('saveToken').onclick = function () {
+    localStorage.setItem('edutalk_admin_token', tokenInput.value.trim());
+    log('토큰 저장됨');
+  };
+  document.getElementById('load').onclick = function () {
+    api('/api/admin/status').then(function (j) {
+      if (!j.ok) { log('실패: ' + (j.error || '')); return; }
+      var l = j.license || {};
+      document.getElementById('status').innerHTML =
+        '<div>라이선스: <b>' + esc(l.mode || '-') + '</b> · ' + esc(l.message || '') + '</div>' +
+        '<div>듀얼 네트워크: ' + (l.isPaidDualNetworkActive ? '<span class="pill on">켜짐</span>' : '<span class="pill off">꺼짐</span>') + ' · 만료 ' + esc(l.expiresAt || '-') + '</div>' +
+        '<div>서버 IP: ' + (j.ips || []).map(function (x) { return '<span class="pill info">' + esc(x.address) + ':' + j.port + '</span>'; }).join(' ') + '</div>' +
+        '<div>사용자 ' + j.counts.users + ' · 부서 ' + j.counts.departments + ' · 방 ' + j.counts.rooms + ' · 메시지 ' + j.counts.messages + ' · 파일 ' + j.counts.files + '</div>';
+      document.getElementById('srvHwid').textContent = j.hwid || '-';
+      api('/api/admin/secret').then(function (s) {
+        if (s.ok) document.getElementById('srvSecret').textContent = s.secret || '-';
+      }).catch(function () {});
+      document.getElementById('copySecret').onclick = function () {
+        var t = document.getElementById('srvSecret').textContent;
+        if (t && t !== '-') { try { navigator.clipboard.writeText(t); log('등록 코드 복사됨'); } catch (e) { log('복사 실패'); } }
+      };
+      log('상태 불러옴');
+    }).catch(function (e) { log('연결 실패: 서버 주소와 토큰을 확인해 주세요.'); });
+    api('/api/admin/users').then(function (j) {
+      if (!j.ok) return;
+      document.getElementById('users').innerHTML = '<table><tr><th>사번</th><th>이름</th><th>부서</th><th>권한</th><th>상태</th><th>유료</th></tr>' +
+        j.users.slice(0, 200).map(function (u) {
+          return '<tr><td>' + esc(u.username) + '</td><td>' + esc(u.real_name) + '</td><td>' + esc(u.department_name || '-') + '</td><td>' + esc(u.role) + '</td><td>' + esc(u.status) + '</td><td>' + (u.is_paid_dual_network ? '예' : '-') + '</td></tr>';
+        }).join('') + '</table>';
+    }).catch(function () {});
+  };
+  document.getElementById('saveLicense').onclick = function () {
+    api('/api/admin/license', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: document.getElementById('lickey').value }) })
+      .then(function (j) { log(j.ok ? '라이선스 저장됨: ' + (j.license || {}).message : '실패: ' + (j.error || '')); });
+  };
+  document.getElementById('uploadXl').onclick = function () {
+    var f = document.getElementById('xlfile').files[0];
+    if (!f) { log('파일을 골라 주세요.'); return; }
+    var fd = new FormData(); fd.append('file', f);
+    fetch('/api/admin/users/import', { method: 'POST', headers: { 'x-admin-token': localStorage.getItem('edutalk_admin_token') || '' }, body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        document.getElementById('xlresult').textContent = j.ok
+          ? ('생성 ' + j.created + ' · 수정 ' + j.updated + ' · 부서 ' + j.departmentsCreated + (j.errors.length ? ' · 오류: ' + j.errors.join(' / ') : ''))
+          : ('실패: ' + (j.error || ''));
+        log('엑셀 업로드 완료');
+      }).catch(function () { log('업로드 실패'); });
+  };
+  document.getElementById('addDep').onclick = function () {
+    var name = document.getElementById('depName').value.trim();
+    if (!name) return;
+    api('/api/admin/departments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }) })
+      .then(function (j) { log(j.ok ? '부서 추가됨' : '실패: ' + (j.error || '')); document.getElementById('depName').value = ''; });
+  };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+})();
+</script>
+</body>
+</html>

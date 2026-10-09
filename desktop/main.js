@@ -1,11 +1,12 @@
 'use strict';
 
 /**
- * 에듀톡(Edutalk) 데스크톱 앱 — Electron 메인 프로세스
+ * 브리즈(Breeze) 데스크톱 앱 — Desktop-First Native (웹래퍼 아님)
  *
- *  - https://edutalk.cloud 를 그대로 로드하는 얇은 셸(웹을 수정하면 앱 재배포 없이 반영)
- *  - 트레이 상주 + 부팅 시 자동 실행
- *  - 웹의 Notification API 알림을 윈도우 네이티브 토스트로 표시
+ *  - Local UI 우선: PC 내부 로컬 에셋(public/ 번들)을 먼저 띄워 오프라인(파란알약)에서도 0.001초 부팅
+ *  - Native Backend: SQLite/JSON 로컬DB + P2P 직송 + On-Device DLP + AutoPurge + USB/캡처가드
+ *  - 클라우드(https://edutalk.cloud)는 외부망(초록알약) 동기화용 보조 채널로만 사용
+ *  - 트레이 상주 + 부팅 시 자동 실행 + 네이티브 토스트 알림
  */
 
 const {
@@ -21,10 +22,30 @@ const {
 } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+
+// Desktop-First Native 모듈 (전부 로컬, 네트워크 불필요)
+const DLP = require('./native/dlp');
+const { P2PMesh, lanIPs } = require('./native/p2p');
+const { scheduleAutoPurge } = require('./native/autopurge');
+const RAMPreview = require('./native/ramPreview');
+const { setupUsbGuard, applyCaptureProtection, watchCaptureTools } = require('./native/deviceGuard');
+const { detectNetMode, openLocalDb } = require('./native/netmode');
 
 const APP_URL = 'https://edutalk.cloud/';
 const APP_ORIGIN = 'https://edutalk.cloud';
-const APP_ID = 'com.edutalk.messenger';
+const APP_ID = 'com.breeze.school';
+
+// 로컬 UI 번들 (electron-builder files에 public 포함 시 오프라인 부팅 가능)
+function localUiPath() {
+  const candidates = [
+    path.join(__dirname, 'public', 'index.html'),
+    path.join(__dirname, '..', 'public', 'index.html'),
+    path.join(process.resourcesPath || '', 'public', 'index.html'),
+  ];
+  for (const c of candidates) { try { if (c && fs.existsSync(c)) return c; } catch (e) {} }
+  return null;
+}
 
 const ICON_PATH = path.join(__dirname, 'assets', 'icon.png');
 const TRAY_ICON_PATH = path.join(__dirname, 'assets', 'tray.png');
@@ -167,7 +188,7 @@ function isNotificationPosition(value) {
 }
 
 function readPrefs() {
-  const defaults = { showWindowOnStartup: false, notificationPosition: DEFAULT_NOTIFICATION_POSITION };
+  const defaults = { showWindowOnStartup: false, notificationPosition: DEFAULT_NOTIFICATION_POSITION, classicMode: false };
   try {
     const saved = JSON.parse(fs.readFileSync(userDataFile('preferences.json'), 'utf8'));
     if (!saved || typeof saved !== 'object') return { ...defaults };
@@ -175,7 +196,8 @@ function readPrefs() {
       showWindowOnStartup: saved.showWindowOnStartup === true,
       notificationPosition: isNotificationPosition(saved.notificationPosition)
         ? saved.notificationPosition
-        : defaults.notificationPosition
+        : defaults.notificationPosition,
+      classicMode: saved.classicMode === true
     };
   } catch (err) {
     return { ...defaults };
@@ -354,7 +376,7 @@ function showNotification(payload) {
   const win = ensureNotifWindow();
   if (!win || win.isDestroyed()) return;
   const data = {
-    title: String((payload && payload.title) || '에듀톡').slice(0, 60),
+    title: String((payload && payload.title) || '브리즈').slice(0, 60),
     body: String((payload && payload.body) || '').slice(0, 160),
     roomId: String((payload && payload.roomId) || '')
   };
@@ -377,7 +399,258 @@ function openRoomFromNotification(roomId) {
   onceLoaded(mainWindow.webContents, send);
 }
 
+function usbLogPath() {
+  try { return userDataFile('usb-audit.jsonl'); } catch (err) { return null; }
+}
+
+function appendUsbLog(entry) {
+  try {
+    const p = usbLogPath();
+    if (!p) return;
+    fs.appendFileSync(p, JSON.stringify({ t: new Date().toISOString(), ...entry }) + '\n', 'utf8');
+    try {
+      const lines = fs.readFileSync(p, 'utf8').split('\n').filter(Boolean);
+      if (lines.length > 500) fs.writeFileSync(p, lines.slice(-500).join('\n') + '\n', 'utf8');
+    } catch (err) {}
+  } catch (err) {}
+}
+
+function listRemovableDrives() {
+  return new Promise((resolve) => {
+    try {
+      const { execFile } = require('child_process');
+      execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'Get-CimInstance Win32_LogicalDisk -Filter "DriveType=2" | Select-Object DeviceID,VolumeName | ConvertTo-Json -Compress'], { timeout: 15000 }, (err, stdout) => {
+        if (err || !stdout) return resolve([]);
+        try {
+          let arr = JSON.parse(String(stdout).trim() || '[]');
+          if (!arr) return resolve([]);
+          if (!Array.isArray(arr)) arr = [arr];
+          resolve(arr.map((d) => ({ letter: String(d.DeviceID || '').toUpperCase(), label: String(d.VolumeName || '') })));
+        } catch (e) { resolve([]); }
+      });
+    } catch (err) { resolve([]); }
+  });
+}
+
+let __usbKnown = new Map();
+
+async function pollUsbDrives() {
+  try {
+    const drives = await listRemovableDrives();
+    const cur = new Map(drives.map((d) => [d.letter, d.label]));
+    for (const [letter, label] of cur) {
+      if (!__usbKnown.has(letter)) appendUsbLog({ event: 'usb-add', letter, label });
+    }
+    for (const [letter] of __usbKnown) {
+      if (!cur.has(letter)) appendUsbLog({ event: 'usb-remove', letter });
+    }
+    __usbKnown = cur;
+  } catch (err) {}
+}
+
+function setupUsbAudit() {
+  if (setupUsbAudit.__done) return;
+  setupUsbAudit.__done = true;
+  try {
+    const det = require('usb-detection');
+    if (det && typeof det.on === 'function') {
+      det.on('add', () => { pollUsbDrives(); });
+      det.on('remove', () => { setTimeout(pollUsbDrives, 1500); });
+    }
+  } catch (err) {}
+  pollUsbDrives();
+  const timer = setInterval(pollUsbDrives, 30000);
+  if (timer && timer.unref) timer.unref();
+  ipcMain.handle('edutalk:get-usb-log', () => {
+    try {
+      const p = usbLogPath();
+      if (!p || !fs.existsSync(p)) return [];
+      return fs.readFileSync(p, 'utf8').split('\n').filter(Boolean).slice(-100).map((l) => {
+        try { return JSON.parse(l); } catch (e) { return null; }
+      }).filter(Boolean).reverse();
+    } catch (err) { return []; }
+  });
+}
+
+function setupCaptureIpc() {
+  if (setupCaptureIpc.__done) return;
+  setupCaptureIpc.__done = true;
+  ipcMain.handle('edutalk:capture-masked', async () => {
+    try {
+      if (!mainWindow || mainWindow.isDestroyed()) return { ok: false };
+      const img = await mainWindow.capturePage();
+      const buf = img.toPNG();
+      const { dialog } = require('electron');
+      const r = await dialog.showSaveDialog(mainWindow, {
+        title: 'save',
+        defaultPath: 'breeze-' + Date.now() + '.png',
+        filters: [{ name: 'PNG', extensions: ['png'] }]
+      });
+      if (r.canceled || !r.filePath) return { ok: false, cancelled: true };
+      fs.writeFileSync(r.filePath, buf);
+      return { ok: true, path: r.filePath };
+    } catch (err) { return { ok: false }; }
+  });
+}
+
+function setupClassicModeIpc() {
+  if (setupClassicModeIpc.__done) return;
+  setupClassicModeIpc.__done = true;
+  ipcMain.handle('edutalk:get-classic-mode', () => !!readPrefs().classicMode);
+  ipcMain.handle('edutalk:get-always-on-top', () => { try { return mainWindow && !mainWindow.isDestroyed() ? mainWindow.isAlwaysOnTop() : false; } catch (err) { return false; } });
+  ipcMain.handle('edutalk:set-always-on-top', (event, on) => { const v = !!on; try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setAlwaysOnTop(v); } catch (err) {} return v; });
+  ipcMain.handle('edutalk:set-classic-mode', (event, on) => {
+    const enabled = !!on;
+    writePrefs({ classicMode: enabled });
+    try { applyClassicWindowSize(enabled); } catch (err) {}
+    return enabled;
+  });
+}
+
+let __classicPrevBounds = null;
+
+function applyClassicWindowSize(enabled) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    if (enabled) {
+      if (!__classicPrevBounds) {
+        try { __classicPrevBounds = mainWindow.getBounds(); } catch (err) { __classicPrevBounds = null; }
+      }
+      const cur = mainWindow.getBounds();
+      mainWindow.setMinimumSize(340, 600);
+      mainWindow.setSize(400, Math.max(cur.height || 720, 720));
+    } else {
+      mainWindow.setMinimumSize(MIN_WIDTH, 400);
+      if (__classicPrevBounds) {
+        mainWindow.setBounds({ ...__classicPrevBounds });
+        __classicPrevBounds = null;
+      } else {
+        const cur = mainWindow.getBounds();
+        mainWindow.setSize(Math.max(cur.width || DEFAULT_WIDTH, DEFAULT_WIDTH), Math.max(cur.height || DEFAULT_HEIGHT, DEFAULT_HEIGHT));
+      }
+    }
+    try {
+      BrowserWindow.getAllWindows().forEach((w) => {
+        if (w && !w.isDestroyed() && w.webContents) w.webContents.send('edutalk:classic-mode', enabled);
+      });
+    } catch (err) {}
+  } catch (err) {}
+}
+
+/* ------------------------------------------- Desktop-First Native Stack */
+let __netMode = 'external';
+let __localDb = null;
+let __p2p = null;
+
+function currentNetMode() { return __netMode; }
+
+function setupNativeStack() {
+  if (setupNativeStack.__done) return;
+  setupNativeStack.__done = true;
+  try { __netMode = detectNetMode(); } catch (e) { __netMode = 'external'; }
+  try { __localDb = openLocalDb(app.getPath('userData')); } catch (e) { __localDb = null; }
+
+  // 캐시 자가세척: 수신파일 캐시만 대상
+  try {
+    const cacheDir = path.join(app.getPath('userData'), 'recv-cache');
+    try { fs.mkdirSync(cacheDir, { recursive: true }); } catch (e) {}
+    scheduleAutoPurge({ cacheDir, quotaBytes: 3 * 1024 * 1024 * 1024, ttlMs: 30 * 24 * 3600 * 1000 });
+  } catch (e) {}
+
+  // P2P 메시 (내부망에서만 탐색, 외부망에서는 대기)
+  try {
+    __p2p = new P2PMesh({
+      displayName: String(process.env.COMPUTERNAME || '교사PC'),
+      onPeer: (peers) => {
+        try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('edutalk:p2p-peers', peers); } catch (e) {}
+      },
+      onMessage: (frame) => {
+        try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('edutalk:p2p-message', frame); } catch (e) {}
+        try { if (__localDb) __localDb.log('p2p-rx', String(frame && frame.kind || 'msg')); } catch (e) {}
+      },
+    });
+    __p2p.start();
+  } catch (e) { __p2p = null; }
+
+  try {
+    const { ipcMain: ipc } = require('electron');
+    // 네트워크 모드 (파란/초록 알약)
+    ipc.handle('edutalk:get-netmode', () => ({ mode: __netMode, ips: lanIPs() }));
+    ipc.handle('edutalk:set-netmode', (e, m) => {
+      __netMode = String(m) === 'intranet' ? 'intranet' : 'external';
+      try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('edutalk:netmode', __netMode); } catch (_) {}
+      return __netMode;
+    });
+    // Pre-Send DLP 훅 (외부망에서만 차단)
+    ipc.handle('edutalk:dlp-verify', (e, req) => {
+      const text = String((req && req.text) || '');
+      const fileName = String((req && req.fileName) || '');
+      let r;
+      try { r = DLP.verifySync({ text, fileName, netMode: __netMode }); }
+      catch (err) { r = { verdict: 'allow', score: 0, elapsedMs: 0, netMode: __netMode }; }
+      try {
+        if (r.verdict !== 'allow' && __localDb) __localDb.log('dlp-' + r.verdict, (r.hits || []).map((h) => h.id).join(','));
+      } catch (_) {}
+      try { DLP.appendAuditLog(app.getPath('userData'), { verdict: r.verdict, score: r.score, hits: (r.hits || []).map((h) => h.id), netMode: __netMode }); } catch (_) {}
+      return r;
+    });
+    // P2P
+    ipc.handle('edutalk:p2p-peers', () => { try { return __p2p ? __p2p.list() : []; } catch (e) { return []; } });
+    ipc.handle('edutalk:p2p-send', async (e, req) => {
+      try {
+        if (!__p2p) return { ok: false, reason: 'p2p-off' };
+        if (__netMode !== 'intranet') return { ok: false, reason: 'external-only-cloud' };
+        await __p2p.sendDirect(String(req.peerId), { kind: String(req.kind || 'memo'), title: String(req.title || ''), body: String(req.body || '').slice(0, 20000) });
+        return { ok: true, via: 'p2p' };
+      } catch (err) { return { ok: false, reason: String(err && err.message || err) }; }
+    });
+    // RAM 미리보기 (디스크 기록 없음)
+    ipc.handle('edutalk:ram-preview-put', (e, req) => {
+      try {
+        const buf = Buffer.from(String(req.b64 || ''), 'base64');
+        const kind = RAMPreview.sniffHwpKind(buf);
+        const r = RAMPreview.putRamPreview({ buf, mime: req.mime, fileName: req.fileName, ttlMs: 60000 });
+        try { buf.fill(0); } catch (_) {}
+        return { ok: true, id: r.id, size: r.size, kind };
+      } catch (err) { return { ok: false, reason: String(err && err.message || err) }; }
+    });
+    ipc.handle('edutalk:ram-preview-get', (e, id) => {
+      try {
+        const rec = RAMPreview.getRamPreview(String(id));
+        if (!rec) return { ok: false };
+        return { ok: true, mime: rec.mime, fileName: rec.fileName, size: rec.size, b64: rec.buf.toString('base64') };
+      } catch (err) { return { ok: false }; }
+    });
+    ipc.handle('edutalk:ram-preview-free', (e, id) => ({ ok: RAMPreview.destroyPreview(String(id)) }));
+    // 로컬 쪽지 보관 (오프라인 우선)
+    ipc.handle('edutalk:local-memo-save', (e, m) => {
+      try {
+        const rec = { id: String(m.id || ('m-' + crypto.randomBytes(6).toString('hex'))), title: String(m.title || '').slice(0, 200), body: String(m.body || '').slice(0, 50000), to: Array.isArray(m.to) ? m.to.slice(0, 200) : [], fromUid: String(m.fromUid || ''), createdAt: new Date().toISOString(), net: __netMode };
+        if (__localDb) __localDb.insertMemo(rec);
+        return { ok: true, id: rec.id };
+      } catch (err) { return { ok: false }; }
+    });
+    ipc.handle('edutalk:local-memo-list', () => { try { return __localDb ? __localDb.listMemos() : []; } catch (e) { return []; } });
+  } catch (e) {}
+
+  // USB 단속 + 캡처 도구 감지 → 블러(마스킹) 상당
+  try { setupUsbGuard({ app, ipcMain, netModeProvider: currentNetMode }); } catch (e) {}
+  try {
+    watchCaptureTools({ app, onDetect: () => {
+      try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          applyCaptureProtection(mainWindow);
+          mainWindow.webContents.send('edutalk:capture-mask', true);
+          setTimeout(() => { try { mainWindow.webContents.send('edutalk:capture-mask', false); } catch (_) {} }, 4000);
+        }
+      } catch (_) {}
+    } });
+  } catch (e) {}
+}
+
 function setupNotificationIpc() {
+  try { setupClassicModeIpc(); setupUsbAudit(); setupCaptureIpc(); } catch (err) {}
+  try { setupNativeStack(); } catch (err) { console.warn('[edutalk] native stack 실패:', err.message); }
   ipcMain.handle('edutalk:notify', (event, payload) => {
     showNotification(payload);
     return true;
@@ -412,7 +685,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#F6F8FC',
-    title: '에듀톡',
+    title: '브리즈',
     icon: ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -449,6 +722,8 @@ function createWindow() {
     mainWindow = null;
   });
 
+  try { applyCaptureProtection(mainWindow); } catch (e) {}
+
   mainWindow.webContents.on('did-finish-load', () => {
     reloadScheduled = false;
     clearTimeout(reloadTimer);
@@ -457,6 +732,11 @@ function createWindow() {
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
     if (!isMainFrame || errorCode === -3) return; // ERR_ABORTED 는 무시
+    // 로컬 UI로 떠 있으면 클라우드 실패는 무시 (오프라인 정상 동작)
+    try {
+      const u = String(mainWindow.webContents.getURL() || '');
+      if (u.startsWith('file://')) return;
+    } catch (e) {}
     console.warn(`[edutalk] 로드 실패(${errorCode} ${errorDescription}) ${validatedURL}`);
     if (reloadScheduled) return;
     reloadScheduled = true;
@@ -491,7 +771,7 @@ function createWindow() {
           width: 520,
           height: 700,
           autoHideMenuBar: true,
-          title: '에듀톡 로그인',
+          title: '브리즈 로그인',
           backgroundColor: '#FFFFFF',
           webPreferences: {
             contextIsolation: true,
@@ -510,9 +790,18 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  mainWindow.loadURL(APP_URL).catch((err) => {
-    console.warn('[edutalk] 초기 페이지 로드 실패:', err.message);
-  });
+  // Desktop-First: 로컬 UI 우선 → 실패 시에만 클라우드 폴백 (웹래퍼와 반대)
+  const localHtml = localUiPath();
+  if (localHtml) {
+    mainWindow.loadFile(localHtml).catch((err) => {
+      console.warn('[edutalk] 로컬 UI 로드 실패, 클라우드 폴백:', err.message);
+      mainWindow.loadURL(APP_URL).catch(() => {});
+    });
+  } else {
+    mainWindow.loadURL(APP_URL).catch((err) => {
+      console.warn('[edutalk] 초기 페이지 로드 실패:', err.message);
+    });
+  }
 
   return mainWindow;
 }
@@ -580,7 +869,7 @@ function createTray() {
     console.warn('[edutalk] 트레이 아이콘 생성 실패:', err.message);
     return;
   }
-  tray.setToolTip('에듀톡');
+  tray.setToolTip('브리즈');
   refreshTrayMenu();
   tray.on('double-click', () => showWindow());
 }
