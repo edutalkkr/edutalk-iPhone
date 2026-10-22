@@ -1,6 +1,9 @@
 //! 브리즈 코어 MVP 진입점: 화면에서 부르는 명령을 등록한다.
 //! 무거운 일(P2P·검사·시간표·정리)은 각 모듈이 하고, 여기는 다리만 놓는다.
 
+// 릴리스 빌드에서 검은 콘솔 창이 함께 뜨지 않도록 창 하위 시스템으로 실행한다.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod audit;
 mod db;
 mod dlp;
@@ -8,15 +11,46 @@ mod p2p;
 mod purge;
 mod remote;
 mod secret;
+mod srv;
 mod timetable;
+mod updater;
 
 use db::Db;
 use p2p::{DirectFrame, PeerInfo, P2p};
 use purge::RamStore;
 use serde::Deserialize;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use chrono::{Datelike, Timelike};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, State};
+
+/// 저장 폴더 결정 — 설치 경로 연동(Installer Customization).
+///  · 기본: 사용자 데이터 폴더(%LOCALAPPDATA%\kr.breeze.school) — 관리자 권한 없이 안전.
+///  · 설치 폴더 옆에 `portable.txt` 파일이 있으면 설치 폴더\data 를 쓴다
+///    → 설치 마법사에서 D:\Breeze 등 다른 드라이브를 골라도 DB·캐시가 설치 폴더를 따라간다.
+///  · BREEZE_DATA_DIR 환경 변수가 있으면 그 경로를 최우선으로 쓴다 (전산실 일괄 배포용).
+fn resolve_data_dir(app: &AppHandle) -> PathBuf {
+    if let Ok(v) = std::env::var("BREEZE_DATA_DIR") {
+        let t = v.trim();
+        if !t.is_empty() {
+            let p = PathBuf::from(t);
+            let _ = std::fs::create_dir_all(&p);
+            return p;
+        }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            if exe_dir.join("portable.txt").exists() {
+                let p = exe_dir.join("data");
+                let _ = std::fs::create_dir_all(&p);
+                return p;
+            }
+        }
+    }
+    app.path().app_data_dir().expect("app dir")
+}
 
 struct Core {
     db: Db,
@@ -877,15 +911,15 @@ fn capture_set(window: tauri::Window, on: bool) -> Result<(), String> {
     window.set_content_protected(on).map_err(|e| e.to_string())
 }
 
-// ---------- 방화벽 자동 예외 (교내망 P2P 수신용) ----------
-/// 교내망의 다른 PC가 이 PC로 접속하려면 인바운드 규칙이 필요하다.
-/// 최초 실행 때 관리자 권한으로 47802/TCP·47801/UDP 규칙을 한 번 등록한다 (UAC 1회).
-/// 이미 있거나 권한이 없으면 조용히 넘어간다 (프로그램은 그대로 동작).
+// ---------- 방화벽 예외 (교내망 P2P 수신용 · 수동 실행) ----------
+/// 교내망에서 다른 PC가 이 PC로 직접 접속(P2P)하려면 인바운드 규칙이 필요하다.
+/// 서버(교사-서버) 구조에서는 서버 쪽만 필요하므로 이 앱은 자동으로 UAC를 띄우지 않고,
+/// 설정에서 '교내망 직접연결 허용'을 눌렀을 때만 등록한다 (firewall_register 커맨드).
 fn install_firewall_rule() -> Result<(), String> {
     #[cfg(windows)]
     {
-        // 이미 등록돼 있으면 UAC를 다시 띄우지 않는다
-        let exists = std::process::Command::new("netsh")
+        // 이미 등록돼 있으면 아무 것도 하지 않는다
+        let exists = hidden_command("netsh")
             .args(["advfirewall", "firewall", "show", "rule", "name=BreezeCore_TCP_47802"])
             .output()
             .map(|o| o.status.success())
@@ -893,9 +927,9 @@ fn install_firewall_rule() -> Result<(), String> {
         if exists {
             return Ok(());
         }
-        // 한 번의 권한 상승으로 규칙 2개를 등록 (창은 숨김)
+        // 한 번의 권한 상승으로 규칙 2개를 등록 (콘솔창 없이)
         let ps = "Start-Process -Verb RunAs -WindowStyle Hidden -FilePath cmd.exe -ArgumentList '/c netsh advfirewall firewall add rule name=BreezeCore_TCP_47802 dir=in action=allow protocol=TCP localport=47802 & netsh advfirewall firewall add rule name=BreezeCore_UDP_47801 dir=in action=allow protocol=UDP localport=47801'";
-        std::process::Command::new("powershell")
+        hidden_command("powershell")
             .args(["-NoProfile", "-Command", ps])
             .spawn()
             .map_err(|e| e.to_string())?;
@@ -907,6 +941,16 @@ fn install_firewall_rule() -> Result<(), String> {
     }
 }
 
+/// 콘솔 창이 뜨지 않게 실행하는 헬퍼 (Windows)
+#[cfg(windows)]
+fn hidden_command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let mut c = std::process::Command::new(program);
+    c.creation_flags(CREATE_NO_WINDOW);
+    c
+}
+
 #[tauri::command]
 fn firewall_register() -> Result<(), String> {
     install_firewall_rule()
@@ -915,19 +959,52 @@ fn firewall_register() -> Result<(), String> {
 // ---------- 창 모양 (모던 넓게 / 세로형 좁게) ----------
 
 #[tauri::command]
-fn layout_apply(window: tauri::Window, mode: String) -> Result<(), String> {
+fn layout_apply(app: tauri::AppHandle, mode: String) -> Result<(), String> {
     // 세로형이 기본: 카톡식 세로 메신저처럼 좁고 길게 (옆에 띄워두고 씀).
     // 가로형은 넓은 화면 임시 확인용으로만 둔다.
-    let (w, h) = if mode == "classic" { (400.0, 860.0) } else { (1180.0, 800.0) };
+    // 적용 대상은 언제나 "메인" 창이다 (설정 팝업에서 눌러도 메인 창 크기가 바뀐다).
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+    let (w, h) = if mode == "classic" { (400.0, 660.0) } else { (1180.0, 800.0) };
     window
         .set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }))
         .map_err(|e| e.to_string())?;
     window
         .set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize {
-            width: if mode == "classic" { 360.0 } else { 900.0 },
-            height: 600.0,
+            width: if mode == "classic" { 380.0 } else { 900.0 },
+            height: 540.0,
         })))
         .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ---------- 팝업 창 자리 ----------
+// 메뉴를 여러 번 누르면 팝업 창들이 화면 가운데에 정확히 겹쳐 쌓이던 문제를 없앤다.
+// 메인 창을 기준으로 조금씩 오른쪽·아래로 비껴 놓아 제목줄이 서로 보이게 한다.
+
+#[tauri::command]
+fn place_popup(app: tauri::AppHandle, label: String) -> Result<(), String> {
+    let Some(win) = app.get_webview_window(&label) else {
+        return Ok(());
+    };
+    let Some(main) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+    let mpos = main.outer_position().map_err(|e| e.to_string())?;
+    let msize = main.outer_size().map_err(|e| e.to_string())?;
+    let wsize = win.outer_size().map_err(|e| e.to_string())?;
+    // 이미 떠 있는 팝업 수만큼 계단 오프셋 (4개마다 처음 자리로 돌아온다)
+    let count = app
+        .webview_windows()
+        .keys()
+        .filter(|k| k.starts_with("view-") || k.starts_with("chat-"))
+        .count();
+    let step = (count.saturating_sub(1) % 4) as i32;
+    let x = (mpos.x + (msize.width as i32 - wsize.width as i32) / 2 + step * 30).max(8);
+    let y = (mpos.y + 44 + step * 30).max(8);
+    let _ = win.set_position(tauri::Position::Physical(tauri::PhysicalPosition::new(x, y)));
+    let _ = win.set_focus();
     Ok(())
 }
 
@@ -945,6 +1022,76 @@ fn rand_id() -> String {
     hex::encode(b)
 }
 
+// ---------- 학교 서버(onprem) 연동 ----------
+// 토큰은 Rust(SrvState) 안에만 있고 웹뷰로 나가지 않는다.
+
+#[tauri::command]
+async fn srv_login(
+    srv: State<'_, srv::SrvState>,
+    base: String,
+    username: String,
+    password: String,
+) -> Result<serde_json::Value, String> {
+    srv::login(srv.inner(), &base, &username, &password).await
+}
+
+#[tauri::command]
+async fn srv_logout(srv: State<'_, srv::SrvState>) -> Result<(), String> {
+    srv::logout(srv.inner()).await
+}
+
+#[tauri::command]
+fn srv_status(srv: State<'_, srv::SrvState>) -> serde_json::Value {
+    srv::status(srv.inner())
+}
+
+#[tauri::command]
+async fn srv_get(srv: State<'_, srv::SrvState>, path: String) -> Result<serde_json::Value, String> {
+    srv::get(srv.inner(), &path).await
+}
+
+#[tauri::command]
+async fn srv_post(
+    srv: State<'_, srv::SrvState>,
+    path: String,
+    body: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    srv::post(srv.inner(), &path, body).await
+}
+
+// ---------- 트레이 상주 ----------
+
+/// 숨겨 둔 창을 다시 꺼낸다 (트레이 왼쪽 클릭·메뉴 "열기").
+fn show_main_window(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+}
+
+// ---------- 서버 주도 자동 업데이트 (OTA) ----------
+
+#[tauri::command]
+async fn update_check(base: String) -> Result<serde_json::Value, String> {
+    updater::check(&base).await
+}
+
+#[tauri::command]
+async fn update_download(
+    app: AppHandle,
+    base: String,
+    file: String,
+    sha256: String,
+) -> Result<String, String> {
+    updater::download(&app, &base, &file, &sha256).await
+}
+
+#[tauri::command]
+fn update_install(app: AppHandle, installer: String) -> Result<(), String> {
+    updater::install(&app, &installer)
+}
+
 fn main() {
     // P2P 수신함: 받은 프레임은 DB에 넣고 화면에 알린다.
     let (inbox_tx, mut inbox_rx) = tokio::sync::mpsc::unbounded_channel::<DirectFrame>();
@@ -952,7 +1099,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
-            let dir = app.path().app_data_dir().expect("app dir");
+            // 저장 폴더: 기본은 사용자 데이터 폴더, portable.txt/BREEZE_DATA_DIR 이 있으면 설치 폴더 기준
+            let dir = resolve_data_dir(app.handle());
             let db = Db::open(&dir.join("edutalk.db")).expect("db open");
             // 내 PC 정보 (처음 실행 때 만든다)
             let node_id = {
@@ -981,6 +1129,35 @@ fn main() {
                 device: node_id,
                 usb_last: Mutex::new(Vec::new()),
             });
+            // 학교 서버(onprem) 연동 상태 (토큰은 여기에만 보관)
+            app.manage(srv::SrvState::default());
+            // 트레이 상주: 창을 닫아도 끝나지 않고 백그라운드에서 쪽지·알림을 계속 받는다.
+            let open_i = MenuItem::with_id(app, "open", "열기", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
+            let tray_menu = Menu::with_items(app, &[&open_i, &quit_i])?;
+            let mut tray = TrayIconBuilder::with_id("breeze-tray")
+                .tooltip("브리즈 · 쪽지 대기 중")
+                .menu(&tray_menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "open" => show_main_window(app),
+                    "quit" => app.exit(0),
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        show_main_window(tray.app_handle());
+                    }
+                });
+            if let Some(icon) = app.default_window_icon() {
+                tray = tray.icon(icon.clone());
+            }
+            tray.build(app)?;
             // 받은 프레임 처리
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -988,17 +1165,19 @@ fn main() {
                     handle_p2p_frame(&handle, frame).await;
                 }
             });
-            // 최초 실행 때 한 번 방화벽 예외를 등록한다 (같은 망의 PC가 접속하려면 필요)
-            let fw_dir = app.path().app_data_dir().ok();
-            std::thread::spawn(move || {
-                if let Some(d) = fw_dir {
-                    let marker = d.join("firewall-ok.txt");
-                    if !marker.exists() && install_firewall_rule().is_ok() {
-                        let _ = std::fs::write(&marker, "1");
-                    }
-                }
-            });
+            // 최초 실행 때의 자동 UAC/콘솔창을 막기 위해, 방화벽 등록은 자동으로 하지 않는다.
+            // 필요하면 설정의 firewall_register 로 사용자가 직접 실행한다.
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // 메인 창 닫기 = 트레이로 숨김. 완전한 종료는 트레이 메뉴 "종료"로만 한다.
+            // (쪽지 분리 창 등 보조 창은 평소처럼 닫힌다)
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             net_status,
@@ -1030,6 +1209,14 @@ fn main() {
             purge_run,
             p2p_send,
             firewall_register,
+            srv_login,
+            srv_logout,
+            srv_status,
+            srv_get,
+            srv_post,
+            update_check,
+            update_download,
+            update_install,
             remote_view_request,
             remote_view_respond,
             remote_snapshot,
@@ -1073,6 +1260,7 @@ fn main() {
             usb_check,
             capture_set,
             layout_apply,
+            place_popup,
         ])
         .run(tauri::generate_context!())
         .expect("브리즈 실행 실패");

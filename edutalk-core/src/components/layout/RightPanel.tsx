@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Memo, Teacher } from "../../types";
 import { PresenceDot } from "./LeftSidebar";
+import BzTooltip from "../ui/BzTooltip";
 
 // 브리즈코어 우측 패널 (아크릴 유리): 자리배치도 · 학내 파일함 · 쪽지/결재 메모
 interface Props {
@@ -40,20 +41,20 @@ export default function RightPanel(p: Props) {
               <div className="rp-seat-dept">{d}</div>
               <div className="rp-seat-grid">
                 {seated.filter((t) => (t.dept || "미지정") === d).map((t) => (
-                  <button
-                    key={t.id}
-                    className="rp-seat"
-                    title={`${t.name} · ${t.statusMessage} · ${t.ip || "주소 없음"}`}
-                    onClick={() => p.onToast(`${t.name} · ${t.statusMessage} · ${t.ip || "주소 없음"}`)}
-                  >
-                    <span className="rp-seat-av" style={{ background: t.avatarColor }}>{(t.name || "?")[0]}</span>
-                    <span className="rp-seat-info">
-                      <span className="rp-seat-name">
-                        <PresenceDot status={t.status} /> {t.name}
+                  <BzTooltip key={t.id} content={`${t.name} · ${t.statusMessage} · ${t.ip || "주소 없음"}`} position="left">
+                    <button
+                      className="rp-seat"
+                      onClick={() => p.onToast(`${t.name} · ${t.statusMessage} · ${t.ip || "주소 없음"}`)}
+                    >
+                      <span className="rp-seat-av" style={{ background: t.avatarColor }}>{(t.name || "?")[0]}</span>
+                      <span className="rp-seat-info">
+                        <span className="rp-seat-name">
+                          <PresenceDot status={t.status} /> {t.name}
+                        </span>
+                        <span className="rp-seat-sub">{t.statusMessage}</span>
                       </span>
-                      <span className="rp-seat-sub">{t.statusMessage}</span>
-                    </span>
-                  </button>
+                    </button>
+                  </BzTooltip>
                 ))}
               </div>
             </div>
@@ -65,13 +66,15 @@ export default function RightPanel(p: Props) {
         <div className="rp-list">
           {files.length === 0 && <div className="rp-empty">첨부된 파일이 없어요.</div>}
           {files.map((m) => (
-            <button key={m.id} className="rp-row" onClick={() => p.onOpenMemo(m.id)} title={m.title}>
-              <span className="rp-file-ico">📄</span>
-              <span className="rp-row-main">
-                <span className="rp-row-title">{m.hwpName}</span>
-                <span className="rp-row-sub">{m.fromName} · {m.createdAt.slice(0, 10)}</span>
-              </span>
-            </button>
+            <BzTooltip key={m.id} content={m.title} position="left" className="w-full">
+              <button className="rp-row w-full" onClick={() => p.onOpenMemo(m.id)}>
+                <span className="rp-file-ico">📄</span>
+                <span className="rp-row-main">
+                  <span className="rp-row-title">{m.hwpName}</span>
+                  <span className="rp-row-sub">{m.fromName} · {m.createdAt.slice(0, 10)}</span>
+                </span>
+              </button>
+            </BzTooltip>
           ))}
         </div>
       </Section>
@@ -80,14 +83,16 @@ export default function RightPanel(p: Props) {
         <div className="rp-list">
           {recents.length === 0 && <div className="rp-empty">주고받은 쪽지가 없어요.</div>}
           {recents.map((m) => (
-            <button key={m.id} className="rp-row" onClick={() => p.onOpenMemo(m.id)} title={m.title}>
+            <BzTooltip key={m.id} content={m.title} position="left" className="w-full">
+              <button className="rp-row w-full" onClick={() => p.onOpenMemo(m.id)}>
               {m.importance === "urgent" && <span className="rp-tag urgent">긴급</span>}
               {m.importance === "ref" && <span className="rp-tag ref">참고</span>}
               <span className="rp-row-main">
                 <span className="rp-row-title">{m.title}</span>
                 <span className="rp-row-sub">{m.fromName} · {m.createdAt.slice(5, 16)}</span>
               </span>
-            </button>
+              </button>
+            </BzTooltip>
           ))}
         </div>
         <button className="edu-ghost w-full mt-2 !text-[12.5px]" onClick={p.onGoWork}>쪽지함 전체 열기</button>

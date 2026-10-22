@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = 'C:\\Users\\pupp0\\Downloads\\edutalk-firebase-v10-messenger\\edutalk-core';
+const ROOT = __dirname; // 스크립트가 있는 edutalk-core 기준 (어느 PC에서든 동작)
 let fail = 0;
 function bad(msg) { console.log('BAD: ' + msg); fail++; }
 function ok(msg) { console.log('ok: ' + msg); }

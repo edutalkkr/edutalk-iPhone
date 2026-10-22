@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { ChatMessage, Teacher } from "../../types";
 import { scanDlp } from "./MemoPane";
 import { TemplatesBar } from "../ComposerExtras";
+import BzTooltip from "../ui/BzTooltip";
 
 function timeShort(iso: string): string {
   const s = String(iso ?? "");
@@ -45,14 +46,16 @@ export default function ChatPane(p: Props) {
     else p.onToast(r.error ?? "보내지 못했어요.");
   };
   return (
-    <div className="flex flex-col gap-3">
-      <div className="edu-card p-2.5 overflow-y-auto max-h-[190px] shrink-0">
+    <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
+      <div className="edu-card p-2.5 overflow-y-auto shrink-0 max-h-[190px] md:max-h-[calc(100vh-120px)] md:h-[calc(100vh-120px)] md:w-[300px]">
         <div className="px-1.5 py-1 text-[12px] font-bold text-edu-sub flex items-center gap-2">
           <span>대화 상대</span>
           {p.onGoMemo && (
-            <button className="ml-auto text-[12px] font-bold text-edu-strong hover:underline" onClick={p.onGoMemo} title="제목·수신확인 있는 정식 쪽지로 이동">
-              ✉️ 쪽지함
-            </button>
+            <BzTooltip content="제목·수신확인 있는 정식 쪽지로 이동" position="bottom">
+              <button className="ml-auto text-[12px] font-bold text-edu-strong hover:underline" onClick={p.onGoMemo}>
+                ✉️ 쪽지함
+              </button>
+            </BzTooltip>
           )}
         </div>
         <div className="anim-list flex flex-col gap-0.5">
@@ -81,7 +84,7 @@ export default function ChatPane(p: Props) {
         })}
         </div>
       </div>
-      <div className="edu-card flex flex-col overflow-hidden anim-card min-h-[440px] max-h-[calc(100vh-340px)]">
+      <div className="edu-card flex flex-col overflow-hidden anim-card min-h-[440px] max-h-[calc(100vh-340px)] md:min-h-[480px] md:max-h-[calc(100vh-120px)] md:h-[calc(100vh-120px)] flex-1 min-w-0">
         {!p.peer ? (
           <div className="m-auto text-[13.5px] text-edu-sub text-center">대화 상대를 고르면<br />말풍선이 나와요.</div>
         ) : (

@@ -11,6 +11,14 @@ const { DATA_DIR, APP_ROOT, getKV, setKV } = require('./db');
 
 const TRIAL_DAYS = 30;
 
+/* ⚠ 운영 보안: 벤더 개인키는 절대 학교 서버 폴더에 두면 안 된다.
+ * 이 파일이 있으면 서버 관리자/침입자가 임의의 라이선스를 발급할 수 있다. */
+try {
+  if (fs.existsSync(path.join(APP_ROOT(), 'license-vendor-private.key'))) {
+    console.warn('[license] 경고: license-vendor-private.key 가 서버 폴더에 있습니다. 오프라인 벤더 PC로 즉시 옮기세요.');
+  }
+} catch (e) {}
+
 /* 벤더 Ed25519 공개키 (서버에 내장 — 개인키는 절대 서버에 두지 말 것, 오프라인 보관)
  * 새 라이선스는 개인키로 서명 → 서버가 공개키로 검증. 서버 폴더의 license.secret(HMAC)은
  * 기존 학교 호환용 레거시로만 인정한다. EDUTALK_STRICT_LICENSE=1 이면 레거시 HMAC를 거부한다. */
@@ -32,7 +40,10 @@ function licenseSecret() {
     fs.writeFileSync(p, gen);
     return gen;
   } catch (e) {}
-  return 'edutalk-change-me-before-distribute';
+  // 비밀값을 파일로 저장하지 못한 경우: 알려진 상수(취약) 대신 매번 새 난수를 쓴다.
+  // → 기존 legacy HMAC 키는 검증 실패(안전). 벤더 Ed25519 라이선스는 영향 없음.
+  console.warn('[license] license.secret 저장 실패 — 임시 난수 비밀값으로 동작합니다 (legacy HMAC 키 검증 불가).');
+  return crypto.randomBytes(32).toString('hex');
 }
 
 function b64uDecode(s) {
@@ -47,8 +58,18 @@ function signLicense(payloadObj, secret) {
   return body + '.' + sig;
 }
 
+function licenseKeyPath() {
+  return process.env.EDUTALK_LICENSE_PATH || path.join(APP_ROOT(), 'license.key');
+}
+
+function writeKeyFile(raw) {
+  const p = licenseKeyPath();
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, String(raw == null ? '' : raw).trim(), { mode: 0o600 });
+}
+
 function readKeyFile() {
-  const p = process.env.EDUTALK_LICENSE_PATH || path.join(APP_ROOT(), 'license.key');
+  const p = licenseKeyPath();
   try {
     const raw = fs.readFileSync(p, 'utf8').trim();
     return raw || null;
@@ -145,6 +166,24 @@ function payloadToResult(p, vendorSigned) {
   };
 }
 
+/* 학교 식별자(학교 코드) — 관리자 콘솔에서 바꿀 수 있고, 없으면 라이선스/HWID로
+ * 결정적인 기본 코드를 만든다. 교사 앱과 학생 웹이 같은 서버를 가리키는지 확인하는 용도.
+ * (비밀번호가 아니며, 서버 주소를 숨기는 보안 수단도 아니다.) */
+function schoolIdentity() {
+  const rawCode = String(getKV('school.code') || '').trim();
+  const rawName = String(getKV('school.name') || '').trim();
+  const lic = verify();
+  let code = rawCode;
+  if (!code) {
+    const seed = String(lic.schoolId || lic.school || serverHwid() || 'breeze');
+    code = 'BRZ-' + crypto.createHash('sha256').update(seed).digest('hex').slice(0, 6).toUpperCase();
+    try { setKV('school.code', code); } catch (e) {}
+  }
+  let name = rawName || String(lic.school || '');
+  if (name && !rawName) { try { setKV('school.name', name); } catch (e) {} }
+  return { code, name, generated: !rawCode };
+}
+
 function verify() {
   const now = Date.now();
   const raw = readKeyFile();
@@ -194,4 +233,6 @@ function signLicenseEd25519(payloadObj, privateKeyPem) {
   return body + '.' + sig;
 }
 
-module.exports = { verify, signLicense, signLicenseEd25519, licenseSecret, serverHwid, TRIAL_DAYS, STRICT_LICENSE };
+module.exports = {
+  licenseKeyPath,
+  writeKeyFile, verify, signLicense, signLicenseEd25519, licenseSecret, serverHwid, schoolIdentity, TRIAL_DAYS, STRICT_LICENSE };

@@ -1,23 +1,28 @@
-/* Breeze Firebase client config
- * 아래 값은 Firebase '웹 앱'의 공개 식별자입니다(비밀 키가 아님). 정적 호스팅에는 빌드 단계가 없어
- * .env 를 주입할 수 없으므로 클라이언트에 그대로 둡니다.
- * 실제 보안 경계는 ① firestore.rules 의 접근 제어, ② Firebase Console 에서 이 API 키에 걸어 둔
- * HTTP referrer / 앱 제한입니다. 서비스 계정 키·토큰 같은 진짜 비밀 값은 이 파일에 두지 마세요.
+/* Breeze cloud bootstrap
+ * 실제 웹 앱 설정은 저장소에 두지 않고, 배포할 때 firebase-config.js 로 주입합니다.
+ * firebase-config.example.js 를 복사해 값을 채우거나 배포 환경에서 생성해 주세요.
+ * 보안 경계는 ① firestore.rules 의 접근 제어, ② 클라우드 콘솔의 API 키 제한입니다.
  */
-const firebaseConfig = {
-  apiKey: "AIzaSyANLtEoKpVlu8iwt2gTFtBHiMMVsiE2Tbs",
-  authDomain: "school-chat-9e69f.firebaseapp.com",
-  projectId: "school-chat-9e69f",
-  storageBucket: "school-chat-9e69f.firebasestorage.app",
-  messagingSenderId: "232658683503",
-  appId: "1:232658683503:web:8512328585ad0ed201af9a",
-  measurementId: "G-5LYKZKYENB"
-};
-
-firebase.initializeApp(firebaseConfig);
-window.EduFirebase = {
-  firebase,
-  auth: firebase.auth(),
-  db: firebase.firestore(),
-  config: firebaseConfig
-};
+(function () {
+  'use strict';
+  var cfg = window.BREEZE_FIREBASE_CONFIG;
+  function unavailable(reason) {
+    window.EduFirebase = { unavailable: true, reason: reason };
+  }
+  if (!cfg || !cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId) {
+    unavailable('이 브라우저 버전은 서비스 설정이 없어 시작할 수 없어요.');
+    return;
+  }
+  try {
+    firebase.initializeApp(cfg);
+    window.EduFirebase = {
+      firebase: firebase,
+      auth: firebase.auth(),
+      db: firebase.firestore(),
+      config: cfg
+    };
+  } catch (err) {
+    try { console.error('[breeze-cloud]', err); } catch (_) {}
+    unavailable('서비스 연결을 준비하지 못했어요.');
+  }
+})();

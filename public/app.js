@@ -1,6 +1,30 @@
 (() => {
   'use strict';
-  const { firebase, auth, db } = window.EduFirebase;
+  const bridge = window.EduFirebase;
+  if (!bridge || bridge.unavailable || !bridge.firebase || !bridge.auth || !bridge.db) {
+    const root = document.getElementById('app');
+    if (root) {
+      root.textContent = '';
+      const box = document.createElement('div');
+      box.setAttribute('role', 'alert');
+      box.style.cssText = 'max-width:420px;margin:12vh auto 0;padding:28px 24px;border:1px solid #dbe3ef;border-radius:20px;background:#fff;color:#1f2937;font:15px/1.7 system-ui,sans-serif;text-align:center;box-shadow:0 18px 50px rgba(30,50,90,.12)';
+      const title = document.createElement('strong');
+      title.textContent = '브리즈를 시작할 수 없어요';
+      title.style.cssText = 'display:block;margin-bottom:8px;font-size:19px;color:#111827';
+      const desc = document.createElement('p');
+      desc.textContent = (bridge && bridge.reason) || '서비스 설정을 확인한 뒤 다시 열어 주세요.';
+      desc.style.margin = '0 0 14px';
+      const help = document.createElement('p');
+      help.textContent = '학교 관리자에게 문의해 주세요.';
+      help.style.cssText = 'margin:0;color:#64748b;font-size:14px';
+      box.appendChild(title);
+      box.appendChild(desc);
+      box.appendChild(help);
+      root.appendChild(box);
+    }
+    return;
+  }
+  const { firebase, auth, db } = bridge;
   const app = document.getElementById('app');
   const modalRoot = document.getElementById('modalRoot');
   const toastEl = document.getElementById('toast');
@@ -18,7 +42,7 @@
       try{ if(e && typeof e.preventDefault==='function') e.preventDefault(); }catch(_){}
     });
   }catch(e){}
-  // 데스크톱(Electron) 앱에서는 브라우저 알림 대신 앱 자체 알림창을 쓴다.
+  // 데스크톱 앱에서는 브라우저 알림 대신 앱 자체 알림창을 쓴다.
   const DESKTOP = !!(window.edutalkDesktop && window.edutalkDesktop.isDesktop && typeof window.edutalkDesktop.notify === 'function');
   const isNativeApp = () => {
     try {
@@ -182,7 +206,7 @@
     const h=await hashLockPw(pw);
     return h===getLockHash() && h!=='';
   }
-  // 아이폰식 왼쪽 가장자리 밀기 → 채팅에서 목록으로 뒤로 가기 (모바일 채팅 화면에서만)
+  // 화면 왼쪽 가장자리 밀기 → 채팅에서 목록으로 뒤로 가기 (모바일 채팅 화면에서만)
   let swipeBackArmed=false;
   function armSwipeBack(){
     if(swipeBackArmed) return; swipeBackArmed=true;
@@ -439,7 +463,7 @@
         const provider = email.includes('@') ? null : null;
         // 간단히 확인 메일을 보내고, 인증 후 잠금을 해제한다
         if(confirm('이메일('+email+')로 인증 메일을 보내 잠금을 해제할까요?')){
-          // Firebase의 재인증 흐름을 이용: Google 계정이면 팝업, 이메일 계정이면 링크
+          // 외부 계정 재인증 흐름: 외부 계정이면 팝업, 이메일 계정이면 링크
           const user=auth.currentUser;
           if(!user) throw new Error('로그인 정보 없음');
           const methods = user.providerData.map(p=>p.providerId);
@@ -526,9 +550,9 @@
       '<h2>컴퓨터에서도 편하게, 윈도우 앱</h2>'+
       '<p>수업 자료를 보면서 대화하고, 알림을 바로 받고 싶다면 <b>윈도우 앱</b>이 편해요. 웹과 같은 계정으로 로그인하면 채팅이 그대로 이어져요.</p>'+
       '<h3>이렇게 좋아요</h3><ul><li>큰 화면에서 사진·파일을 편하게 확인</li><li>새 메시지를 PC 알림으로 바로 확인</li><li>수업 중 화면 공유와 함께 사용하기 좋음</li></ul>'+
-      '<h3>설치 순서</h3><p>1) 아래 버튼을 눌러 설치 파일을 받습니다.<br>2) 받은 파일을 실행하고 안내를 따라 설치합니다.<br>3) 학교 코드로 만든 계정으로 로그인합니다.</p>'+
+      '<h3>설치 순서</h3><p>1) 아래 버튼을 눌러 설치 파일을 받아요.<br>2) 받은 파일을 실행하고 안내를 따라 설치해요.<br>3) 학교 코드로 만든 계정으로 로그인해요.</p>'+
       '<p>설치가 안 되면 학교 PC 관리 선생님께 문의해 주세요.</p>',
-      buttons: [{label:'윈도우 앱 다운로드', url:''}] },
+      buttons: [{label:'윈도우 앱 다운로드', url:'/Breeze-setup.exe'}] },
     { id:'teacher-guide', label:'교사 인증 안내', enabled:true, title:'교사 인증 안내', html:
       '<h2>선생님, 이렇게 인증해 주세요</h2>'+
       '<p>교사 승인이 끝나야 공지·승인·관리 기능을 쓸 수 있어요. 학생 계정으로 가입한 뒤 아래 순서로 신청해 주세요.</p>'+
@@ -766,6 +790,22 @@
   }
   // ---------- 프로필 아래 통합 배너 (이용권·일정·업무를 1페이지씩 넘겨 보기) ----------
   function bannerTodayKey(){ const d=new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
+  // 점심시간(10:30~13:30)에 오늘 급식 캐시를 배너로 보여준다.
+  function mealBannerPage(){
+    try{
+      const n=new Date(); const mins=n.getHours()*60+n.getMinutes();
+      if(mins<10*60+30 || mins>13*60+30) return null;
+      const codes=neisSchoolCodes(); if(!codes) return null;
+      const ymd=`${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}`;
+      const ck=`edutalk_meal_${codes.atpt}-${codes.school}_${ymd}`;
+      const cached=JSON.parse(localStorage.getItem(ck)||'null');
+      const diet=cached?.diet; if(!diet) return null;
+      const lunch=String(diet.DDISH_NM||'').replace(/<br\s*\/?>/gi,' · ').replace(/\([^)]*\)/g,'').replace(/\s+/g,' ').trim();
+      if(!lunch) return null;
+      const cal=String(diet.CAL_INFO||'').trim();
+      return {id:'meal',icon:'🍱',iconCls:'todo',action:'meal-go',titleHtml:'오늘 점심은 이래요',metaHtml:`${lunch.slice(0,90)}${lunch.length>90?'…':''}${cal?` · ${cal}`:''}`};
+    }catch(e){ return null; }
+  }
   async function refreshBanners(force){
     try{
       const now=Date.now();
@@ -780,8 +820,16 @@
           const info=licenseActiveInfo();
           if(!(info.active&&!(info.daysLeft!==Infinity&&info.daysLeft<=30))){
             const label=info.active?`이용권 만료까지 ${info.daysLeft}일 남았어요. 계속 사용하시려면 갱신해 주세요.`:'브리즈 이용권이 만료되어 서비스가 중지되었어요. 계속 사용하시려면 갱신해 주세요.';
-            pages.push({id:'license',icon:'!',iconCls:'warn',action:'go-license-renew',titleHtml:esc(label),metaHtml:''});
+            pages.push({id:'license',icon:'!',iconCls:'warn',action:'go-license-renew',titleHtml:label,metaHtml:''});
           }
+        }
+      }catch(e){}
+      // 1-1) 안 읽은 메시지 — 애들이 보낸 메시지가 있으면 바로 배너로 알려준다.
+      try{
+        const unreadN=getTotalUnread();
+        if(unreadN>0){
+          const roomsN=Object.keys(state.unread||{}).filter(k=>(state.unread||{})[k]>0).length;
+          pages.push({id:'unread',icon:'💬',iconCls:'chat',action:'unread-summary-go',titleHtml:`안 읽은 메시지 ${unreadN}개`,metaHtml:`${roomsN}개 방에서 기다리고 있어요. 눌러서 확인해 보세요.`});
         }
       }catch(e){}
       // 2) 학교 일정: 7일 전부터 D-7로, D-DAY까지 보여준다
@@ -823,9 +871,14 @@
             };
             const first=upcoming.slice(0,2).map(e=>`${dLabel(String(e.date))} ${e.title||'일정'}${e.time?' '+e.time:''}`).join(' · ');
             const more=upcoming.length>2?` 외 ${upcoming.length-2}건`:'';
-            pages.push({id:'schedule',icon:'📅',iconCls:'cal',action:'calendar',titleHtml:`다가오는 학교 일정 ${upcoming.length}건`,metaHtml:`${esc(first)}${esc(more)}`});
+            pages.push({id:'schedule',icon:'📅',iconCls:'cal',action:'calendar',titleHtml:`다가오는 학교 일정 ${upcoming.length}건`,metaHtml:`${first}${more}`});
           }
         }
+      }catch(e){}
+      // 2-1) 점심시간이 가까워지면 오늘 급식 메뉴를 자동으로 띄운다.
+      try{
+        const meal=mealBannerPage();
+        if(meal) pages.push(meal);
       }catch(e){}
       // 3) 업무 (건의 담당: 미해결 건의 / 총관리자: 교사 승인 대기)
       try{
@@ -869,7 +922,7 @@
           if(todoCount>=12) break;
         }
         if(todoCount>0){
-          const meta=sample.map(x=>`${esc(x.room)}: ${esc(x.text)}`).join(' · ');
+          const meta=sample.map(x=>`${x.room}: ${x.text}`).join(' · ');
           const more=todoCount>sample.length?` 외 ${todoCount-sample.length}건`:'';
           pages.push({id:'todos',icon:'✅',iconCls:'todo',action:'todos-go',titleHtml:`할 일 ${todoCount}건 남았어요`,metaHtml:`${meta}${more}`});
         }
@@ -959,7 +1012,9 @@
       const i=Math.min(state.bannerPage||0,pages.length-1);
       const p=pages[i];
       const anim=dir&&!prefersReducedMotion()?` bp-slide-${dir}`:'';
-      host.innerHTML=`<div class="banner-pager${anim}"><button type="button" class="bp-main" ${p.action?`data-action="${p.action}"`:''}><span class="grow"><span class="title">${p.titleHtml||''}</span><span class="meta">${p.metaHtml||''}</span></span><span class="bp-ico ${p.iconCls||''}">${esc(p.icon||'!')}</span></button><div class="bp-foot"><button type="button" class="bp-arrow" data-action="banner-prev" aria-label="이전" ${pages.length<2?'disabled':''}>‹</button><span class="bp-count">${i+1}/${pages.length}</span><button type="button" class="bp-arrow" data-action="banner-next" aria-label="다음"  ${pages.length<2?'disabled':''}>›</button><button type="button" class="bp-arrow" data-action="banner-collapse" aria-label="배너 접기" title="배너 접기">—</button></div><button type="button" class="bp-x" data-action="banner-hide" aria-label="배너 숨기기" title="배너 숨기기">✕</button></div>`;
+      const safeAction=String(p.action||'').replace(/[^a-zA-Z0-9_-]/g,'');
+      const safeIconCls=String(p.iconCls||'').replace(/[^a-zA-Z0-9_-]/g,'');
+      host.innerHTML=`<div class="banner-pager${anim}"><button type="button" class="bp-main" ${safeAction?`data-action="${safeAction}"`:''}><span class="grow"><span class="title">${esc(p.titleHtml||'')}</span><span class="meta">${esc(p.metaHtml||'')}</span></span><span class="bp-ico ${safeIconCls}">${esc(p.icon||'!')}</span></button><div class="bp-foot"><button type="button" class="bp-arrow" data-action="banner-prev" aria-label="이전" ${pages.length<2?'disabled':''}>‹</button><span class="bp-count">${i+1}/${pages.length}</span><button type="button" class="bp-arrow" data-action="banner-next" aria-label="다음"  ${pages.length<2?'disabled':''}>›</button><button type="button" class="bp-arrow" data-action="banner-collapse" aria-label="배너 접기" title="배너 접기">—</button></div><button type="button" class="bp-x" data-action="banner-hide" aria-label="배너 숨기기" title="배너 숨기기">✕</button></div>`;
     });
     startBannerAuto();
   }
@@ -970,8 +1025,11 @@
     renderBannerPager(d>0?'right':'left');
   }
   let bannerAutoTimer=null;
+  let bannerRefreshTimer=null;
   function startBannerAuto(){
     if(bannerAutoTimer) return;
+    // 5분마다 배너를 다시 계산해 점심·안읽음 변화가 저절로 반영되게 한다.
+    bannerRefreshTimer=setInterval(()=>{ try{ if(!document.hidden) refreshBanners(true); }catch(e){} }, 5*60*1000);
     bannerAutoTimer=setInterval(()=>{
       try{
         if(document.hidden) return;
@@ -1598,8 +1656,11 @@
   }
 
   function applyFontSize() {
-    document.body.classList.remove('font-sm','font-lg','font-xl');
-    if (state.settings.fontSize !== 'md') document.body.classList.add(`font-${state.settings.fontSize}`);
+    const scales={sm:0.92,md:1.06,lg:1.14,xl:1.22,xxl:1.32};
+    const key=scales[state.settings.fontSize]?state.settings.fontSize:'md';
+    document.body.classList.remove('font-sm','font-lg','font-xl','font-xxl');
+    if(key!=='md') document.body.classList.add(`font-${key}`);
+    document.documentElement.style.setProperty('--ui-scale',String(scales[key]));
   }
 
   const THEME_KEY = 'edutalk_theme';
@@ -1938,37 +1999,16 @@
   // 같은 브라우저(탭 공유)는 같은 세션 ID를 써서 서로 내쫓지 않고,
   // 다른 기기·브라우저는 ID가 달라 나중에 들어온 쪽이 남는다.
   let sessionUnsub=null;
-  // 11·12번: 기기 이름 표시용 — []에 들어갈 이름 (크롬북/윈도우/안드로이드 등)
+  // 기기 이름은 서비스 안에서만 쓰는 일반 명칭으로 표시한다.
   function deviceName(){
     try{
-      const ua=String(navigator.userAgent||'');
-      const plat=String(navigator.platform||'');
-      // 모바일 브라우저 토큰(iOS 크롬 CriOS 등)을 먼저 본다 — UA에 Safari가 함께 들어있어서 순서가 중요하다
-      let br='';
-      if(/Whale/i.test(ua)) br='웨일';
-      else if(/EdgA|EdgiOS|Edg\//i.test(ua)) br='엣지';
-      else if(/CriOS/i.test(ua)) br='크롬';
-      else if(/FxiOS/i.test(ua)) br='파이어폭스';
-      else if(/SamsungBrowser/i.test(ua)) br='삼성 인터넷';
-      else if(/Chrome/i.test(ua)) br='크롬';
-      else if(/Safari/i.test(ua)) br='사파리';
-      else if(/Firefox/i.test(ua)) br='파이어폭스';
-      // 데스크톱용으로 보기 모드에서는 폰 UA가 PC로 위장된다 — 힌트·터치로 바로잡는다
-      let mobileHint=false;
-      try{ mobileHint=navigator.userAgentData&&navigator.userAgentData.mobile===true; }catch(e){}
       let touch=0;
       try{ touch=Number(navigator.maxTouchPoints)||0; }catch(e){}
-      let os='기기';
-      if(/CrOS/i.test(ua)) os='크롬북';
-      else if(/Android/i.test(ua)) os='안드로이드';
-      else if(/iPhone/i.test(ua)) os='아이폰';
-      else if(/iPad/i.test(ua)||(/Mac/i.test(ua)&&touch>1)) os='아이패드';
-      else if(/Mac/i.test(ua)) os='맥';
-      else if(/Windows/i.test(ua)) os=mobileHint?'모바일 기기':'윈도우 PC';
-      else if(/Linux/i.test(ua)) os=(mobileHint||touch>1)?'모바일 기기':'리눅스';
-      else if(mobileHint) os='모바일 기기';
-      else if(plat) os=plat;
-      return br?`${os} ${br}`:os;
+      let mobileHint=false;
+      try{ mobileHint=navigator.userAgentData&&navigator.userAgentData.mobile===true; }catch(e){}
+      const ua=String(navigator.userAgent||'');
+      if(mobileHint || touch>1 || /Android|Mobile|Tablet/i.test(ua)) return '모바일 기기';
+      return 'PC';
     }catch(e){ return '다른 기기'; }
   }
   function mySessionId(){
@@ -2459,7 +2499,7 @@
     'open-external','ext-link','notice-link','open-notice-link','auth-page','auth-page-back','auth-page-btn',
     'landing-login','landing-signup','landing-home','landing-show','landing-page','landing-scroll','landing-open-url',
     'landing-sheet-open','landing-sheet-close','landing-acc','landing-drop',
-    'toggle-auth','google','forgot','send-reset','gate-privacy','gate-terms',
+    'toggle-auth','external-login','forgot','send-reset','gate-privacy','gate-terms',
     'pick-school','pick-school-item','retry-profile','neis-search',
     'settings','open-policies','view-policy','cal-prev','cal-next','cal-today','cal-pick',
     'banner-prev','banner-next','banner-collapse','banner-expand','banner-hide',
@@ -3216,7 +3256,7 @@
           const __priceHtml = x.orig
             ? `<s class="anchor-orig">${esc(x.orig)}</s> <b>${esc(x.price||'금액 미정')}</b>${__dc?` <span class="discount-badge">${esc(__dc)}</span>`:''}`
             : `<b>${esc(x.price||'금액 미정')}</b>${__dc?` <span class="discount-badge">${esc(__dc)}</span>`:''}`;
-          return `<article class="landing-card"><div class="ico">🎫</div><h3>${esc(x.name||'이용권')}</h3><p>${__priceHtml} · ${esc(x.period||'1년')}</p>${x.desc?`<p>${esc(x.desc)}</p>`:''}</article>`;
+          return `<article class="landing-card"><div class="ico">🎫</div><h3>${esc(x.name||'이용권')}</h3><p>${__priceHtml} · ${esc(x.period||'1년')}</p>${x.desc?`<p>${esc(x.desc)}</p>`:''}<button type="button" class="landing-price-buy" data-action="landing-pricing-buy">구매하기</button></article>`;
         }).join('')}</div>
       </section>` : '';
     // 오른쪽 인디케이터 (지금 보고 있는 곳 표시)
@@ -3544,7 +3584,7 @@
         </div>` : ''}
         <button class="primary">${state.authMode === 'login' ? '로그인' : '가입하기'}</button>
       </form>
-      <button class="google-btn" data-action="google"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="etgR" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EA4335"/><stop offset=".6" stop-color="#FF5A36"/><stop offset="1" stop-color="#FF8A00"/></linearGradient><linearGradient id="etgB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A06CFF"/><stop offset=".45" stop-color="#4285F4"/><stop offset="1" stop-color="#1B9EEE"/></linearGradient><linearGradient id="etgY" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF8A00"/><stop offset=".5" stop-color="#FBBC05"/><stop offset="1" stop-color="#A3C400"/></linearGradient><linearGradient id="etgG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#A3C400"/><stop offset=".55" stop-color="#34A853"/><stop offset="1" stop-color="#0EA5A0"/></linearGradient></defs><path fill="url(#etgR)" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="url(#etgB)" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="url(#etgY)" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="url(#etgG)" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Google 계정으로 ${state.authMode === 'login' ? '로그인' : '가입하기'}</span></button>
+      <button class="ext-login-btn" data-action="external-login"><span class="ext-login-mark" aria-hidden="true">↗</span><span>외부 계정으로 ${state.authMode === 'login' ? '계속하기' : '가입하기'}</span></button>
       ${isLogin?`<div class="auth-foot"><button class="text-btn" data-action="toggle-auth">회원가입</button><button class="text-btn" data-action="forgot">비밀번호 찾기</button>${landingEnabled()?`<button class="text-btn" data-action="landing-show">소개 보기</button>`:''}</div>`:''}
       <div class="auth-links under-card">${authLinkButtons()}</div>
     </div></div></div></div>`;
@@ -3738,7 +3778,7 @@
       const provider=new firebase.auth.GoogleAuthProvider();
       try{ await auth.signInWithPopup(provider); }
       catch(e){
-        // 팝업이 막힌 환경(인앱 웹뷰·아이폰 등)은 리다이렉트로 이어간다 (가입 정보는 sessionStorage에 유지)
+        // 팝업이 막힌 환경(인앱 웹뷰·모바일 등)은 리다이렉트로 이어간다 (가입 정보는 sessionStorage에 유지)
         const code=e?.code||'';
         if(code==='auth/popup-blocked'||code==='auth/popup-closed-by-user'||code==='auth/cancelled-popup-request'||code==='auth/operation-not-supported-in-this-environment'||code==='auth/unauthorized-domain'){
           try{ await auth.signInWithRedirect(provider); return; }catch(e2){ console.error(e2); showAuthError(errText(e2)); return; }
@@ -3793,7 +3833,7 @@
       let methods=[];
       try{ methods=await auth.fetchSignInMethodsForEmail(email); }catch(e){ methods=[]; }
       if(methods.includes('google.com') && !methods.includes('password')){
-        say('이 계정은 Google 로그인으로 만들어졌어요. Google로 로그인해 주세요.','warn');
+        say('이 계정은 외부 계정 로그인으로 만들어졌어요. 외부 계정으로 로그인해 주세요.','warn');
         return;
       }
       await auth.sendPasswordResetEmail(email);
@@ -3804,7 +3844,7 @@
       console.error(e);
       const code=e?.code||'';
       if(code==='auth/user-not-found'){
-        say('이 이메일로 가입된 계정을 찾을 수 없어요. Google 로그인으로 만든 계정이라면 Google로 로그인해 주세요.','warn');
+        say('이 이메일로 가입된 계정을 찾을 수 없어요. 외부 계정으로 만든 계정이라면 외부 계정 로그인을 이용해 주세요.','warn');
       } else if(code==='auth/invalid-email'){
         say('이메일 형식을 확인해 주세요.','warn');
       } else {
@@ -4145,11 +4185,12 @@
       renderSettingsPanel(state.settingsTab||'display');
     } else {
       state.view='chat';
-      app.innerHTML = `<div class="app"><aside class="sidebar">${sidebarHtml()}</aside><div class="sb-resizer" id="sbResizer" title="끌어서 폭 조절 (더블클릭하면 기본값)"></div><main class="main"><div id="siteBanner" class="site-banner hidden"></div><div id="globalBanner" class="new-banner global-banner"></div><div id="chat" class="chat">${emptyChat()}</div></main></div><div id="drawer" class="drawer"><div class="drawer-back" data-action="close-drawer"></div><div class="drawer-panel" id="drawerPanel"></div></div>`;
+      app.innerHTML = `<div class="app"><aside class="sidebar">${sidebarHtml()}</aside><div class="sb-resizer" id="sbResizer" title="끌어서 폭 조절 (더블클릭하면 기본값)"></div><button type="button" class="side-reopen" id="sideReopen" data-action="side-expand" aria-label="사이드바 열기" aria-hidden="true" title="사이드바 열기">›</button><main class="main"><div id="siteBanner" class="site-banner hidden"></div><div id="globalBanner" class="new-banner global-banner"></div><div id="chat" class="chat">${emptyChat()}</div></main></div><div id="drawer" class="drawer"><div class="drawer-back" data-action="close-drawer"></div><div class="drawer-panel" id="drawerPanel"></div></div>`;
       if(state.shellZoomEnter && !prefersReducedMotion()){ const shellEl=document.querySelector('#app .app'); if(shellEl) shellEl.classList.add('screen-enter'); }
       state.shellZoomEnter=false;
       renderRooms();
       wireResizer();
+      setSidebarCollapsed(isSidebarCollapsed(), false);
     }
     renderSiteBanner();
     setupGlobalHandlers();
@@ -4189,42 +4230,69 @@
     }catch(e){}
     $$('#breezeTabbar .breeze-tab').forEach(x=>x.classList.toggle('on', x.dataset.bt===id));
   }
-  const SB_MIN=226, SB_MAX=572, SB_DEFAULT=286;
+  const SB_MIN=226, SB_MAX=572, SB_DEFAULT=286, SB_COLLAPSE_AT=202;
   function applySidebarWidth(w){
     const v=Math.min(SB_MAX,Math.max(SB_MIN,Math.round(Number(w)||SB_DEFAULT)));
     document.documentElement.style.setProperty('--sidebar',v+'px');
     return v;
   }
+  function isSidebarCollapsed(){ return document.body.classList.contains('sidebar-collapsed'); }
+  function setSidebarCollapsed(on, save){
+    const v=!!on;
+    document.body.classList.toggle('sidebar-collapsed', v);
+    const btn=$('.side-collapse-btn');
+    if(btn){ btn.setAttribute('aria-expanded', v?'false':'true'); btn.setAttribute('title', v?'사이드바 펼치기':'사이드바 접기'); }
+    const re=$('#sideReopen'); if(re) re.setAttribute('aria-hidden', v?'false':'true');
+    if(save){ try{ localStorage.setItem('edutalk_sidebar_collapsed', v?'1':'0'); }catch(e){} }
+  }
   function initSidebarWidth(){
-    let w=SB_DEFAULT;
-    try{ const s=Number(localStorage.getItem('edutalk_sidebar')); if(s) w=s; }catch(e){}
+    let w=SB_DEFAULT, collapsed=false;
+    try{
+      const s=Number(localStorage.getItem('edutalk_sidebar')); if(s) w=s;
+      collapsed=localStorage.getItem('edutalk_sidebar_collapsed')==='1';
+    }catch(e){}
     applySidebarWidth(w);
+    setSidebarCollapsed(collapsed,false);
   }
   function wireResizer(){
     const rz=$('#sbResizer'); if(!rz) return;
-    let dragging=false, startX=0, startW=0;
+    let dragging=false, startX=0, startW=0, previewCollapsed=false;
     const currentW=()=>parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sidebar'))||SB_DEFAULT;
     rz.addEventListener('pointerdown',e=>{
       if(window.innerWidth<=820) return;
-      dragging=true; startX=e.clientX; startW=currentW();
+      dragging=true; startX=e.clientX; startW=isSidebarCollapsed()?0:currentW(); previewCollapsed=isSidebarCollapsed();
       rz.classList.add('dragging'); document.body.classList.add('resizing');
       try{ rz.setPointerCapture(e.pointerId); }catch(err){}
       e.preventDefault();
     });
-    rz.addEventListener('pointermove',e=>{ if(dragging) applySidebarWidth(startW+(e.clientX-startX)); });
+    rz.addEventListener('pointermove',e=>{
+      if(!dragging) return;
+      const raw=(isSidebarCollapsed()?SB_MIN:startW)+(e.clientX-startX);
+      if(raw<SB_COLLAPSE_AT){
+        if(!previewCollapsed){ previewCollapsed=true; setSidebarCollapsed(true,false); }
+        return;
+      }
+      if(previewCollapsed){ previewCollapsed=false; setSidebarCollapsed(false,false); }
+      applySidebarWidth(raw);
+    });
     const end=()=>{
       if(!dragging) return;
       dragging=false; rz.classList.remove('dragging'); document.body.classList.remove('resizing');
+      setSidebarCollapsed(previewCollapsed,true);
       try{ localStorage.setItem('edutalk_sidebar', String(Math.round(currentW()))); }catch(e){}
     };
     rz.addEventListener('pointerup',end);
     rz.addEventListener('pointercancel',end);
-    rz.addEventListener('dblclick',()=>{ applySidebarWidth(SB_DEFAULT); try{ localStorage.setItem('edutalk_sidebar',String(SB_DEFAULT)); }catch(e){} });
+    rz.addEventListener('dblclick',()=>{
+      setSidebarCollapsed(false,true);
+      applySidebarWidth(SB_DEFAULT);
+      try{ localStorage.setItem('edutalk_sidebar',String(SB_DEFAULT)); }catch(e){}
+    });
   }
   initSidebarWidth();
   function adminTabs(){
     if(isAdmin())
-      return [['school','학교 관리'],['licenses','이용권'],['refunds','환불'],['pricing','요금 안내'],['landing','소개 페이지'],['sitenotice','사이트 공지'],['pages','안내 페이지'],['chat','채팅 관리'],['sharereq','공유 요청'],['reports','신고 관리'],['modappeals','오검열 이의'],['appeals','이의 제기'],['popup','개인 안내'],['users','사용자'],['cross','학교 간 요청'],['rooms','채팅방'],['roles','역할'],['notice','공지'],['teachers','교사 승인'],['suggest','건의함']];
+      return [['school','학교 관리'],['licenses','이용권'],['orders','이용권 주문'],['refunds','환불'],['pricing','요금 안내'],['landing','소개 페이지'],['sitenotice','사이트 공지'],['pages','안내 페이지'],['chat','채팅 관리'],['sharereq','공유 요청'],['reports','신고 관리'],['modappeals','오검열 이의'],['appeals','이의 제기'],['popup','개인 안내'],['users','사용자'],['cross','학교 간 요청'],['rooms','채팅방'],['roles','역할'],['notice','공지'],['teachers','교사 승인'],['suggest','건의함']];
     if(isSchoolAdmin())
       return [['school','학교 관리'],['members','구성원'],['license','이용권 등록'],['rooms','채팅방'],['roles','역할'],['suggest','건의함'],['reports','신고 관리'],['modappeals','오검열 이의'],['notice','공지'],['sharereq','공유 요청'],['cross','학교 간 요청'],['popup','개인 안내']];
     return [['notice','공지'],['roles','역할'],['suggest','건의함'],['sharereq','공유 요청'],['cross','학교 간 요청'],['reports','신고 관리'],['modappeals','오검열 이의'],['rooms','채팅방'],['popup','개인 안내']];
@@ -4252,6 +4320,7 @@
   }
   function renderSidebar(){
     const sb=$('.sidebar'); if(sb)sb.innerHTML=sidebarHtml();
+    setSidebarCollapsed(isSidebarCollapsed(), false);
     const d=$('#drawer');
     if(d&&d.classList.contains('open')){const p=$('#drawerPanel');if(p)p.innerHTML=sidebarHtml();}
     renderRooms();
@@ -4344,7 +4413,7 @@
     const paletteHint=`<button class="icon-btn" data-action="open-palette" aria-label="빠른 실행" title="빠른 실행 (Ctrl+K)" style="margin-right:4px">⌕</button>`;
     const cBottom=isSideCollapsed('bottom')?' collapsed':'';
     return `<div class="side-top"><div class="brand"><div class="brand-mark">${brandMarkHtml()}</div><span class="brand-name" data-brand-roll>${esc(brandNames()[0]||'브리즈')}</span></div>${paletteHint}</div>
-      <div class="profile-card"><div class="profile-row"><button type="button" class="avatar-dot profile-open" data-action="profile" aria-label="내 프로필 보기">${avatarHtml(state.profile)}</button><div class="grow"><button type="button" class="profile-name profile-open" data-action="profile">${esc(state.profile?.displayName||'사용자')}</button><div class="profile-meta-line"><span class="profile-meta">${gradeClassPrefix(state.profile)}${roleLabel(state.profile?.role)}</span><span class="class-now-badge hidden" data-class-now></span><span class="presence-dot inline ${myPresenceState()||'hidden'}" data-my-presence-dot aria-hidden="true"></span><button type="button" class="presence-menu-btn" data-action="presence-menu" aria-haspopup="menu" aria-label="접속 상태 변경"><span class="presence-text" data-my-presence-label>${esc(myPresenceLabel())}</span><span class="presence-caret" aria-hidden="true">⌄</span></button></div></div></div></div>
+      <div class="profile-card"><div class="profile-row"><button type="button" class="avatar-dot profile-open" data-action="profile" aria-label="내 프로필 보기">${avatarHtml(state.profile)}</button><div class="grow"><button type="button" class="profile-name profile-open" data-action="profile">${esc(state.profile?.displayName||'사용자')}</button><div class="profile-meta-line"><span class="profile-meta">${gradeClassPrefix(state.profile)}${roleLabel(state.profile?.role)}</span><span class="class-now-badge hidden" data-class-now></span><span class="presence-dot inline ${myPresenceState()||'hidden'}" data-my-presence-dot aria-hidden="true"></span><button type="button" class="presence-menu-btn" data-action="presence-menu" aria-haspopup="menu" aria-label="접속 상태 변경"><span class="presence-text" data-my-presence-label>${esc(myPresenceLabel())}</span><span class="presence-caret" aria-hidden="true">⌄</span></button></div></div><button type="button" class="side-collapse-btn" data-action="side-collapse" aria-label="사이드바 접기" aria-expanded="true" title="사이드바 접기"><span aria-hidden="true">‹</span></button></div></div>
       <div id="licenseBanner" class="license-banner hidden"></div>
       <div id="bannerPager"></div>
       <div id="unreadSummary" class="unread-summary hidden" role="button" tabindex="0" data-action="unread-summary-go" aria-label="안읽은 방으로 이동" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); this.click(); }"></div>
@@ -4496,9 +4565,9 @@
       // 추가: body를 경고만 남기고 모두 제거, 히스토리 오염 방지
       try{
         const guard=document.getElementById('devGuard');
-        const guardHtml = guard ? guard.outerHTML : '<div id="devGuard" class="show" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(12,16,22,.92);backdrop-filter:blur(6px);padding:24px"><div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 30px 90px rgba(0,0,0,.35)"><div style="width:52px;height:52px;border-radius:50%;background:#FFF0F1;color:#E5484D;display:grid;place-items:center;margin:0 auto 14px;font-size:26px">⚠️</div><h2 style="margin:0 0 8px;color:#000">개발자 도구가 감지되었습니다</h2><p style="margin:0;color:#333;font-size:14px;line-height:1.6">보안을 위해 화면을 보호했습니다.<br>창을 닫고 다시 시도해 주세요.</p></div></div>';
+        const guardHtml = guard ? guard.outerHTML : '<div id="devGuard" class="show" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(12,16,22,.92);backdrop-filter:blur(6px);padding:24px"><div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 30px 90px rgba(0,0,0,.35)"><div style="width:52px;height:52px;border-radius:50%;background:#FFF0F1;color:#E5484D;display:grid;place-items:center;margin:0 auto 14px;font-size:26px">⚠️</div><h2 style="margin:0 0 8px;color:#000">개발자 도구가 감지됐어요</h2><p style="margin:0;color:#333;font-size:14px;line-height:1.6">보안을 위해 화면을 보호했어요.<br>창을 닫고 다시 시도해 주세요.</p></div></div>';
         // 문서 전체를 경고만 남기도록 교체 (소스는 이미 다운로드되어 네트워크 탭에 남지만, DOM에서는 제거)
-        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>브리즈</title><style>html,body{height:100%;margin:0;background:#101119;color:#fff;font-family:Pretendard,sans-serif}</style></head><body>' + guardHtml + '</body>';
+        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>브리즈</title><style>html,body{height:100%;margin:0;background:#101119;color:#fff;font-family:system-ui,sans-serif}</style></head><body>' + guardHtml + '</body>';
         try{ window.stop(); }catch(e){}
         // 추가: 무한 debugger로 추가 분석 방해 (개발자 도구가 열려 있으면 멈춤)
         // Note: 실제 보안 경계는 firestore.rules이며, 클라이언트 코드는 항상 네트워크로 다운로드되므로 완전 은닉은 불가능합니다.
@@ -4533,7 +4602,8 @@
   function isMobileLike(){
     try{
       if(window.matchMedia && window.matchMedia('(pointer:coarse)').matches) return true;
-      if(/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'')) return true;
+      if((Number(navigator.maxTouchPoints)||0)>1) return true;
+      if(/Android|Mobile|Tablet/i.test(navigator.userAgent||'')) return true;
     }catch(e){}
     return false;
   }
@@ -4775,7 +4845,7 @@
       if(a==='landing-mock-preset-remove'){syncLandingDraft();landingDraft().mock.presets.splice(Number(el.dataset.idx),1);renderLandingAdmin($('#adminPanel'));return}
       if(a==='landing-mock-msg-add'){syncLandingDraft();const P=landingDraft().mock.presets[Number(el.dataset.idx)];if(P&&P.messages.length<6)P.messages.push({side:'left',avatar:'',text:'새 메시지'});renderLandingAdmin($('#adminPanel'));return}
       if(a==='landing-mock-msg-remove'){syncLandingDraft();const P=landingDraft().mock.presets[Number(el.dataset.idx)];if(P)P.messages.splice(Number(el.dataset.mi),1);renderLandingAdmin($('#adminPanel'));return}
-      if(a==='google')return googleLogin(); if(a==='forgot')return forgot(); if(a==='send-reset')return sendReset();
+      if(a==='external-login')return googleLogin(); if(a==='forgot')return forgot(); if(a==='send-reset')return sendReset();
              if(a==='netmode'||a==='netsave'||a==='netconnect'||a==='netdisconnect'||a==='net-guide'||a==='org-toggle'||a==='org-user'||a==='org-refresh'||a==='internal-reads'||a==='internal-members'||a==='internal-leave'||a==='internal-delete'||a==='recall-message')return handleNetAction(a,el); if(a==='settings')return openSettings(); if(a==='delete-account')return openDeleteAccountModal(); if(a==='profile')return openProfile(); if(a==='presence-menu'){ openPresenceMenu(el); return; } if(a==='logout')return confirmModal('로그아웃 하시겠어요?','다시 로그인해야 들어올 수 있어요.',()=>{closeAllModals();clearListeners();try{disconnectInternal();}catch(e){}state.logoutZoom=true;return auth.signOut();}); if(a==='new-room')return openRoomModal(); if(a==='admin')return openAdmin();
       if(a==='close-admin')return exitAdmin(); if(a==='site-notice')return openAdmin('sitenotice'); if(a==='users-admin')return openAdmin('users');
       if(a==='user-profile')return openUserProfile(el.dataset.uid,el.dataset.name);
@@ -4879,6 +4949,16 @@
       if(a==='blind-restore')return restoreBlindMessage(el.dataset.msg);
       if(a==='blind-confirm')return confirmBlindDelete(el.dataset.msg);
       if(a==='meal-refresh')return loadMealWidget(true);
+      if(a==='meal-go'){
+        try{
+          const sec=document.querySelector('.side-section[data-sidekey="meal"]');
+          if(sec&&sec.classList.contains('collapsed')) toggleSideCollapse('meal');
+          const w=document.getElementById('mealWidget');
+          if(w) w.scrollIntoView({behavior:prefersReducedMotion()?'auto':'smooth',block:'center'});
+          loadMealWidget(true);
+        }catch(err){}
+        return;
+      }
       if(a==='neis-manual')return openNeisManual();
       if(a==='tt-request')return openTimetableChangeModal();
       if(a==='tt-approve-list')return openTimetableApproveList();
@@ -4993,7 +5073,12 @@
       if(a==='cat-toggle')return toggleCatCollapse(el.dataset.group);
       if(a==='group-add')return groupAdd(); if(a==='group-del')return groupDelete(Number(el.dataset.i)); if(a==='group-up')return groupMove(Number(el.dataset.i),-1); if(a==='group-down')return groupMove(Number(el.dataset.i),1);
       if(a==='resolve-report')return resolveReport(el.dataset.id); if(a==='read-notice')return readNotice(el.dataset.id);
-      if(a==='license-issue')return openLicenseIssueModal(); if(a==='license-buy')return openLicenseBuyModal();
+      if(a==='license-issue')return openLicenseIssueModal();
+      if(a==='license-buy'||a==='billing-open'||a==='landing-pricing-buy')return openBillingCenter();
+      if(a==='billing-order-detail')return openBillingOrderDetail(el.dataset.order||'');
+      if(a==='billing-receipt')return openBillingReceipt(el.dataset.order||'');
+      if(a==='billing-admin-confirm')return openBillingAdminConfirm(el.dataset.order||'');
+      if(a==='billing-orders-refresh')return loadBillingOrdersAdmin();
       if(a==='license-days-plus')return adjustSchoolLicense(1); if(a==='license-days-minus')return adjustSchoolLicense(-1);
       if(a==='license-grant')return grantSchoolAccess(); if(a==='license-revoke-school')return revokeSchoolAccess();
       if(a==='license-toggle-active')return toggleSchoolActive();
@@ -5017,6 +5102,16 @@
       if(a==='go-license-renew'){ closeDrawer(); return openAdmin('license'); }
       if(a==='banner-prev')return bannerPageMove(-1); if(a==='banner-next')return bannerPageMove(1);
       if(a==='banner-collapse'){ animateBannerFold(()=>{ setBannerCollapsed(true); toast('배너를 접었어요.'); }); return; } if(a==='banner-expand'){ setBannerCollapsed(false); animateBannerUnfold(); toast('배너를 펼쳤어요.'); return; } if(a==='banner-hide'){ setBannerHidden(true); toast('배너를 숨겼어요.'); return; }
+      if(a==='side-collapse'){
+        if(window.innerWidth<=820){ closeDrawer(); return; }
+        setSidebarCollapsed(true,true);
+        return;
+      }
+      if(a==='side-expand'){
+        setSidebarCollapsed(false,true);
+        applySidebarWidth(localStorage.getItem('edutalk_sidebar')||SB_DEFAULT);
+        return;
+      }
       if(a==='unread-summary-go'){ const nid=Object.keys(state.unread||{})[0]; if(nid) openRoom(nid); return; }
       if(a==='open-palette'){ try{ openCmdPalette(); }catch(e){} return; }
       if(a==='close-room-settings')return closeRoomSettings();
@@ -5406,7 +5501,7 @@
 
   async function maybeShowProfileSetup(){
     if(state.profile.role==='student' && (!state.profile.grade || !state.profile.classNum)){
-      openModal(`<h2>학급 정보를 알려 주세요</h2><p class="desc">채팅방을 제대로 보여드리려면 학년과 반을 알려주세요.</p><form id="setupForm"><div class="field"><label>학년</label><div class="custom-select"><button type="button" class="select-button" data-select-open="setupGrade"><span data-selected="setupGrade">골라 주세요</span><span>⌄</span></button></div></div><div class="field"><label>반</label><div class="custom-select"><button type="button" class="select-button" data-select-open="setupClass"><span data-selected="setupClass">학년을 먼저 골라 주세요</span><span>⌄</span></button></div></div><label class="consent"><input type="checkbox" name="setupConsent"><span>브리즈은 가입·접속할 때 <b>IP 주소, 접속 시각, 브라우저 정보</b>를 수집·보관할 수 있어요. 부적절한 사용을 확인하기 위한 목적으로만 쓰이며, 위 내용을 확인했습니다.</span></label><button class="primary" data-action="save-setup">저장하고 시작하기</button></form>`,{dismissible:false});
+      openModal(`<h2>학급 정보를 알려 주세요</h2><p class="desc">채팅방을 제대로 보여드리려면 학년과 반을 알려주세요.</p><form id="setupForm"><div class="field"><label>학년</label><div class="custom-select"><button type="button" class="select-button" data-select-open="setupGrade"><span data-selected="setupGrade">골라 주세요</span><span>⌄</span></button></div></div><div class="field"><label>반</label><div class="custom-select"><button type="button" class="select-button" data-select-open="setupClass"><span data-selected="setupClass">학년을 먼저 골라 주세요</span><span>⌄</span></button></div></div><label class="consent"><input type="checkbox" name="setupConsent"><span>브리즈은 가입·접속할 때 <b>IP 주소, 접속 시각, 브라우저 정보</b>를 수집·보관할 수 있어요. 부적절한 사용을 확인하기 위한 목적으로만 쓰이며, 위 내용을 확인했어요.</span></label><button class="primary" data-action="save-setup">저장하고 시작하기</button></form>`,{dismissible:false});
       const gb=$('[data-select-open="setupGrade"]');wireDropdown(gb,state.school.grades.map(g=>({value:g,label:`${g}학년`})),(v,l)=>{gb.querySelector('[data-selected]').textContent=l;gb.querySelector('[data-selected]').dataset.value=v;const cb=$('[data-select-open="setupClass"]');wireDropdown(cb,Array.from({length:Number(state.school.classCounts?.[v]||0)},(_,i)=>({value:i+1,label:`${i+1}반`})),(cv,cl)=>{cb.querySelector('[data-selected]').textContent=cl;cb.querySelector('[data-selected]').dataset.value=cv;});});
     }
   }
@@ -5550,7 +5645,7 @@
       if(!r.ok) throw new Error('bad');
       return true;
     }catch(e){
-      openModal(`<h2>내부망에 연결할 수 없어요</h2><p class="desc">학교 내부 Wi-Fi 또는 학내망 네트워크에 연결되어 있지 않습니다.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
+      openModal(`<h2>내부망에 연결할 수 없어요</h2><p class="desc">학교 내부 Wi-Fi 또는 학내망 네트워크에 연결되어 있지 않아요.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
       return false;
     }
   }
@@ -7126,7 +7221,7 @@
               const old=prev.get(mid);
               const oldC=Number(old?.count||0), newC=Number(v.count||0);
               if(newC>oldC&&newC>=1){
-                const label=`'${state.room?.name||v.roomName||'채팅방'}' ${v.targetName||'메시지'}에 신고 ${newC}건이 접수되었습니다`;
+                const label=`'${state.room?.name||v.roomName||'채팅방'}' ${v.targetName||'메시지'}에 신고 ${newC}건이 접수됐어요`;
                 // 채팅방으로 들어가지 않고 신고 관리로 간다 (방에 없는 교사도 방에 끌려들어가지 않게)
                 if(newC>=REPORT_BLIND_COUNT) showStickyNotice(`report_${mid}_${newC}`,'신고가 쌓였어요',label,`<div class="sticky-btns"><button type="button" class="sticky-btn primary" data-action="reports">신고 관리 열기</button></div>`);
                 try{ notifyMessage('',{name:'브리즈'},{senderId:'report',senderName:'신고 알림',text:label,createdAt:new Date()}); }catch(e){}
@@ -10532,7 +10627,7 @@
       html=`
       <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8"/><path d="M12 14v6"/></svg></span> 표시</h3>
         <div class="setting-row"><div class="setting-label"><strong>화면 테마</strong></div><div class="choice-row">${[['light','밝게'],['dark','어둡게'],['system','시스템']].map(([v,l])=>`<button type="button" class="choice ${currentTheme()===v?'active':''}" data-theme="${v}">${l}</button>`).join('')}</div></div>
-        <div class="setting-row"><div class="setting-label"><strong>글자 크기</strong></div><div class="choice-row">${[['sm','작게'],['md','기본'],['lg','크게'],['xl','더 크게']].map(([v,l])=>`<button type="button" class="choice ${state.settings.fontSize===v?'active':''}" data-setting-font="${v}">${l}</button>`).join('')}</div></div>
+        <div class="setting-row"><div class="setting-label"><strong>글자 크기</strong></div><div class="choice-row">${[['sm','작게'],['md','기본'],['lg','크게'],['xl','더 크게'],['xxl','아주 크게']].map(([v,l])=>`<button type="button" class="choice ${state.settings.fontSize===v?'active':''}" data-setting-font="${v}">${l}</button>`).join('')}</div></div>
         <div class="setting-row"><div class="setting-label"><strong>친구·대화방 배치</strong></div><div class="custom-select" style="width:210px"><button type="button" class="select-button" data-select-open="sideLayout"><span data-selected="sideLayout" data-value="${esc(state.settings.sideLayout||'split')}">${(state.settings.sideLayout==='friends-top'?'친구 먼저':state.settings.sideLayout==='rooms-only'?'대화방만':state.settings.sideLayout==='friends-only'?'친구만':'나눠서 보기')}</span><span>⌄</span></button></div></div>
       </div>
       <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 1 2.3 1.6 4 1.6s3-.6 4-1.6"/><path d="M9 9h.01M15 9h.01"/></svg></span> 감정 아이콘</h3><div class="avatar-pick" id="rxPick" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:8px">${RX_CHOICES.map(e=>`<button type="button" class="avatar-opt ${reactionEmojis().includes(e)?'on':''}" data-rx="${esc(e)}">${esc(e)}</button>`).join('')}</div></div>
@@ -10670,7 +10765,7 @@
         if(st==='denied'){
           bt.checked=false; bt.closest('.choice')?.classList.remove('active');
           persistBrowserPref();
-          toast('알림이 차단되어 있어요. 아이폰 설정 → 브리즈 → 알림에서 허용해 주세요.');
+          toast('알림이 차단되어 있어요. 휴대폰 설정 → 브리즈 → 알림에서 허용해 주세요.');
           return;
         }
         bt.closest('.choice')?.classList.add('active');
@@ -10803,9 +10898,9 @@
       </div>
       ${hasPassword
         ? `<div class="field" style="margin-top:16px"><label>비밀번호 확인</label><input id="delPassword" class="input" type="password" autocomplete="current-password" placeholder="지금 쓰는 비밀번호를 입력해 주세요."><p id="delPwMsg" class="reset-msg"></p></div>`
-        : `<div class="warn-box" style="margin-top:16px">Google 로그인으로 가입한 계정이에요. 탈퇴하려면 Google로 본인 확인을 해주세요.</div>`}
+        : `<div class="warn-box" style="margin-top:16px">외부 계정으로 가입한 계정이에요. 탈퇴하려면 외부 계정으로 본인 확인을 해주세요.</div>`}
       <label class="consent" style="margin-top:16px"><input type="checkbox" id="delConfirm"><span>위 내용을 확인했어요.</span></label>
-      <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="danger-btn" id="delGo" disabled style="opacity:.5">${hasPassword?'탈퇴하기':'Google 확인 후 탈퇴'}</button></div>`);
+      <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="danger-btn" id="delGo" disabled style="opacity:.5">${hasPassword?'탈퇴하기':'외부 계정 확인 후 탈퇴'}</button></div>`);
     const chk=$('#delConfirm'), go=$('#delGo');
     if(chk&&go) chk.onchange=()=>{ go.disabled=!chk.checked; go.style.opacity=chk.checked?'1':'.5'; };
     if(go) go.onclick=()=>deleteAccount();
@@ -10841,7 +10936,7 @@
       } else {
         toast('본인 확인에 실패했어요. 탈퇴하지 않았어요.');
       }
-      resetGo(auth.currentUser?.providerData?.some(p=>p.providerId==='password')?'탈퇴하기':'Google 확인 후 탈퇴');
+      resetGo(auth.currentUser?.providerData?.some(p=>p.providerId==='password')?'탈퇴하기':'외부 계정 확인 후 탈퇴');
       return;
     }
     if(go){ go.disabled=true; go.textContent='처리 중…'; }
@@ -11356,6 +11451,7 @@
     if(state.adminTab==='suggest')return renderSuggestHandler(p);
     if(state.adminTab==='notice'){ renderNoticeRoomsAdmin(p).then(()=>renderSchedCard(p)).catch(()=>{}); return; }
     if(state.adminTab==='licenses')return renderLicensesAdmin(p);
+    if(state.adminTab==='orders')return renderBillingOrdersAdmin(p);
     if(state.adminTab==='refunds')return renderRefundsAdmin(p);
     if(state.adminTab==='pricing')return renderPricingAdmin(p);
     if(state.adminTab==='license')return renderLicenseRedeem(p);
@@ -11398,7 +11494,7 @@
       <div class="field"><label>종류</label><div class="custom-select"><button type="button" class="select-button" data-select-open="licType"><span data-selected="licType" data-value="single_1y">단일망 이용권 1년</span><span>⌄</span></button></div></div>
       <div class="field"><label>금액 (원 · 유료만)</label><input id="licPrice" class="input" inputmode="numeric" placeholder="0"></div>
       <div class="field"><label>메모</label><input id="licMemo" class="input" placeholder="예: ○○초 단일망 외부용"></div>
-      ${hasPw?'<div class="field"><label>비밀번호 확인 (필수)</label><input id="licPw" class="input" type="password" autocomplete="current-password" placeholder="지금 쓰는 비밀번호"></div>':'<div class="warn-box">Google 로그인 계정은 발급 확인을 위해 Google 재인증이 필요해요.</div>'}
+      ${hasPw?'<div class="field"><label>비밀번호 확인 (필수)</label><input id="licPw" class="input" type="password" autocomplete="current-password" placeholder="지금 쓰는 비밀번호"></div>':'<div class="warn-box">외부 계정 로그인은 발급 확인을 위해 외부 계정 재인증이 필요해요.</div>'}
       <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="licGo">발급하기</button></div>`);
     const tb=$('[data-select-open="licType"]');
     if(tb) wireDropdown(tb, LICENSE_TYPES.map(t=>({value:t.id,label:`${t.label}${t.chatOnly?' · 소통전용(시간표 차단)':''}${t.network==='single'?' · 단일망':t.network==='dual'?' · 듀얼망':''}`})), (v,l)=>{ tb.querySelector('[data-selected]').textContent=l; tb.querySelector('[data-selected]').dataset.value=v; });
@@ -11426,30 +11522,419 @@
       }catch(e){ console.error(e); toast(errText(e)); }
     });
   }
-  function openLicenseBuyModal(){
-    // 실결제 연동 전 모의 구매: 통합 요금제 4종 중 선택, 코드는 계정에 바로 들어가지 않고 코드로 발급
-    const plans=[{id:'single_1y',desc:'외부망 또는 내부망 중 1택 · 시간표 포함'},{id:'dual_unified_1y',desc:'내부+외부 동시 · 시간표 포함'},{id:'single_chat_1y',desc:'단일망 1택 · 소통만 (시간표 차단)'},{id:'dual_chat_1y',desc:'듀얼 동시 · 소통만 (시간표 차단)'}];
-    openModal(`<h2>통합 이용권 구매 (준비 중)</h2><p class="desc">실결제 연동 전이라 결제는 되지 않고 구성만 보여줘요. 구매하면 고유코드+인증코드가 발급돼요. 요금제는 1개만 쓸 수 있어요.</p>
-      <div class="field"><label>요금제 선택</label><div class="custom-select"><button type="button" class="select-button" data-select-open="buyType"><span data-selected="buyType" data-value="single_1y">단일망 이용권 1년</span><span>⌄</span></button></div></div>
-      <div class="mini muted" id="buyPlanDesc">${esc(plans[0].desc)}</div>
-      <div class="field" style="margin-top:12px"><label>금액</label><input id="buyPrice" class="input" inputmode="numeric" placeholder="금액 미정 (예: 99000)"></div>
-      <label class="consent" style="margin-top:12px"><input type="checkbox" id="buyAgree"><span>${esc(DIGITAL_VOUCHER_NOTICE)}</span></label>
-      <label class="consent"><input type="checkbox" id="buyPrivacy"><span>이용권·환불 안내와 개인정보 처리방침에 동의해요.</span></label>
-      <div class="modal-actions"><button type="button" class="cancel" data-close-modal>취소</button><button type="button" class="confirm" id="buyGo">구매하고 코드 받기</button></div>`);
-    const tb2=$('[data-select-open="buyType"]');
-    if(tb2) wireDropdown(tb2, plans.map(p=>({value:p.id,label:licenseTypeLabel(p.id)})), (v,l)=>{ tb2.querySelector('[data-selected]').textContent=l; tb2.querySelector('[data-selected]').dataset.value=v; const d=plans.find(x=>x.id===v); const host=$('#buyPlanDesc'); if(host&&d) host.textContent=d.desc; });
-    $('#buyGo').onclick=()=>runAsync(async()=>{
-      if(!$('#buyAgree')?.checked) return toast('디지털 이용권 안내에 동의해 주세요.');
-      if(!$('#buyPrivacy')?.checked) return toast('이용권·환불 안내에 동의해 주세요.');
-      const type=$('[data-selected="buyType"]')?.dataset.value||'single_1y';
-      const price=Number(($('#buyPrice')?.value||'').replace(/[^0-9]/g,''))||0;
+  // ---------- 이용권 구매 ----------
+  // 금액과 결제 상태는 서버가 결정한다. 화면은 서버가 돌려준 요금제·주문 상태만 그린다.
+  let billingPlansCache = null;
+  function billingWon(n){ return Number(n||0).toLocaleString('ko-KR'); }
+  function billingRequestKey(){
+    try{
+      const a=new Uint8Array(18);
+      crypto.getRandomValues(a);
+      return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('');
+    }catch(e){ return `req_${Date.now()}_${Math.random().toString(36).slice(2,12)}`; }
+  }
+  function billingStatusLabel(s){
+    return ({pending:'결제 대기',paid:'결제 완료',cancelled:'취소됨',failed:'결제 실패'})[s]||'확인 중';
+  }
+  function billingMethodLabel(m){ return m==='card'?'카드·간편결제':'무통장 입금'; }
+  function billingStatusClass(s){ return ['pending','paid','cancelled','failed'].includes(s)?s:'pending'; }
+  async function billingCall(name, payload){
+    try{
+      if(!firebase || typeof firebase.app!=='function' || typeof firebase.functions!=='function'){
+        throw new Error('결제 서비스를 사용할 수 없어요. 잠시 후 다시 시도해 주세요.');
+      }
+      const fn=firebase.app().functions('asia-northeast3').httpsCallable(name);
+      const res=await fn(payload||{});
+      return res?.data ?? res ?? {};
+    }catch(e){
+      const raw=String(e?.message||e?.code||'');
+      const code=raw.match(/\[E-BILL-[0-9]{3}\][^\n]*/);
+      if(code) throw new Error(code[0]);
+      if(/not-found|internal|unavailable|failed-precondition/i.test(raw)) {
+        throw new Error('결제 서비스에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      }
+      throw e;
+    }
+  }
+  function billingErrorBox(msg){
+    return `<div class="billing-error" role="alert"><b>잠시 확인해 주세요</b><span>${esc(msg||'결제를 진행하지 못했어요. 잠시 후 다시 시도해 주세요.')}</span></div>`;
+  }
+  function billingGoLogin(){
+    try{ closeAllModals(); }catch(e){}
+    enterAuth('login');
+    toast('로그인한 뒤 이용권을 구매할 수 있어요.');
+  }
+  async function openBillingCenter(){
+    if(!state.user) return billingGoLogin();
+    if(!(isAdmin()||isSchoolAdmin())) return toast('학교 관리자 계정에서 이용권을 구매할 수 있어요.');
+    const panel=openModal(`<h2>이용권 구매</h2><p class="desc">학교에 맞는 요금제를 골라 주세요. 결제가 끝나면 이용권 코드가 발급돼요.</p><div id="billingStage"><div class="billing-loading"><span class="billing-spinner"></span><span>요금제를 불러오는 중이에요…</span></div></div>`);
+    panel.classList.add('billing-modal');
+    const stage=()=>panel.querySelector('#billingStage');
+    try{
+      billingPlansCache=await billingCall('getBillingPlans',{});
+      const cat=billingPlansCache;
+      const plans=Array.isArray(cat.plans)?cat.plans:[];
+      if(!plans.length) throw new Error('구매할 수 있는 요금제가 없어요.');
+      state.billing={cat, planId:plans[0].id, method:(cat.methods||['transfer'])[0], step:1, busy:false, order:null, license:null, buyerName:cat.buyer?.name||'', schoolName:cat.buyer?.schoolName||'', agree:false, idempotencyKey:''};
+      paintBilling(panel);
+    }catch(e){
+      console.error('billing plans', e);
+      if(stage()) stage().innerHTML=billingErrorBox(e?.message||'요금제를 불러오지 못했어요.')+`<div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button><button type="button" class="confirm" id="billingRetry">다시 시도</button></div>`;
+      const retry=panel.querySelector('#billingRetry');
+      if(retry) retry.onclick=()=>{closeModal(); openBillingCenter();};
+    }
+  }
+  function billingHead(panel,title,desc){
+    const h=panel.querySelector('.modal-head h2'); if(h) h.textContent=title;
+    const d=panel.querySelector('.modal-head .desc'); if(d) d.textContent=desc;
+  }
+  function billingSteps(step){
+    const labels=['요금제','결제 방법','완료'];
+    return `<div class="billing-steps" aria-label="구매 단계">${labels.map((label,i)=>{
+      const n=i+1, stateCls=step>n?'done':step===n?'active':'';
+      return `<div class="billing-step ${stateCls}"><span class="billing-step-num">${step>n?'✓':n}</span><span>${label}</span></div>${i<labels.length-1?'<i class="billing-step-line"></i>':''}`;
+    }).join('')}</div>`;
+  }
+  function billingPlanCard(plan, selected){
+    return `<button type="button" class="billing-plan ${selected?'selected':''}" data-billing-plan="${esc(plan.id)}" aria-pressed="${selected?'true':'false'}">
+      ${plan.badge?`<span class="billing-plan-badge">${esc(plan.badge)}</span>`:''}
+      <span class="billing-plan-top"><span class="billing-plan-name">${esc(plan.label)}</span><span class="billing-radio" aria-hidden="true"></span></span>
+      <span class="billing-plan-price"><b>${billingWon(plan.totalAmount)}</b><small>원 / 1년</small></span>
+      <span class="billing-plan-desc">${esc(plan.description||'')}</span>
+      <span class="billing-plan-feats">${(plan.features||[]).map(f=>`<span>${esc(f)}</span>`).join('')}</span>
+    </button>`;
+  }
+  function billingPaint(panel){
+    const b=state.billing; if(!b) return;
+    const stage=panel.querySelector('#billingStage'); if(!stage) return;
+    const cat=b.cat||{};
+    const plans=Array.isArray(cat.plans)?cat.plans:[];
+    const plan=plans.find(p=>p.id===b.planId)||plans[0]||{};
+    if(!plan.id) return;
+    const stepChanged=b._paintedStep!==b.step;
+    if(stepChanged){ b._paintedStep=b.step; try{ panel.scrollTop=0; }catch(e){} }
+    if(b.step===1){
+      billingHead(panel,'이용권 구매','학교에 맞는 요금제를 골라 주세요. 결제가 끝나면 이용권 코드가 발급돼요.');
+      stage.innerHTML=`${billingSteps(1)}
+        <div class="billing-plans">${plans.map(p=>billingPlanCard(p,p.id===plan.id)).join('')}</div>
+        <div class="billing-summary">
+          <div><span class="billing-summary-label">선택한 요금제</span><b>${esc(plan.label)}</b><span class="billing-summary-sub">${esc(plan.network==='dual'?'교내·외부망':'단일망')} · ${plan.days}일 · 부가세 포함</span></div>
+          <div class="billing-summary-total"><span>결제 금액</span><strong>${billingWon(plan.totalAmount)}<small>원</small></strong></div>
+        </div>
+        <div class="modal-actions"><button type="button" class="cancel" data-close-modal>나중에</button><button type="button" class="confirm" id="billingNext">다음</button></div>`;
+      stage.querySelectorAll('[data-billing-plan]').forEach(btn=>btn.onclick=()=>{
+        b.planId=btn.dataset.billingPlan||b.planId; b.idempotencyKey=''; billingPaint(panel);
+      });
+      const next=stage.querySelector('#billingNext');
+      if(next) next.onclick=()=>{b.step=2; billingPaint(panel);};
+      return;
+    }
+    if(b.step===2){
+      billingHead(panel,'결제 방법','결제 방법을 고르고 주문 내용을 확인해 주세요.');
+      const methods=Array.isArray(cat.methods)&&cat.methods.length?cat.methods:['transfer'];
+      const method=methods.includes(b.method)?b.method:methods[0];
+      b.method=method;
+      const modeNote=cat.mode==='sandbox'?'<span class="billing-mode-pill">결제 흐름 확인 모드</span>':cat.mode==='live'?'<span class="billing-mode-pill secure">보안 결제</span>':'';
+      const bank=cat.bank||{};
+      stage.innerHTML=`${billingSteps(2)}
+        <button type="button" class="billing-back" id="billingBack">← 요금제 다시 고르기</button>
+        <div class="billing-review">
+          <div class="billing-review-plan"><span class="billing-review-ico">${plan.chatOnly?'✉':'▦'}</span><div><b>${esc(plan.label)}</b><small>${esc(plan.description||'')}</small></div></div>
+          <div class="billing-review-price"><b>${billingWon(plan.totalAmount)}원</b><small>부가세 포함</small></div>
+        </div>
+        <div class="billing-section-label">결제 방법 ${modeNote}</div>
+        <div class="billing-methods">${methods.map(m=>`<button type="button" class="billing-method ${m===method?'selected':''}" data-billing-method="${esc(m)}">
+          <span class="billing-method-icon">${m==='card'?'▣':'₩'}</span>
+          <span class="billing-method-text"><b>${billingMethodLabel(m)}</b><small>${m==='card'?(cat.mode==='sandbox'?'결제 흐름을 확인하는 단계예요':'결제 창에서 안전하게 결제해요'):'입금 확인 후 이용권을 발급해요'}</small></span>
+          <span class="billing-radio" aria-hidden="true"></span>
+        </button>`).join('')}</div>
+        ${method==='transfer'?`<div class="billing-bank-note">${bank.configured?`<b>${esc(bank.bankName)} ${esc(bank.accountNumber)}</b><span>예금주 ${esc(bank.accountHolder)}</span>`:'<b>입금 계좌는 주문 후 결제 담당자가 안내해 드려요.</b>'}<small>${esc(bank.guide||'입금자명을 학교명으로 남겨 주세요.')}</small></div>`:''}
+        <div class="billing-buyer">
+          <div class="field"><label>구매자 이름</label><input id="billingBuyerName" class="input" value="${esc(b.buyerName||'')}" placeholder="이름을 입력해 주세요." maxlength="40" autocomplete="name"></div>
+          <div class="field"><label>학교</label>${cat.buyer?.schoolName?`<div class="billing-readonly">${esc(cat.buyer.schoolName)}</div>`:`<input id="billingSchoolName" class="input" value="${esc(b.schoolName||'')}" placeholder="학교 이름을 입력해 주세요." maxlength="60" autocomplete="organization">`}</div>
+        </div>
+        <label class="consent billing-consent"><input type="checkbox" id="billingAgree" ${b.agree?'checked':''}><span>${esc(DIGITAL_VOUCHER_NOTICE)}</span></label>
+        <label class="consent billing-consent"><input type="checkbox" id="billingPrivacy" ${b.agree?'checked':''}><span>이용권·환불 안내와 개인정보 처리방침에 동의해요.</span></label>
+        <div class="billing-note">결제 금액은 부가세 포함 <b>${billingWon(plan.totalAmount)}원</b>이에요. 결제가 확인되면 학교 관리자 계정에서 바로 등록할 수 있어요.</div>
+        <div id="billingError"></div>
+        <div class="modal-actions"><button type="button" class="cancel" id="billingBack2">이전</button><button type="button" class="confirm" id="billingPay">${method==='card'?'결제하기':'입금 안내 받기'}</button></div>`;
+      stage.querySelector('#billingBack').onclick=()=>{b.step=1; billingPaint(panel);};
+      stage.querySelector('#billingBack2').onclick=()=>{b.step=1; billingPaint(panel);};
+      stage.querySelectorAll('[data-billing-method]').forEach(btn=>btn.onclick=()=>{b.method=btn.dataset.billingMethod||b.method; b.idempotencyKey=''; billingPaint(panel);});
+      const nameInput=stage.querySelector('#billingBuyerName');
+      if(nameInput) nameInput.oninput=()=>{b.buyerName=nameInput.value; b.idempotencyKey='';};
+      const schoolInput=stage.querySelector('#billingSchoolName');
+      if(schoolInput) schoolInput.oninput=()=>{b.schoolName=schoolInput.value; b.idempotencyKey='';};
+      stage.querySelector('#billingAgree').onchange=(e)=>{b.agree=!!e.target.checked;};
+      stage.querySelector('#billingPrivacy').onchange=(e)=>{b.agree=!!e.target.checked && !!stage.querySelector('#billingAgree')?.checked;};
+      const pay=stage.querySelector('#billingPay');
+      pay.onclick=()=>runAsync(async()=>{
+        if(b.busy) return;
+        const buyerName=String(stage.querySelector('#billingBuyerName')?.value||'').trim();
+        const schoolName=String(stage.querySelector('#billingSchoolName')?.value||cat.buyer?.schoolName||state.profile?.schoolName||'').trim();
+        const agree=!!stage.querySelector('#billingAgree')?.checked;
+        const privacy=!!stage.querySelector('#billingPrivacy')?.checked;
+        const err=stage.querySelector('#billingError');
+        if(!buyerName) return toast('구매자 이름을 입력해 주세요.');
+        if(!schoolName) return toast('학교 이름을 입력해 주세요.');
+        if(!agree) return toast('디지털 이용권 안내에 동의해 주세요.');
+        if(!privacy) return toast('이용권·환불 안내에 동의해 주세요.');
+        if(err) err.innerHTML='';
+        b.busy=true; pay.disabled=true; pay.textContent='주문을 준비하는 중…';
+        try{
+          if(!b.idempotencyKey) b.idempotencyKey=billingRequestKey();
+          const order=await billingCall('createLicenseOrder',{planId:plan.id,method,buyerName,schoolName,agree:true,idempotencyKey:b.idempotencyKey});
+          b.idempotencyKey='';
+          b.order=order; b.license=null;
+          if(order.status==='paid' && order.license){ b.license=order.license; b.step=4; }
+          else b.step=3;
+          billingPaint(panel);
+        }catch(e){
+          console.error('billing create', e);
+          pay.disabled=false; pay.textContent=method==='card'?'결제하기':'입금 안내 받기';
+          if(err) err.innerHTML=billingErrorBox(e?.message||'주문을 준비하지 못했어요.');
+          else toast(e?.message||'주문을 준비하지 못했어요.');
+        }finally{ b.busy=false; }
+      });
+      return;
+    }
+    if(b.step===3){
+      const o=b.order||{};
+      if(o.method==='transfer'){
+        billingHead(panel,'주문을 접수했어요','입금이 확인되면 이용권 코드를 발급해 드려요.');
+        const bank=o.bank||{};
+        stage.innerHTML=`${billingSteps(3)}
+          <div class="billing-result-icon pending">✓</div>
+          <div class="billing-result-copy"><h3>입금 안내를 준비했어요</h3><p>아래 계좌로 결제 금액을 입금해 주세요. 확인 후 이용권이 발급돼요.</p></div>
+          <div class="billing-amount-card"><span>입금 금액</span><b>${billingWon(o.totalAmount)}<small>원</small></b><span class="billing-amount-sub">주문번호 ${esc(o.orderNo||'')}</span></div>
+          <div class="billing-transfer-card">
+            ${bank.configured?`<div class="billing-transfer-row"><span>은행</span><b>${esc(bank.bankName)}</b></div><div class="billing-transfer-row"><span>계좌번호</span><b>${esc(bank.accountNumber)} <button type="button" class="billing-copy" data-billing-copy="${esc(bank.accountNumber)}" data-billing-copy-label="계좌번호를 복사했어요">복사</button></b></div><div class="billing-transfer-row"><span>예금주</span><b>${esc(bank.accountHolder)}</b></div>`:'<div class="billing-transfer-empty">입금 계좌는 결제 담당자가 곧 안내해 드려요.</div>'}
+            ${o.dueAt?`<div class="billing-transfer-row muted"><span>입금 기한</span><b>${esc(fmtDateTime(o.dueAt))}까지</b></div>`:''}
+            ${bank.guide?`<div class="billing-transfer-guide">${esc(bank.guide)}</div>`:''}
+          </div>
+          <div class="billing-note">입금 확인은 관리자가 직접 확인해요. 확인되면 이용권 코드가 발급되고, <b>이용권 등록</b>에서 코드를 넣으면 돼요.</div>
+          <div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button><button type="button" class="confirm" id="billingGoOrders">주문 내역 보기</button></div>`;
+        stage.querySelectorAll('[data-billing-copy]').forEach(btn=>btn.onclick=()=>copyText(btn.dataset.billingCopy||'', btn.dataset.billingCopyLabel||'복사했어요'));
+        const go=stage.querySelector('#billingGoOrders');
+        if(go) go.onclick=()=>{closeAllModals(); openAdmin(isAdmin()?'orders':'license');};
+        return;
+      }
+      if(o.sandbox){
+        billingHead(panel,'결제 확인','결제 흐름을 확인하는 단계예요. 실제 카드 정보는 받지 않아요.');
+        stage.innerHTML=`${billingSteps(3)}
+          <div class="billing-pay-card">
+            <span class="billing-mode-pill">결제 흐름 확인 모드</span>
+            <div class="billing-pay-brand"><span class="billing-pay-dot"></span><span>브리즈 학교 이용권</span></div>
+            <div class="billing-pay-amount">${billingWon(o.totalAmount)}<small>원</small></div>
+            <div class="billing-pay-meta"><span>${esc(o.planLabel||plan.label)}</span><span>${esc(o.orderNo||'')}</span></div>
+            <div class="billing-pay-lines"><span></span><span></span></div>
+            <p>실제 금액은 청구되지 않아요. 아래 버튼을 누르면 결제 완료로 처리되고 이용권 코드가 발급돼요.</p>
+            <button type="button" class="billing-pay-button" id="billingApprove">결제 승인하고 이용권 받기</button>
+          </div>
+          <div id="billingError"></div>`;
+        const approve=stage.querySelector('#billingApprove');
+        approve.onclick=()=>runAsync(async()=>{
+          if(b.busy) return;
+          b.busy=true; approve.disabled=true; approve.textContent='결제를 확인하는 중…';
+          try{
+            const r=await billingCall('confirmLicenseOrder',{orderId:o.orderId});
+            b.license=r; b.step=4; billingPaint(panel);
+          }catch(e){
+            console.error('billing confirm', e);
+            approve.disabled=false; approve.textContent='결제 승인하고 이용권 받기';
+            const err=stage.querySelector('#billingError'); if(err) err.innerHTML=billingErrorBox(e?.message||'결제를 확인하지 못했어요.');
+          }finally{ b.busy=false; }
+        });
+        return;
+      }
+      if(o.checkoutUrl){
+        billingHead(panel,'결제 창을 열어 주세요','결제가 끝나면 이 화면으로 돌아와 확인할 수 있어요.');
+        const safeUrl=/^https:\/\//i.test(String(o.checkoutUrl||''))?String(o.checkoutUrl):'';
+        stage.innerHTML=`${billingSteps(3)}
+          <div class="billing-result-icon pending">→</div>
+          <div class="billing-result-copy"><h3>안전한 결제 창으로 이동해요</h3><p>결제 창에서 금액을 확인하고 결제를 마쳐 주세요. 결제가 확인되면 이용권 코드가 발급돼요.</p></div>
+          <div class="billing-amount-card"><span>결제 금액</span><b>${billingWon(o.totalAmount)}<small>원</small></b><span class="billing-amount-sub">주문번호 ${esc(o.orderNo||'')}</span></div>
+          <div class="modal-actions">${safeUrl?`<a class="confirm" href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer">결제 창 열기</a>`:''}<button type="button" class="cancel" id="billingCheck">결제 완료 확인</button></div>`;
+        const check=stage.querySelector('#billingCheck');
+        if(check) check.onclick=()=>runAsync(async()=>{
+          try{
+            const r=await billingCall('getLicenseOrder',{orderId:o.orderId});
+            if(r?.order?.status==='paid' && r.license){ b.order=r.order; b.license=r.license; b.step=4; billingPaint(panel); }
+            else toast('아직 결제가 확인되지 않았어요. 잠시 후 다시 확인해 주세요.');
+          }catch(e){ toast(e?.message||'결제 상태를 확인하지 못했어요.'); }
+        });
+        return;
+      }
+      stage.innerHTML=billingErrorBox('주문 상태를 확인하지 못했어요. 이용권 등록 화면에서 주문 내역을 확인해 주세요.');
+      return;
+    }
+    // 완료
+    const l=b.license||{};
+    billingHead(panel,'이용권이 준비됐어요','아래 코드를 학교 관리자 계정에서 등록하면 이용을 시작할 수 있어요.');
+    stage.innerHTML=`${billingSteps(3)}
+      <div class="billing-success">
+        <div class="billing-success-check" aria-hidden="true">✓</div>
+        <h3>결제가 완료됐어요</h3>
+        <p>${esc(b.order?.planLabel||plan.label)} · ${billingWon(b.order?.totalAmount||plan.totalAmount)}원</p>
+        <div class="billing-code-box"><span>고유코드</span><b>${esc(l.licenseCode||l.code||b.order?.licenseCode||'')}</b><button type="button" class="billing-copy" data-billing-copy="${esc(l.licenseCode||l.code||b.order?.licenseCode||'')}" data-billing-copy-label="고유코드를 복사했어요">복사</button></div>
+        <div class="billing-code-box auth"><span>인증코드</span><b>${esc(l.authCode||'')}</b><button type="button" class="billing-copy" data-billing-copy="${esc(l.authCode||'')}" data-billing-copy-label="인증코드를 복사했어요">복사</button></div>
+        <div class="billing-success-note">이용권 등록에서 두 코드를 입력하면 이용이 시작돼요.</div>
+      </div>
+      <div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button><button type="button" class="confirm" id="billingGoRegister">이용권 등록</button></div>`;
+    stage.querySelectorAll('[data-billing-copy]').forEach(btn=>btn.onclick=()=>copyText(btn.dataset.billingCopy||'', btn.dataset.billingCopyLabel||'복사했어요'));
+    const go=stage.querySelector('#billingGoRegister');
+    if(go) go.onclick=()=>{closeAllModals(); openAdmin(isAdmin()?'licenses':'license');};
+  }
+  function paintBilling(panel){ billingPaint(panel); }
+
+  function billingOrderRow(o){
+    const status=billingStatusClass(o.status);
+    const date=fmtDateTime(o.createdAt);
+    return `<button type="button" class="billing-order-row" data-action="billing-order-detail" data-order="${esc(o.orderId||'')}">
+      <span class="billing-order-ico ${status}">${o.status==='paid'?'✓':o.status==='cancelled'?'×':'₩'}</span>
+      <span class="grow"><b>${esc(o.planLabel||'이용권')}</b><small>${esc(o.orderNo||'')} · ${esc(date)}</small></span>
+      <span class="billing-order-state ${status}">${esc(billingStatusLabel(o.status))}</span>
+      <span class="billing-order-amount">${billingWon(o.totalAmount)}원</span>
+      <span class="billing-order-chevron">›</span>
+    </button>`;
+  }
+  async function loadMyBillingOrders(){
+    const host=$('#billingMyOrders'); if(!host) return;
+    try{
+      const s=await db.collection('licenseOrders').where('buyerUid','==',uid()).limit(20).get();
+      const rows=s.docs.map(d=>({orderId:d.id,...d.data()})).sort((a,b)=>docTs(b.createdAt)-docTs(a.createdAt));
+      host.innerHTML=rows.length?rows.map(billingOrderRow).join(''):'<div class="billing-empty">아직 구매한 이용권이 없어요. 필요한 요금제를 골라 보세요.</div>';
+    }catch(e){
+      host.innerHTML='<div class="billing-empty muted">주문 내역을 불러오지 못했어요.</div>';
+    }
+  }
+  async function openBillingOrderDetail(orderId){
+    if(!orderId) return;
+    const panel=openModal(`<h2>주문 상세</h2><div id="billingOrderDetail"><div class="billing-loading"><span class="billing-spinner"></span><span>주문을 확인하는 중이에요…</span></div></div>`);
+    const host=()=>panel.querySelector('#billingOrderDetail');
+    try{
+      const r=await billingCall('getLicenseOrder',{orderId});
+      const o=r.order||{};
+      const l=r.license||null;
+      const bank=r.bank||{};
+      const pending=o.status==='pending';
+      host().innerHTML=`<div class="billing-detail-head"><span class="billing-order-ico ${billingStatusClass(o.status)}">${o.status==='paid'?'✓':'₩'}</span><div><b>${esc(o.planLabel||'이용권')}</b><small>${esc(o.orderNo||'')} · ${esc(fmtDateTime(o.createdAt))}</small></div><span class="billing-order-state ${billingStatusClass(o.status)}">${esc(billingStatusLabel(o.status))}</span></div>
+        <div class="billing-detail-amount"><span>결제 금액</span><b>${billingWon(o.totalAmount)}원</b></div>
+        <div class="billing-detail-grid"><div><span>결제 방법</span><b>${billingMethodLabel(o.method)}</b></div><div><span>구매자</span><b>${esc(o.buyerName||'-')}</b></div><div><span>학교</span><b>${esc(o.schoolName||'-')}</b></div><div><span>결제 상태</span><b>${esc(billingStatusLabel(o.status))}</b></div></div>
+        ${l?`<div class="billing-code-box"><span>고유코드</span><b>${esc(l.code||'')}</b><button type="button" class="billing-copy" data-billing-copy="${esc(l.code||'')}" data-billing-copy-label="고유코드를 복사했어요">복사</button></div><div class="billing-code-box auth"><span>인증코드</span><b>${esc(l.authCode||'')}</b><button type="button" class="billing-copy" data-billing-copy="${esc(l.authCode||'')}" data-billing-copy-label="인증코드를 복사했어요">복사</button></div>`:''}
+        ${pending&&o.method==='transfer'?`<div class="billing-bank-note">${bank.configured?`<b>${esc(bank.bankName)} ${esc(bank.accountNumber)}</b><span>예금주 ${esc(bank.accountHolder)}</span>`:'<b>입금 계좌는 결제 담당자가 안내해 드려요.</b>'}<small>${esc(bank.guide||'')}</small></div>`:''}
+        <div class="modal-actions">${pending?`<button type="button" class="cancel" id="billingCancelOrder">주문 취소</button>`:o.status==='paid'?`<button type="button" class="cancel" data-action="billing-receipt" data-order="${esc(orderId)}">결제 확인서</button>`:'<button type="button" class="cancel" data-close-modal>닫기</button>'}<button type="button" class="confirm" data-close-modal>확인</button></div>`;
+      host().querySelectorAll('[data-billing-copy]').forEach(btn=>btn.onclick=()=>copyText(btn.dataset.billingCopy||'', btn.dataset.billingCopyLabel||'복사했어요'));
+      const cancel=host().querySelector('#billingCancelOrder');
+      if(cancel) cancel.onclick=()=>runAsync(async()=>{
+        cancel.disabled=true; cancel.textContent='취소하는 중…';
+        try{ await billingCall('cancelLicenseOrder',{orderId}); closeModal(); toast('주문을 취소했어요.'); renderAdminPanel(); }
+        catch(e){ cancel.disabled=false; cancel.textContent='주문 취소'; toast(e?.message||'주문을 취소하지 못했어요.'); }
+      });
+    }catch(e){
+      console.error('billing order', e);
+      if(host()) host().innerHTML=billingErrorBox(e?.message||'주문을 확인하지 못했어요.');
+    }
+  }
+  function billingReceiptHtml(o, l){
+    const paid=fmtDateTime(o.paidAt||o.createdAt);
+    const license=String(l?.code||o.licenseCode||'');
+    return `<div class="receipt-paper">
+      <header class="receipt-head"><div><span class="receipt-kicker">BREEZE SCHOOL LICENSE</span><h1>이용권 결제 확인서</h1><p>본 확인서는 브리즈 이용권의 결제 완료를 확인하는 문서입니다.</p></div><span class="receipt-state">결제 완료</span></header>
+      <div class="receipt-meta"><div><span>주문번호</span><b>${esc(o.orderNo||'')}</b></div><div><span>결제일</span><b>${esc(paid)}</b></div><div><span>결제 방법</span><b>${esc(billingMethodLabel(o.method))}</b></div><div><span>이용권 코드</span><b>${esc(license||'-')}</b></div></div>
+      <div class="receipt-parties"><div><span>구매자</span><b>${esc(o.buyerName||'-')}</b><small>${esc(o.buyerEmail||'')}</small></div><div><span>사용 학교</span><b>${esc(o.schoolName||'-')}</b><small>${esc(o.planLabel||'')} · ${Number(o.days||0)}일</small></div></div>
+      <table class="receipt-table"><thead><tr><th>구분</th><th>공급가액</th><th>부가세</th><th>합계</th></tr></thead><tbody><tr><td>${esc(o.planLabel||'이용권')}</td><td>${billingWon(o.supplyAmount)}원</td><td>${billingWon(o.vatAmount)}원</td><td><b>${billingWon(o.totalAmount)}원</b></td></tr></tbody><tfoot><tr><td colspan="3">결제 금액 합계 (부가세 포함)</td><td>${billingWon(o.totalAmount)}원</td></tr></tfoot></table>
+      <footer class="receipt-foot"><p>이용권은 결제 완료 후 발급되며, 이용 시작 전 환불은 관련 안내와 관계 법령에 따라 처리됩니다.</p><p>${esc(o.orderNo||'')} · ${esc(paid)} 발급</p></footer>
+    </div>`;
+  }
+  function printBillingReceipt(receiptHtml){
+    try{
+      const w=window.open('', '_blank', 'width=820,height=920');
+      if(!w){ toast('인쇄 창을 열 수 없어요. 팝업 차단을 확인해 주세요.'); return; }
+      w.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>이용권 결제 확인서</title><style>
+        *{box-sizing:border-box}body{margin:0;padding:32px;background:#fff;color:#0f172a;font-family:system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+        .receipt-paper{max-width:740px;margin:0 auto;border:1px solid #e2e8f0;border-radius:16px;padding:30px 32px}
+        .receipt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:2px solid #0f172a}
+        .receipt-kicker{font-size:9px;font-weight:800;letter-spacing:1.4px;color:#0082c8}.receipt-head h1{margin:5px 0 4px;font-size:24px;letter-spacing:-.8px}.receipt-head p{margin:0;font-size:11px;color:#64748b}.receipt-state{flex:0 0 auto;padding:6px 10px;border-radius:999px;background:#e8f4fb;color:#0069a8;font-size:10px;font-weight:800}
+        .receipt-meta{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:20px 0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#e2e8f0}.receipt-meta>div{padding:10px 12px;background:#fff}.receipt-meta span,.receipt-parties span{display:block;margin-bottom:3px;font-size:9px;color:#64748b}.receipt-meta b{font-size:11px;word-break:break-all}
+        .receipt-parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:4px 0 18px;border-bottom:1px solid #e2e8f0}.receipt-parties b{display:block;font-size:13px}.receipt-parties small{display:block;margin-top:3px;font-size:10px;color:#64748b}
+        .receipt-table{width:100%;margin-top:18px;border-collapse:collapse;font-size:11px}.receipt-table th{padding:9px 8px;border-bottom:1px solid #0f172a;text-align:right;font-size:9px;color:#64748b}.receipt-table th:first-child,.receipt-table td:first-child{text-align:left}.receipt-table td{padding:13px 8px;border-bottom:1px solid #e2e8f0;text-align:right}.receipt-table tfoot td{padding:11px 8px;border-bottom:0;background:#f8fafc;font-weight:800}.receipt-table tfoot td:first-child{text-align:right;color:#475569;font-weight:600}
+        .receipt-foot{margin-top:20px;padding-top:14px;border-top:1px dashed #cbd5e1;color:#64748b;font-size:9.5px;line-height:1.6}.receipt-foot p{margin:0 0 4px}
+        @media print{body{padding:0}.receipt-paper{border:0;padding:0;max-width:none}@page{size:A4;margin:18mm}}
+      </style></head><body>${receiptHtml}</body></html>`);
+      w.document.close();
+      try{ w.focus(); }catch(e){}
+      setTimeout(()=>{ try{ w.print(); }catch(e){} }, 180);
+    }catch(e){ console.error('receipt print', e); toast('인쇄 창을 열지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+  }
+  async function openBillingReceipt(orderId){
+    if(!orderId) return;
+    const panel=openModal(`<h2>결제 확인서</h2><div id="billingReceiptBody"><div class="billing-loading"><span class="billing-spinner"></span><span>결제 확인서를 준비하는 중이에요…</span></div></div>`);
+    const host=()=>panel.querySelector('#billingReceiptBody');
+    try{
+      const r=await billingCall('getLicenseOrder',{orderId});
+      const o=r.order||{}; const l=r.license||null;
+      if(o.status!=='paid'){ if(host()) host().innerHTML=billingErrorBox('결제가 완료된 주문만 확인서를 발급할 수 있어요.'); return; }
+      const receipt=billingReceiptHtml(o,l);
+      if(host()) host().innerHTML=`${receipt}<div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button><button type="button" class="confirm" id="billingPrint">인쇄하기</button></div>`;
+      const btn=panel.querySelector('#billingPrint');
+      if(btn) btn.onclick=()=>printBillingReceipt(receipt);
+    }catch(e){
+      console.error('billing receipt', e);
+      if(host()) host().innerHTML=billingErrorBox(e?.message||'결제 확인서를 준비하지 못했어요.');
+    }
+  }
+  function renderBillingOrdersAdmin(p){
+    if(!isAdmin()){ p.innerHTML='<div class="empty-side">총관리자만 볼 수 있어요.</div>'; return; }
+    p.innerHTML=`<div class="admin-card"><div class="billing-admin-head"><div><h3>이용권 주문</h3><p class="desc">무통장 입금을 확인하면 이용권이 발급돼요. 입금 금액과 주문 금액이 같은지 먼저 확인해 주세요.</p></div><button class="soft-btn" data-action="billing-orders-refresh">새로고침</button></div><div id="billingAdminOrders" class="billing-admin-orders"><div class="empty-side">불러오는 중…</div></div></div>`;
+    loadBillingOrdersAdmin();
+  }
+  async function loadBillingOrdersAdmin(){
+    const host=$('#billingAdminOrders'); if(!host) return;
+    try{
+      const s=await db.collection('licenseOrders').orderBy('createdAt','desc').limit(60).get();
+      const rows=s.docs.map(d=>({orderId:d.id,...d.data()}));
+      if(!rows.length){ host.innerHTML='<div class="empty-side">아직 주문이 없어요.</div>'; return; }
+      const pending=rows.filter(o=>o.status==='pending'&&o.method==='transfer').length;
+      host.innerHTML=`<div class="billing-admin-summary"><span>전체 <b>${rows.length}</b>건</span><span class="pending">입금 확인 대기 <b>${pending}</b>건</span></div>`+rows.map(o=>{
+        const st=billingStatusClass(o.status);
+        return `<div class="billing-admin-row"><div class="billing-admin-main"><span class="billing-order-ico ${st}">${o.status==='paid'?'✓':o.status==='cancelled'?'×':'₩'}</span><div class="grow"><b>${esc(o.planLabel||'이용권')} · ${billingWon(o.totalAmount)}원</b><small>${esc(o.orderNo||'')} · ${esc(o.buyerName||'-')} · ${esc(o.schoolName||'-')} · ${esc(fmtDateTime(o.createdAt))}</small></div><span class="billing-order-state ${st}">${esc(billingStatusLabel(o.status))}</span></div><div class="billing-admin-actions">${o.status==='pending'&&o.method==='transfer'?`<button class="soft-btn" data-action="billing-admin-confirm" data-order="${esc(o.orderId)}">입금 확인</button>`:''}<button class="soft-btn" data-action="billing-order-detail" data-order="${esc(o.orderId)}">상세</button></div></div>`;
+      }).join('');
+    }catch(e){
+      console.error('billing admin', e);
+      host.innerHTML='<div class="empty-side">주문을 불러오지 못했어요.</div>';
+    }
+  }
+  function openBillingAdminConfirm(orderId){
+    if(!isAdmin()||!orderId) return;
+    const panel=openModal(`<h2>입금을 확인할까요?</h2><p class="desc">주문 금액과 실제 입금 금액이 같을 때만 확인해 주세요. 확인하면 이용권이 바로 발급되고 되돌릴 수 없어요.</p><div id="billingConfirmInfo" class="billing-loading"><span class="billing-spinner"></span><span>주문을 확인하는 중이에요…</span></div><div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button><button type="button" class="confirm" id="billingPaidGo" data-label="입금 확인" disabled style="opacity:.5">입금 확인</button></div>`);
+    const info=panel.querySelector('#billingConfirmInfo'); const go=panel.querySelector('#billingPaidGo');
+    (async()=>{
       try{
-        const r=await issueLicense(type, price, '모의구매');
-        openModal(`<h2>구매 완료 (모의)</h2><p class="desc">아래 코드를 학교 관리자 계정에서 등록하고 이용 시작을 눌러야 1년이 시작돼요.${licenseNetworkOf(type)==='single'?'<br>단일망: 외부/내부 1택 후 변경 불가.':''}${licenseChatOnlyOf(type)?'<br><b>소통 전용: 시간표 사용 불가.</b>':''}</p>
-          <div class="code-box">${esc(r.code)}</div><p class="desc">인증코드: <b class="code-chip">${esc(r.authCode)}</b> · ${esc(licenseTypeLabel(type))}</p>
-          <div class="modal-actions"><button type="button" class="cancel" data-action="copy-license" data-code="${esc(r.code)}" data-auth="${esc(r.authCode)}">복사</button><button type="button" class="confirm" data-close-modal>닫기</button></div>`);
-      }catch(e){ console.error(e); toast(errText(e)); }
-    });
+        const r=await billingCall('getLicenseOrder',{orderId}); const o=r.order||{};
+        if(info) info.innerHTML=`<div class="billing-amount-card"><span>${esc(o.orderNo||'')}</span><b>${billingWon(o.totalAmount)}<small>원</small></b><span class="billing-amount-sub">${esc(o.planLabel||'')} · ${esc(o.buyerName||'')} · ${esc(o.schoolName||'')}</span></div>`;
+        if(go) go.style.opacity='1';
+        wireCountdownButton(go,3,'입금 확인');
+        go.onclick=()=>runAsync(async()=>{
+          if(go.disabled) return;
+          go.disabled=true; go.textContent='처리하는 중…';
+          try{
+            const paid=await billingCall('markLicenseOrderPaid',{orderId});
+            closeModal();
+            openModal(`<h2>이용권을 발급했어요</h2><p class="desc">아래 코드를 구매 학교에 전달해 주세요. 인증코드까지 함께 전달해야 등록할 수 있어요.</p><div class="billing-code-box"><span>고유코드</span><b>${esc(paid.licenseCode||'')}</b><button type="button" class="billing-copy" data-billing-copy="${esc(paid.licenseCode||'')}" data-billing-copy-label="고유코드를 복사했어요">복사</button></div><div class="billing-code-box auth"><span>인증코드</span><b>${esc(paid.authCode||'')}</b><button type="button" class="billing-copy" data-billing-copy="${esc(paid.authCode||'')}" data-billing-copy-label="인증코드를 복사했어요">복사</button></div><div class="modal-actions"><button type="button" class="confirm" data-close-modal>확인</button></div>`,{small:true});
+            document.querySelectorAll('[data-billing-copy]').forEach(btn=>btn.onclick=()=>copyText(btn.dataset.billingCopy||'', btn.dataset.billingCopyLabel||'복사했어요'));
+            loadBillingOrdersAdmin();
+          }catch(e){
+            console.error('billing paid', e);
+            go.disabled=false; go.textContent='입금 확인';
+            toast(e?.message||'입금 확인을 처리하지 못했어요.');
+          }
+        });
+      }catch(e){
+        if(info) info.innerHTML=billingErrorBox(e?.message||'주문을 확인하지 못했어요.');
+        if(go){ go.disabled=true; go.style.opacity='.5'; }
+      }
+    })();
   }
   const LICENSE_TABS = [['all','전체'],['issued','이용전'],['active','이용중'],['recalled','회수됨'],['expired','만료됨']];
   function licenseGroup(l){
@@ -11528,7 +12013,7 @@
     if(state.licenseQuery==null) state.licenseQuery='';
     if(!(state.licenseSel instanceof Set)) state.licenseSel=new Set();
     p.innerHTML=`<div class="admin-card"><h3>이용권</h3><p class="desc">16자리 고유코드+인증코드. 1년 단위 유료와 1일·10일·1년·무제한 무료를 발급해요. 발급 시 비밀번호가 반드시 필요해요.<br>회수·만료된 이용권만 직접 지울 수 있어요. 자동 삭제는 하지 않아요.</p>
-      <div class="admin-toolbar"><button class="soft-btn" data-action="license-issue">+ 이용권 발급</button><button class="soft-btn" data-action="license-buy">모의 구매창</button><button class="soft-btn" data-action="license-select-all">회수·만료 전체선택</button><button class="soft-btn" data-action="license-select-none">선택해제</button><button class="soft-btn" data-action="license-delete-selected">선택 삭제</button></div>
+      <div class="admin-toolbar"><button class="soft-btn" data-action="license-issue">+ 이용권 발급</button><button class="soft-btn" data-action="license-buy">이용권 구매</button><button class="soft-btn" data-action="license-select-all">회수·만료 전체선택</button><button class="soft-btn" data-action="license-select-none">선택해제</button><button class="soft-btn" data-action="license-delete-selected">선택 삭제</button></div>
       <div class="tabs" id="licenseTabs" style="margin-bottom:12px">${LICENSE_TABS.map(([v])=>`<button class="tab" data-action="license-tab" data-filter="${v}">${licenseTabLabel(v)}</button>`).join('')}</div>
       <div class="admin-toolbar"><input id="licenseSearch" class="input" placeholder="고유코드·인증코드·학교·발급자·메모로 검색" value="${esc(state.licenseQuery||'')}"></div>
       <div id="licenseList" class="list"><div class="empty-side">불러오는 중…</div></div></div>`;
@@ -11676,12 +12161,18 @@
   const LICENSE_CONFIRM_PHRASE = '(확인했으며, 이용권을 등록합니다.)';
   function renderLicenseRedeem(p){
     const sid=state.profile?.schoolId||'';
-    p.innerHTML=`<div class="admin-card"><h3>이용권 등록</h3><p class="desc">학교 관리자 계정에서 고유코드+인증코드를 입력하면 이용권 정보가 떠요. 이용 시작을 눌러야 이용개시일부터 기산돼요. 등록은 서버를 경유해 안전하게 처리돼요. (직접 쓰기 차단 → [E-AUTH-001] 해결)</p>
+    p.innerHTML=`<div class="billing-entry-card">
+        <div class="billing-entry-copy"><span class="billing-entry-kicker">학교 단위 연간 이용권</span><h3>우리 학교에 맞는 이용권을 골라 보세요</h3><p>결제가 확인되면 고유코드와 인증코드가 발급돼요. 코드는 이 화면에서 바로 등록할 수 있어요.</p></div>
+        <button type="button" class="billing-entry-btn" data-action="billing-open">이용권 구매</button>
+      </div>
+      <div class="admin-card"><h3>내 이용권 주문</h3><p class="desc">구매한 이용권과 입금 확인 상태를 볼 수 있어요.</p><div id="billingMyOrders" class="billing-my-orders"><div class="empty-side">불러오는 중…</div></div></div>
+      <div class="admin-card"><h3>이용권 등록</h3><p class="desc">학교 관리자 계정에서 고유코드+인증코드를 입력하면 이용권 정보가 떠요. 이용 시작을 눌러야 이용개시일부터 기산돼요. 등록은 서버를 경유해 안전하게 처리돼요. (직접 쓰기 차단 → [E-AUTH-001] 해결)</p>
       <div class="field"><label>고유코드 (16자리)</label><input id="rdCode" class="input code-input" placeholder="예: AB12CD34EF56GH78" maxlength="16" autocomplete="off"></div>
       <div class="field"><label>인증코드</label><input id="rdAuth" class="input code-input" placeholder="8자리" maxlength="8" autocomplete="off"></div>
       <div class="admin-toolbar"><button class="soft-btn" id="rdCheck">정보 확인</button><button class="soft-btn" data-action="refund-request">환불 요청</button></div>
       <div id="rdInfo"></div>
       <div class="mini muted" style="margin-top:8px">오류코드가 뜨면 코드 아래 원인·해결을 확인해 주세요. 예: [E-LIC-001] 코드 없음, [E-LIC-005] 인증코드 불일치, [E-AUTH-001] 권한 없음(역할·학교 확인).</div></div>`;
+    setTimeout(()=>loadMyBillingOrders(),0);
     $('#rdCheck').onclick=()=>runAsync(async()=>{
       const code=($('#rdCode')?.value||'').trim().toUpperCase(), auth=($('#rdAuth')?.value||'').trim().toUpperCase();
       const host=$('#rdInfo'); if(!host) return;
@@ -14570,6 +15061,8 @@
         try{ localStorage.setItem(ck,JSON.stringify({diet,tt})); }catch(e){}
         const h2=$('#mealWidget'); if(h2) paint(diet,tt);
         state.mealRetryCk=ck; state.mealRetry=0;
+        // 급식 캐시가 준비되면 배너에도 곧바로 반영한다.
+        setTimeout(()=>{ try{ refreshBanners(true); }catch(e){} }, 350);
       } else if(!cached){
         const h2=$('#mealWidget'); if(h2) h2.innerHTML='<div class="empty-side">오늘 정보가 없어요.</div>';
         // 새로고침을 누르지 않아도 한 번은 자동으로 다시 불러온다 (일시적 실패 대비)
@@ -14580,8 +15073,8 @@
     }catch(e){ if(!cached){ const h2=$('#mealWidget'); if(h2) h2.innerHTML='<div class="empty-side">불러오지 못했어요. <button type="button" class="text-btn" data-action="meal-refresh">새로고침</button></div>'; } }
     try{ scheduleClassNowTick(); }catch(e){}
   }
-  // ---------- 시간표 변경 요청 → 승인 시 바로 반영 (메신저 연동, 컴시간 참고용 자체 구현) ----------
-  // 저작권 주의: 컴시간 코드를 베끼지 않고 NEIS 공개 API + 자체 override 구조로만 구현.
+  // ---------- 시간표 변경 요청 → 승인 시 바로 반영 (메신저 연동, 자체 구현) ----------
+  // 저작권 주의: 외부 시간표 프로그램의 코드·자산을 쓰지 않고 NEIS 공개 API + 자체 override 구조로만 구현.
   // 흐름: 교사 요청(timetableChanges/pending) → 교사/학교관리자 승인 → timetableOverrides 저장 + 채팅방 알림
   function ttPeriodTimes(){
     // 기본 교시 시간 (설정에서 바꿀 수 있음, 24h HH:MM)

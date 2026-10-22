@@ -1,13 +1,13 @@
 [package]
 name = "edutalk-core"
-version = "0.1.0"
+version = "0.2.1"
 edition = "2021"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -25,6 +25,8 @@ sysinfo = "0.30"
 xcap = "0.9"
 image = { version = "0.25", default-features = false, features = ["jpeg"] }
 base64 = "0.22"
+# 학교 온프레미스 서버(onprem) 연동: 로그인 토큰을 Rust 안에만 두고 HTTP 호출
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 # 실제 배포에서는 아래 SQLCipher 기능을 켜서 파일 자체를 암호화한다.
 # sqlcipher = ["rusqlite/bundled-sqlcipher-vendored-openssl"]
 # ONNX 분류 모델은 `onnx` 기능으로 켠다 (기본은 정규식+문맥 점수).

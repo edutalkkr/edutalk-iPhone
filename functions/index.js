@@ -1,11 +1,12 @@
 // 브리즈 Functions (v2 API · 리전 고정 asia-northeast3)
 // DB가 서울 리전이라 Functions도 같은 리전으로 고정한다.
 // 리전이 다르면 매 실행마다 태평양 횡단 전송료(egress)가 붙는다.
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
+const billing = require("./billing-core");
 admin.initializeApp();
 const db = admin.firestore();
 
@@ -55,6 +56,451 @@ const UNIFIED_LICENSE_META = {
   free_1y: { days: 365, network: "single", chatOnly: false, label: "무료 1년" },
   free_unlimited: { days: 0, network: "single", chatOnly: false, label: "무제한" },
 };
+
+// ---------- 이용권 주문·결제 ----------
+// 결제 금액은 이 파일의 요금제 정의에서만 계산한다. 클라이언트가 보낸 금액은 신뢰하지 않는다.
+// 기본값은 안전한 무통장 입금 확인 방식이며, 결제 대행사 연동 시 PAYMENT_MODE=live를 쓴다.
+function billingMode() {
+  return billing.resolvePaymentMode(process.env.PAYMENT_MODE);
+}
+
+function billingBankInfo() {
+  const bankName = String(process.env.BILLING_BANK_NAME || "").trim();
+  const accountNumber = String(process.env.BILLING_ACCOUNT_NUMBER || "").trim();
+  const accountHolder = String(process.env.BILLING_ACCOUNT_HOLDER || "").trim();
+  return {
+    bankName,
+    accountNumber,
+    accountHolder,
+    guide: String(process.env.BILLING_TRANSFER_GUIDE || "입금자명을 학교명으로 남겨 주세요.").trim(),
+    configured: !!(bankName && accountNumber && accountHolder),
+  };
+}
+
+function billingDepositHours() {
+  const n = Number(process.env.BILLING_DEPOSIT_DUE_HOURS || 72);
+  return Number.isFinite(n) ? Math.min(168, Math.max(12, Math.round(n))) : 72;
+}
+
+function billingCheckoutUrl(order) {
+  const template = String(process.env.BILLING_CHECKOUT_URL || "").trim();
+  if (!template) return "";
+  try {
+    const url = new URL(template);
+    if (url.protocol !== "https:") return "";
+    url.searchParams.set("orderId", order.id);
+    url.searchParams.set("orderNo", order.orderNo);
+    url.searchParams.set("amount", String(order.totalAmount));
+    url.searchParams.set("plan", order.planId);
+    return url.toString();
+  } catch (e) {
+    console.error("billing checkout url", e);
+    return "";
+  }
+}
+
+async function billingActor(request) {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요해요. [E-BILL-010]");
+  const uid = request.auth.uid;
+  const snap = await db.collection("users").doc(uid).get();
+  const profile = snap.exists ? snap.data() || {} : {};
+  const role = String(profile.role || (request.auth.token && request.auth.token.role) || "");
+  if (role !== "admin" && role !== "school_admin") {
+    throw new HttpsError("permission-denied", "학교 관리자 계정에서 이용권을 구매할 수 있어요. [E-BILL-011]");
+  }
+  return {
+    uid,
+    role,
+    profile,
+    email: String((request.auth.token && request.auth.token.email) || profile.email || ""),
+    schoolId: String(profile.schoolId || ""),
+    schoolName: String(profile.schoolName || ""),
+  };
+}
+
+async function schoolNameFor(actor, requestedName) {
+  if (actor.role === "school_admin") {
+    if (!actor.schoolId) throw new HttpsError("failed-precondition", "학교 정보가 없어요. 학교 배정을 먼저 확인해 주세요. [E-BILL-012]");
+    try {
+      const s = await db.collection("schools").doc(actor.schoolId).get();
+      if (s.exists) {
+        const name = String((s.data() || {}).name || "").trim();
+        if (name) return name;
+      }
+    } catch (e) {
+      console.error("billing school name", e);
+    }
+    return actor.schoolName || String(requestedName || "").trim();
+  }
+  return String(requestedName || actor.schoolName || "").trim();
+}
+
+function publicOrder(order) {
+  if (!order) return null;
+  return {
+    orderId: order.id || "",
+    orderNo: order.orderNo || "",
+    status: order.status || "pending",
+    statusLabel: billing.orderStatusLabel(order.status),
+    method: order.method || "",
+    provider: order.provider || "",
+    planId: order.planId || "",
+    planLabel: order.planLabel || "",
+    days: Number(order.days || 0),
+    network: order.network || "single",
+    chatOnly: !!order.chatOnly,
+    supplyAmount: Number(order.supplyAmount || 0),
+    vatAmount: Number(order.vatAmount || 0),
+    totalAmount: Number(order.totalAmount || 0),
+    buyerName: order.buyerName || "",
+    buyerEmail: order.buyerEmail || "",
+    schoolId: order.schoolId || "",
+    schoolName: order.schoolName || "",
+    licenseCode: order.licenseCode || "",
+    createdAt: order.createdAt || null,
+    paidAt: order.paidAt || null,
+    dueAt: order.dueAt || null,
+    cancelledAt: order.cancelledAt || null,
+  };
+}
+
+function billingOrderPayload(order, mode, checkoutUrl) {
+  const method = order.method || "";
+  const dueMs = order.dueAt && typeof order.dueAt.toMillis === "function"
+    ? order.dueAt.toMillis()
+    : (Number(order.dueAt || 0) || null);
+  const provider = order.provider || mode;
+  const url = checkoutUrl != null
+    ? checkoutUrl
+    : (method === "card" && provider === "live" ? billingCheckoutUrl(order) : "");
+  return {
+    ok: true,
+    orderId: order.id || "",
+    orderNo: order.orderNo || "",
+    status: order.status || "pending",
+    method,
+    mode: provider,
+    planId: order.planId || "",
+    planLabel: order.planLabel || "",
+    days: Number(order.days || 0),
+    totalAmount: Number(order.totalAmount || 0),
+    supplyAmount: Number(order.supplyAmount || 0),
+    vatAmount: Number(order.vatAmount || 0),
+    bank: method === "transfer" ? billingBankInfo() : null,
+    dueAt: dueMs,
+    depositHours: billingDepositHours(),
+    sandbox: provider === "sandbox" && method === "card",
+    checkoutUrl: url,
+  };
+}
+
+async function issueLicenseForOrder(orderId, meta) {
+  const extra = meta && typeof meta === "object" ? meta : {};
+  const orderRef = db.collection("licenseOrders").doc(orderId);
+  return db.runTransaction(async (tx) => {
+    const os = await tx.get(orderRef);
+    if (!os.exists) throw new HttpsError("not-found", "주문을 찾을 수 없어요. [E-BILL-020]");
+    const order = os.data() || {};
+    if (order.status === "paid" && order.licenseCode) {
+      const ls = await tx.get(db.collection("licenses").doc(order.licenseCode));
+      return {
+        ok: true,
+        already: true,
+        orderId,
+        orderNo: order.orderNo || "",
+        licenseCode: order.licenseCode,
+        authCode: ls.exists ? String((ls.data() || {}).authCode || "") : "",
+        status: "paid",
+      };
+    }
+    if (!billing.allowedTransition(order.status || "pending", "paid")) {
+      throw new HttpsError("failed-precondition", "지금은 결제를 완료할 수 없는 주문이에요. [E-BILL-021]");
+    }
+    const pair = billing.generateLicenseCodes(crypto.randomBytes);
+    const licenseRef = db.collection("licenses").doc(pair.code);
+    const exists = await tx.get(licenseRef);
+    if (exists.exists) throw new HttpsError("internal", "이용권 코드를 다시 발급해 주세요. [E-BILL-022]");
+    const now = () => admin.firestore.FieldValue.serverTimestamp();
+    tx.set(licenseRef, {
+      code: pair.code,
+      authCode: pair.authCode,
+      type: order.planId,
+      days: Number(order.days || 365),
+      price: Number(order.totalAmount || 0),
+      status: "issued",
+      schoolId: order.schoolId || "",
+      purchasedBy: order.buyerUid,
+      purchasedByName: order.buyerName || "",
+      purchasedByEmail: order.buyerEmail || "",
+      purchaseAt: now(),
+      createdAt: now(),
+      memo: "온라인 이용권 구매",
+      orderId,
+      paymentMethod: order.method || "",
+      network: order.network || "single",
+      chatOnly: !!order.chatOnly,
+      updatedAt: now(),
+    });
+    tx.update(orderRef, {
+      status: "paid",
+      paidAt: now(),
+      licenseCode: pair.code,
+      providerRef: String(extra.providerRef || ""),
+      confirmedBy: String(extra.confirmedBy || ""),
+      updatedAt: now(),
+    });
+    return {
+      ok: true,
+      already: false,
+      orderId,
+      orderNo: order.orderNo || "",
+      licenseCode: pair.code,
+      authCode: pair.authCode,
+      status: "paid",
+    };
+  });
+}
+
+function orderForBuyer(order, actor) {
+  if (!order) return false;
+  if (actor.role === "admin") return true;
+  return String(order.buyerUid || "") === actor.uid;
+}
+
+exports.getBillingPlans = onCall({ region: R }, async (request) => {
+  const actor = await billingActor(request);
+  const mode = billingMode();
+  const bank = billingBankInfo();
+  return {
+    ok: true,
+    mode,
+    methods: billing.methodsForMode(mode),
+    plans: billing.planList(),
+    bank: {
+      bankName: bank.bankName,
+      accountNumber: bank.accountNumber,
+      accountHolder: bank.accountHolder,
+      guide: bank.guide,
+      configured: !!(bank.bankName && bank.accountNumber && bank.accountHolder),
+    },
+    depositHours: billingDepositHours(),
+    buyer: { name: actor.profile.displayName || "", email: actor.email, schoolName: await schoolNameFor(actor, "") },
+  };
+});
+
+exports.createLicenseOrder = onCall({ region: R }, async (request) => {
+  const actor = await billingActor(request);
+  const idempotencyKey = String((request.data || {}).idempotencyKey || "").trim();
+  if (!billing.validateIdempotencyKey(idempotencyKey)) {
+    throw new HttpsError("invalid-argument", "주문 요청을 다시 확인해 주세요. [E-BILL-015]");
+  }
+  const check = billing.validateOrderRequest(request.data || {});
+  if (!check.ok) throw new HttpsError("invalid-argument", check.error);
+  const { plan, method, buyerName, phone } = check.value;
+  const mode = billingMode();
+  if (!billing.methodsForMode(mode).includes(method)) {
+    throw new HttpsError("failed-precondition", "지금은 이 결제 방법을 쓸 수 없어요. 다른 방법을 골라 주세요. [E-BILL-013]");
+  }
+  const schoolName = await schoolNameFor(actor, check.value.schoolName);
+  if (!schoolName) throw new HttpsError("invalid-argument", "학교 이름을 확인해 주세요. [E-BILL-005]");
+  // 같은 요청이 네트워크 재시도로 두 번 와도 주문은 하나만 생긴다.
+  const orderId = crypto.createHash("sha256").update(`${actor.uid}|${idempotencyKey}`).digest("hex").slice(0, 32);
+  const orderRef = db.collection("licenseOrders").doc(orderId);
+  const now = () => admin.firestore.FieldValue.serverTimestamp();
+  const dueHours = billingDepositHours();
+  const base = {
+    orderNo: billing.orderNumber(new Date(), crypto.randomBytes),
+    buyerUid: actor.uid,
+    buyerEmail: actor.email,
+    buyerName,
+    buyerPhone: phone || "",
+    schoolId: actor.role === "school_admin" ? actor.schoolId : "",
+    schoolName,
+    planId: plan.id,
+    planLabel: plan.label,
+    days: plan.days,
+    network: plan.network,
+    chatOnly: !!plan.chatOnly,
+    supplyAmount: plan.supplyAmount,
+    vatAmount: plan.vatAmount,
+    totalAmount: plan.totalAmount,
+    method,
+    provider: mode,
+    status: "pending",
+    createdAt: now(),
+    updatedAt: now(),
+  };
+  if (method === "transfer") {
+    base.dueAt = admin.firestore.Timestamp.fromMillis(Date.now() + dueHours * 3600000);
+  }
+  const result = await db.runTransaction(async (tx) => {
+    const existing = await tx.get(orderRef);
+    if (existing.exists) return { existing: { id: existing.id, ...(existing.data() || {}) } };
+    tx.set(orderRef, base);
+    return { created: true };
+  });
+  if (result.existing) {
+    const existing = result.existing;
+    if (String(existing.buyerUid || "") !== actor.uid) {
+      throw new HttpsError("permission-denied", "이 주문을 확인할 권한이 없어요. [E-BILL-016]");
+    }
+    if (existing.planId !== plan.id || existing.method !== method) {
+      throw new HttpsError("already-exists", "이미 처리 중인 주문이 있어요. 주문 내역을 확인해 주세요. [E-BILL-017]");
+    }
+    const payload = billingOrderPayload(existing, mode);
+    if (existing.status === "paid" && existing.licenseCode) {
+      const ls = await db.collection("licenses").doc(existing.licenseCode).get();
+      payload.license = {
+        code: existing.licenseCode,
+        authCode: ls.exists ? String((ls.data() || {}).authCode || "") : "",
+        type: existing.planId || "",
+        days: Number(existing.days || 0),
+        status: ls.exists ? String((ls.data() || {}).status || "issued") : "issued",
+      };
+    }
+    return payload;
+  }
+  const order = { id: orderRef.id, ...base };
+  const checkoutUrl = method === "card" && mode === "live" ? billingCheckoutUrl(order) : "";
+  if (method === "card" && mode === "live" && !checkoutUrl) {
+    await orderRef.update({ status: "failed", updatedAt: now() });
+    throw new HttpsError("failed-precondition", "결제 창을 열 수 없어요. 잠시 후 다시 시도해 주세요. [E-BILL-014]");
+  }
+  return billingOrderPayload(order, mode, checkoutUrl);
+});
+
+exports.confirmLicenseOrder = onCall({ region: R }, async (request) => {
+  const actor = await billingActor(request);
+  if (billingMode() !== "sandbox") {
+    throw new HttpsError("failed-precondition", "결제 확인은 결제 대행사 연결 후 처리할 수 있어요. [E-BILL-030]");
+  }
+  const orderId = String((request.data || {}).orderId || "").trim();
+  if (!/^[A-Za-z0-9_-]{8,80}$/.test(orderId)) throw new HttpsError("invalid-argument", "주문 번호를 확인해 주세요. [E-BILL-031]");
+  const ref = db.collection("licenseOrders").doc(orderId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "주문을 찾을 수 없어요. [E-BILL-020]");
+  const order = snap.data() || {};
+  if (!orderForBuyer(order, actor)) throw new HttpsError("permission-denied", "이 주문을 확인할 권한이 없어요. [E-BILL-032]");
+  if (order.method !== "card") throw new HttpsError("failed-precondition", "이 주문은 카드 결제 주문이 아니에요. [E-BILL-033]");
+  if (order.status === "cancelled") throw new HttpsError("failed-precondition", "취소된 주문이에요. [E-BILL-034]");
+  return issueLicenseForOrder(orderId, { providerRef: "sandbox", confirmedBy: actor.uid });
+});
+
+exports.getLicenseOrder = onCall({ region: R }, async (request) => {
+  const actor = await billingActor(request);
+  const orderId = String((request.data || {}).orderId || "").trim();
+  if (!/^[A-Za-z0-9_-]{8,80}$/.test(orderId)) throw new HttpsError("invalid-argument", "주문 번호를 확인해 주세요. [E-BILL-031]");
+  const snap = await db.collection("licenseOrders").doc(orderId).get();
+  if (!snap.exists) throw new HttpsError("not-found", "주문을 찾을 수 없어요. [E-BILL-020]");
+  const order = { id: snap.id, ...(snap.data() || {}) };
+  if (!orderForBuyer(order, actor)) throw new HttpsError("permission-denied", "이 주문을 볼 권한이 없어요. [E-BILL-032]");
+  let license = null;
+  if (order.status === "paid" && order.licenseCode) {
+    const ls = await db.collection("licenses").doc(order.licenseCode).get();
+    if (ls.exists) {
+      const l = ls.data() || {};
+      license = {
+        code: order.licenseCode,
+        authCode: l.authCode || "",
+        type: l.type || order.planId,
+        days: Number(l.days || order.days || 0),
+        status: l.status || "issued",
+        activatedAt: l.activatedAt || null,
+        expiresAt: l.expiresAt || null,
+      };
+    }
+  }
+  return { ok: true, order: publicOrder(order), license, bank: order.method === "transfer" ? billingBankInfo() : null };
+});
+
+exports.cancelLicenseOrder = onCall({ region: R }, async (request) => {
+  const actor = await billingActor(request);
+  const orderId = String((request.data || {}).orderId || "").trim();
+  if (!/^[A-Za-z0-9_-]{8,80}$/.test(orderId)) throw new HttpsError("invalid-argument", "주문 번호를 확인해 주세요. [E-BILL-031]");
+  const ref = db.collection("licenseOrders").doc(orderId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError("not-found", "주문을 찾을 수 없어요. [E-BILL-020]");
+    const order = snap.data() || {};
+    if (!orderForBuyer(order, actor)) throw new HttpsError("permission-denied", "이 주문을 취소할 권한이 없어요. [E-BILL-032]");
+    if (!billing.allowedTransition(order.status || "pending", "cancelled")) {
+      throw new HttpsError("failed-precondition", "지금은 취소할 수 없는 주문이에요. [E-BILL-035]");
+    }
+    tx.update(ref, {
+      status: "cancelled",
+      cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+  return { ok: true, orderId, status: "cancelled" };
+});
+
+exports.markLicenseOrderPaid = onCall({ region: R }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요해요. [E-BILL-010]");
+  const snap = await db.collection("users").doc(request.auth.uid).get();
+  const role = snap.exists ? String((snap.data() || {}).role || "") : "";
+  if (role !== "admin") throw new HttpsError("permission-denied", "총관리자만 입금을 확인할 수 있어요. [E-BILL-040]");
+  const orderId = String((request.data || {}).orderId || "").trim();
+  if (!/^[A-Za-z0-9_-]{8,80}$/.test(orderId)) throw new HttpsError("invalid-argument", "주문 번호를 확인해 주세요. [E-BILL-031]");
+  const ref = db.collection("licenseOrders").doc(orderId);
+  const os = await ref.get();
+  if (!os.exists) throw new HttpsError("not-found", "주문을 찾을 수 없어요. [E-BILL-020]");
+  const order = os.data() || {};
+  if (order.method !== "transfer") throw new HttpsError("failed-precondition", "무통장 입금 주문만 확인할 수 있어요. [E-BILL-041]");
+  if (order.status === "cancelled") throw new HttpsError("failed-precondition", "취소된 주문이에요. [E-BILL-034]");
+  return issueLicenseForOrder(orderId, { providerRef: "manual-deposit", confirmedBy: request.auth.uid });
+});
+
+// 결제 대행사 웹훅: 서명이 맞고 금액이 주문과 같을 때만 이용권을 발급한다.
+exports.licensePaymentWebhook = onRequest({ region: R }, async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "method_not_allowed" });
+    return;
+  }
+  try {
+    const secret = String(process.env.PAYMENT_WEBHOOK_SECRET || "");
+    if (!secret) {
+      res.status(503).json({ ok: false, error: "webhook_not_configured" });
+      return;
+    }
+    const raw = req.rawBody || Buffer.from(JSON.stringify(req.body || {}));
+    const signature = String(req.get("x-breeze-signature") || req.get("x-webhook-signature") || "");
+    if (!billing.verifyWebhookSignature(raw, signature, secret)) {
+      res.status(401).json({ ok: false, error: "invalid_signature" });
+      return;
+    }
+    const event = req.body || {};
+    if (String(event.type || "") !== "payment.paid") {
+      res.status(202).json({ ok: true, ignored: true });
+      return;
+    }
+    const data = event.data || {};
+    const orderId = String(data.orderId || "").trim();
+    const amount = Number(data.amount || 0);
+    if (!/^[A-Za-z0-9_-]{8,80}$/.test(orderId) || !Number.isFinite(amount) || amount <= 0) {
+      res.status(400).json({ ok: false, error: "invalid_payload" });
+      return;
+    }
+    const orderSnap = await db.collection("licenseOrders").doc(orderId).get();
+    if (!orderSnap.exists) {
+      res.status(404).json({ ok: false, error: "order_not_found" });
+      return;
+    }
+    const order = orderSnap.data() || {};
+    if (Number(order.totalAmount || 0) !== Math.round(amount)) {
+      res.status(409).json({ ok: false, error: "amount_mismatch" });
+      return;
+    }
+    const result = await issueLicenseForOrder(orderId, {
+      providerRef: String(data.transactionId || event.id || ""),
+      confirmedBy: "payment-webhook",
+    });
+    res.status(200).json({ ok: true, orderId: result.orderId, status: result.status });
+  } catch (e) {
+    console.error("licensePaymentWebhook", e);
+    res.status(500).json({ ok: false, error: "internal_error" });
+  }
+});
 
 // 학교 관리자가 이용권을 직접 등록(활성화) — Rules 직접쓰기 금지(E-LIC-002) 해결용 서버 경유
 // - 학교관리자(자기 학교) 또는 총관리자만 호출 가능

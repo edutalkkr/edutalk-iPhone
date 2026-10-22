@@ -51,6 +51,7 @@ export default function TimetablePane(p: Props) {
   const [sel, setSel] = useState<{ weekday: number; period: number } | null>(null);
   const [toTeacher, setToTeacher] = useState("");
   const [reason, setReason] = useState("");
+  const [showBusy, setShowBusy] = useState(false);
   const [csv, setCsv] = useState("");
   const [showImport, setShowImport] = useState(false);
   // 세로형 기본: 요일 하나씩 본다 (400px 창에 5일 표는 다 안 들어감). 0=전체.
@@ -66,7 +67,8 @@ export default function TimetablePane(p: Props) {
   );
   const cellOf = (wd: number, per: number) => grid.find((c) => c.weekday === wd && c.period === per);
 
-  // AI 보강 추천: 고른 교시에 공강 + 보강횟수 적은 순
+  // 스마트 보강 추천: 이 시간 공강인 선생님을 기본으로 보여 주고,
+  // 같은 과목 → 보강 횟수 적은 순 → 이름 순으로 자동 정렬한다.
   const candidates = useMemo(() => {
     if (!sel) return [];
     const busyByTeacher = new Map<string, number>();
@@ -75,15 +77,27 @@ export default function TimetablePane(p: Props) {
         busyByTeacher.set(c.teacher, (busyByTeacher.get(c.teacher) ?? 0) + 1);
       }
     });
+    const target = cellOf(sel.weekday, sel.period);
+    const targetSubject = (target?.subject || "").replace(/\s+/g, "");
     return p.teachers
       .filter((t) => t.id !== p.meId)
-      .map((t) => ({
-        t,
-        busy: busyByTeacher.has(t.name) ? 1 : 0,
-      }))
-      .sort((a, b) => a.busy - b.busy || a.t.subCount - b.t.subCount)
-      .slice(0, 4);
+      .map((t) => {
+        const busy = busyByTeacher.has(t.name) ? 1 : 0;
+        const teacherSubject = (t.subject || "").replace(/\s+/g, "");
+        const sameSubject = !!targetSubject && !!teacherSubject && (
+          teacherSubject.includes(targetSubject) || targetSubject.includes(teacherSubject)
+        );
+        return { t, busy, sameSubject };
+      })
+      .sort((a, b) =>
+        a.busy - b.busy ||
+        Number(b.sameSubject) - Number(a.sameSubject) ||
+        a.t.subCount - b.t.subCount ||
+        a.t.name.localeCompare(b.t.name, "ko")
+      );
   }, [sel, p.cells, p.meId]);
+  const freeCandidates = candidates.filter((c) => c.busy === 0);
+  const shownCandidates = (showBusy ? candidates : freeCandidates).slice(0, 12);
 
   if (p.blocked) {
     return (
@@ -260,31 +274,63 @@ export default function TimetablePane(p: Props) {
                   </div>
                 );
               })()}
-              <div className="text-[13px] font-bold">보강 추천 (이 시간 공강 + 보강 적은 순)</div>
-              <div className="flex flex-col gap-1.5">
-                {candidates.map(({ t, busy }) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setToTeacher(t.id)}
-                    className={`flex items-center gap-2 border rounded-xl px-2.5 py-2 text-left ${toTeacher === t.id ? "border-edu-blueline bg-edu-soft" : "border-edu-line"}`}
-                  >
-                    <span className="w-7 h-7 rounded-full grid place-items-center text-white text-[12px] font-extrabold" style={{ background: t.avatarColor }}>
-                      {(t.name || "?")[0]}
-                    </span>
-                    <span className="flex-1 text-[13px] font-bold">
-                      {t.name} · {t.subject} <span className="font-medium text-edu-sub">보강 {t.subCount}회 {busy ? "· 이 시간 수업" : "· 공강"}</span>
-                    </span>
-                    {busy === 0 && <span className="text-[11px] font-extrabold text-edu-strong">추천</span>}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="text-[13px] font-bold">스마트 보강 추천</div>
+                <span className="text-[11.5px] text-edu-sub">공강 {freeCandidates.length}명 · 자동 정렬</span>
+                <button
+                  className={`ml-auto text-[11.5px] font-bold rounded-full px-2 py-1 ${showBusy ? "bg-edu-soft text-edu-strong" : "bg-edu-chip text-edu-sub"}`}
+                  onClick={() => setShowBusy((v) => !v)}
+                >
+                  {showBusy ? "공강만 보기" : "수업 있는 선생님도 보기"}
+                </button>
               </div>
-              <input className="edu-input" placeholder="사유 (예: 출장)" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={100} />
+              {shownCandidates.length === 0 ? (
+                <div className="text-[12.5px] text-edu-sub border border-dashed border-edu-line rounded-xl px-3 py-3 text-center">
+                  이 시간에 공강인 선생님이 없어요. 위에서 [수업 있는 선생님도 보기]를 눌러 보세요.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto anim-list">
+                  {shownCandidates.map(({ t, busy, sameSubject }) => (
+                    <div
+                      key={t.id}
+                      className={`flex items-center gap-2 border rounded-xl px-2.5 py-2 ${toTeacher === t.id ? "border-edu-blueline bg-edu-soft" : "border-edu-line"}`}
+                    >
+                      <button className="flex items-center gap-2 flex-1 min-w-0 text-left" onClick={() => setToTeacher(t.id)}>
+                        <span className="w-7 h-7 rounded-full grid place-items-center text-white text-[12px] font-extrabold shrink-0" style={{ background: t.avatarColor }}>
+                          {(t.name || "?")[0]}
+                        </span>
+                        <span className="flex-1 min-w-0 text-[13px] font-bold">
+                          <span className="block truncate">{t.name} · {t.subject}</span>
+                          <span className="block text-[11.5px] font-medium text-edu-sub">
+                            보강 {t.subCount}회 · {busy ? "이 시간 수업" : "공강"}
+                            {sameSubject ? " · 같은 과목" : ""}
+                          </span>
+                        </span>
+                        {!busy && <span className="text-[10.5px] font-extrabold text-edu-strong shrink-0">추천</span>}
+                      </button>
+                      <button
+                        className={`shrink-0 rounded-lg px-2 py-1.5 text-[11px] font-extrabold ${busy ? "bg-edu-chip text-edu-muted" : "bg-edu-soft text-edu-strong hover:bg-edu-blueline"}`}
+                        disabled={busy > 0}
+                        onClick={() => {
+                          setToTeacher(t.id);
+                          p.onRequestSwap(sel.period, sel.weekday, t.id, reason.trim() || "개인 사정");
+                          setReason("");
+                          p.onToast(`${t.name} 선생님에게 보강을 바로 요청했어요.`);
+                        }}
+                      >
+                        바로 요청
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input className="edu-input" placeholder="사유 (비우면 '개인 사정'으로 보내요)" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={100} />
               <div className="flex gap-1.5">
                 <button
                   className="edu-btn flex-1"
                   onClick={() => {
                     if (!toTeacher) return p.onToast("대강 교사를 골라 주세요.");
-                    p.onRequestSwap(sel.period, sel.weekday, toTeacher, reason.trim());
+                    p.onRequestSwap(sel.period, sel.weekday, toTeacher, reason.trim() || "개인 사정");
                     setReason("");
                   }}
                 >

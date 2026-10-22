@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#0069A8" />
+  <meta name="color-scheme" content="light" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' ws: wss:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+  <title>브리즈 학생 — 학교 안에서 안전하게</title>
+  <link rel="stylesheet" href="./student.css" />
+</head>
+<body>
+  <!-- 로그인 -->
+  <section id="loginView" class="login-shell" aria-label="학생 로그인">
+    <div class="login-bg" aria-hidden="true"></div>
+    <div class="login-card">
+      <div class="brand-mark" aria-hidden="true">B</div>
+      <h1>브리즈 학생</h1>
+      <p class="login-sub">학교 서버에 연결해 선생님께 쪽지를 보내요.</p>
+      <div id="schoolHint" class="school-hint" hidden>
+        <span class="school-dot" aria-hidden="true"></span>
+        <span id="schoolHintText"></span>
+      </div>
+      <form id="loginForm" novalidate>
+        <label class="field">
+          <span>학교 코드</span>
+          <input id="schoolCode" name="schoolCode" type="text" inputmode="text" autocomplete="organization" maxlength="20" placeholder="예: BRZ-1A2B3C" required />
+        </label>
+        <label class="field">
+          <span>학번</span>
+          <input id="username" name="username" type="text" inputmode="numeric" autocomplete="username" maxlength="40" placeholder="학번 또는 아이디" required />
+        </label>
+        <label class="field">
+          <span>비밀번호</span>
+          <span class="pw-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" placeholder="비밀번호" required />
+            <button id="pwToggle" class="pw-toggle" type="button" aria-label="비밀번호 보기">보기</button>
+          </span>
+        </label>
+        <p id="loginError" class="form-error" role="alert" hidden></p>
+        <button id="loginBtn" class="btn primary block" type="submit">로그인</button>
+      </form>
+      <p class="login-foot">선생님 계정은 브리즈코어(교사용)에서 사용해 주세요.<br />학생 계정은 학교에서 발급한 학번과 비밀번호로 로그인합니다.</p>
+    </div>
+  </section>
+
+  <!-- 학생 앱 -->
+  <section id="appView" class="app" hidden aria-label="브리즈 학생 쪽지">
+    <header class="topbar">
+      <button id="menuBtn" class="icon-btn only-mobile" type="button" aria-label="선생님 목록 열기" aria-expanded="false">☰</button>
+      <div class="brand-small" aria-hidden="true">B</div>
+      <div class="topbar-title">
+        <strong>브리즈 학생</strong>
+        <span id="topSchool" class="top-school"></span>
+      </div>
+      <div class="topbar-actions">
+        <button id="notifyBtn" class="icon-btn" type="button" title="새 쪽지 알림 켜기" aria-label="새 쪽지 알림 켜기" hidden>🔔</button>
+        <span id="connState" class="conn" title="실시간 연결 상태"><i aria-hidden="true"></i><span>연결 중</span></span>
+        <span id="meName" class="me-name"></span>
+        <button id="logoutBtn" class="btn ghost small" type="button">로그아웃</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <div id="scrim" class="scrim" hidden></div>
+      <aside id="sidebar" class="sidebar" aria-label="선생님 목록">
+        <div class="sidebar-head">
+          <div>
+            <strong>선생님</strong>
+            <span id="teacherCount" class="muted"></span>
+          </div>
+          <button id="closeSidebar" class="icon-btn only-mobile" type="button" aria-label="목록 닫기">✕</button>
+        </div>
+        <label class="search">
+          <span aria-hidden="true">⌕</span>
+          <input id="teacherSearch" type="search" placeholder="이름·부서 검색" autocomplete="off" />
+        </label>
+        <div id="teacherList" class="teacher-list" role="listbox" aria-label="선생님 선택"></div>
+        <button id="pwChangeBtn" class="btn ghost small pw-open" type="button">🔑 비밀번호 변경</button>
+        <div class="sidebar-foot">
+          <span id="schoolCodeFoot" class="school-code"></span>
+          <span class="muted">학생용 · 온프레미스</span>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div id="emptyThread" class="empty-thread">
+          <div class="empty-art" aria-hidden="true">✉</div>
+          <h2>선생님을 선택해 주세요</h2>
+          <p>왼쪽 목록에서 선생님을 고르면<br />주고받은 쪽지와 새 쪽지 쓰기가 열립니다.</p>
+        </div>
+
+        <section id="threadView" class="thread-view" hidden aria-label="쪽지 대화">
+          <header class="thread-head">
+            <div class="avatar" id="threadAvatar">?</div>
+            <div class="thread-title">
+              <strong id="threadName"></strong>
+              <span id="threadMeta" class="muted"></span>
+            </div>
+            <button id="refreshBtn" class="icon-btn" type="button" title="새로고침" aria-label="새로고침">↻</button>
+          </header>
+
+          <div id="messageList" class="message-list" aria-live="polite"></div>
+
+          <form id="composeForm" class="compose" novalidate>
+            <div class="compose-head">
+              <strong>새 쪽지</strong>
+              <span class="muted">Enter는 줄바꿈 · [보내기] 버튼으로만 발송</span>
+            </div>
+            <label class="sr-only" for="noteTitle">쪽지 제목</label>
+            <input id="noteTitle" class="input" type="text" maxlength="200" placeholder="제목 (예: 수업 자료 질문)" />
+            <label class="sr-only" for="noteBody">쪽지 내용</label>
+            <textarea id="noteBody" class="input textarea" maxlength="20000" rows="4" placeholder="선생님께 궁금한 점을 적어 주세요."></textarea>
+            <div class="compose-actions">
+              <span id="composeHint" class="muted">받는 사람: <b id="composeTo">-</b></span>
+              <button id="sendBtn" class="btn primary" type="submit">보내기</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <dialog id="pwDialog" class="pw-dialog" aria-labelledby="pwTitle">
+    <form id="pwForm" novalidate>
+      <h2 id="pwTitle">비밀번호 변경</h2>
+      <p class="muted">처음 받은 임시 비밀번호를 꼭 내 비밀번호로 바꿔 주세요.</p>
+      <label class="field">
+        <span>현재 비밀번호</span>
+        <input id="pwCurrent" class="input" type="password" autocomplete="current-password" maxlength="128" required />
+      </label>
+      <label class="field">
+        <span>새 비밀번호 (8자 이상)</span>
+        <input id="pwNext" class="input" type="password" autocomplete="new-password" minlength="8" maxlength="128" required />
+      </label>
+      <label class="field">
+        <span>새 비밀번호 확인</span>
+        <input id="pwConfirm" class="input" type="password" autocomplete="new-password" minlength="8" maxlength="128" required />
+      </label>
+      <p id="pwError" class="form-error" role="alert" hidden></p>
+      <div class="pw-actions">
+        <button id="pwCancel" class="btn ghost" type="button">취소</button>
+        <button id="pwSave" class="btn primary" type="submit">변경</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="./student.js"></script>
+</body>
+</html>

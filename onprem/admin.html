@@ -6,7 +6,7 @@
 <title>브리즈 학내망 서버 관리</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif; margin: 0; background: #f1f5f9; color: #0f172a; }
+  body { font-family: system-ui, sans-serif; margin: 0; background: #f1f5f9; color: #0f172a; }
   header { background: linear-gradient(135deg,#0082C8,#0069A8); color: #fff; padding: 16px 20px; }
   header h1 { margin: 0; font-size: 19px; }
   header p { margin: 4px 0 0; font-size: 12px; opacity: .85; }
@@ -66,6 +66,19 @@
   <div class="card">
     <h2>서버 상태</h2>
     <div id="status" class="muted">토큰을 저장하고 [상태 불러오기]를 눌러 주세요.</div>
+    <div id="health" class="muted" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <h2>🏫 학교 코드 · 학생 웹 연결</h2>
+    <p class="muted">교사 앱(브리즈코어)과 학생 웹이 <b>같은 학교 서버</b>를 가리키는지 확인하는 코드예요. 비밀번호가 아니며, 학생에게 안내해도 돼요.</p>
+    <div class="row" style="margin-top:8px">
+      <input id="schoolCodeInput" type="text" placeholder="예: BRZ-1A2B3C" maxlength="20" style="flex:1;min-width:160px">
+      <input id="schoolNameInput" type="text" placeholder="학교 이름" maxlength="60" style="flex:1;min-width:160px">
+      <button id="schoolSave">저장</button>
+    </div>
+    <p class="muted" id="schoolMsg" style="margin-top:6px"></p>
+    <p class="muted" style="margin-top:8px">학생 웹 주소: <code id="studentUrl">-</code> <button id="copyStudentUrl" class="ghost">복사</button></p>
+    <p class="muted">학생은 이 주소에서 <b>학교 코드 + 학번 + 비밀번호</b>로 로그인합니다. 설치나 클라우드 계정이 필요 없어요.</p>
   </div>
   <div class="card">
     <h2>유료 구독 관리 (license.key)</h2>
@@ -83,8 +96,10 @@
       <input id="xlfile" type="file" accept=".xlsx,.xls,.csv">
       <button id="uploadXl">올리기</button>
     </div>
-    <p class="muted">열: username(또는 사번/학번), real_name(또는 이름), password(또는 비밀번호, 비우면 사번), department(또는 부서, "교무부&gt;1학년부" 트리 가능), role(또는 권한), is_paid_dual_network(또는 유료)</p>
+    <p class="muted">열: username(또는 사번/학번), real_name(또는 이름), password(또는 비밀번호, 비우면 임시 비밀번호 자동 생성), department(또는 부서, "교무부&gt;1학년부" 트리 가능), role(또는 권한: TEACHER·STAFF·STUDENT·ADMIN), is_paid_dual_network(또는 유료)</p>
+    <p class="muted">학생은 role을 <b>STUDENT(학생)</b>로 등록하세요. 학생 계정은 교사용 조직도·채팅방·인쇄·나이스 기능에 접근할 수 없어요.</p>
     <div id="xlresult" class="muted"></div>
+    <div id="xlpasswords" class="muted" style="margin-top:8px"></div>
   </div>
   <div class="card">
     <h2>부서 추가</h2>
@@ -92,6 +107,50 @@
       <input id="depName" type="text" placeholder="부서 이름 (예: 1학년부)" style="flex:1;min-width:160px">
       <button id="addDep">추가</button>
     </div>
+  </div>
+  <div class="card">
+    <h2>시스템 정책 (클라이언트 통제)</h2>
+    <p class="muted">서버가 재시작 없이 즉시 반영해요 — 업로드 용량·회수 시간·자동 정리·강제 업데이트·나이스 학교 코드.</p>
+    <div class="row" style="margin-top:8px">
+      <label class="muted">업로드 최대(MB) <input id="polUpload" type="text" style="width:80px"></label>
+      <label class="muted">쪽지 회수(분) <input id="polRecall" type="text" style="width:80px"></label>
+      <label class="muted">보존 연수(0=안함) <input id="polRetention" type="text" style="width:80px"></label>
+      <label class="muted"><input id="polForce" type="checkbox"> 강제 업데이트</label>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="polOffice" type="text" placeholder="나이스 교육청 코드 (예: B10)" style="flex:1;min-width:180px">
+      <input id="polSchool" type="text" placeholder="나이스 학교 코드 (예: 7010569)" style="flex:1;min-width:180px">
+      <button id="polSave">정책 저장</button>
+      <button id="polLoad" class="ghost">정책 불러오기</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>감사 리포트 (교육청 제출용)</h2>
+    <p class="muted">접속 기록·쪽지·파일 송수신·권한 변경·공지 열람 기록을 Excel(.xlsx) 표준 서식으로 추출해요.</p>
+    <div class="row" style="margin-top:8px">
+      <label class="muted">시작 <input id="audFrom" type="date"></label>
+      <label class="muted">끝 <input id="audTo" type="date"></label>
+      <button id="audGo">엑셀 내려받기</button>
+    </div>
+    <p class="muted" id="audMsg"></p>
+  </div>
+  <div class="card">
+    <h2>데이터 유지보수</h2>
+    <p class="muted">보존 연수 지난 쪽지·대화를 지워 서버 용량을 확보해요 (만료된 클라우드 파일 정리 포함). 되돌릴 수 없으니 백업 후 실행하세요.</p>
+    <div class="row" style="margin-top:8px">
+      <input id="purgeYears" type="text" placeholder="예: 3" style="width:90px">
+      <button id="purgeGo" class="ghost">지난 데이터 정리</button>
+      <span class="muted" id="purgeMsg"></span>
+    </div>
+  </div>
+  <div class="card">
+    <h2>DB 자동 백업</h2>
+    <p class="muted">매일 새벽 3시 30분 자동 백업 · 최근 14개 보관 (data/backups). 지금 바로 떠 볼 수도 있어요.</p>
+    <div class="row" style="margin-top:8px">
+      <button id="bakGo">지금 백업</button>
+      <span class="muted" id="bakMsg"></span>
+    </div>
+    <div id="bakList" class="muted" style="margin-top:6px">-</div>
   </div>
   <div class="card">
     <h2>사용자 (최근 1000명)</h2>
@@ -127,7 +186,7 @@
         document.getElementById('suName').disabled = true;
         document.getElementById('suPw').disabled = true;
         document.getElementById('suGo').disabled = true;
-        setupMsg('관리자 계정은 만들어져 있어요. 2단계만 마치면 됩니다.');
+        setupMsg('관리자 계정은 만들어져 있어요. 2단계만 마치면 돼요.');
       }
     }
   }).catch(function () {});
@@ -155,6 +214,27 @@
       .then(function (r) { return r.json(); }).then(setupLicenseDone)
       .catch(function () { setupMsg('연결 실패: 학교 PC 본체에서 열어 주세요.'); });
   };
+  document.getElementById('schoolSave').onclick = function () {
+    var msg = document.getElementById('schoolMsg');
+    api('/api/admin/school', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: document.getElementById('schoolCodeInput').value,
+        name: document.getElementById('schoolNameInput').value,
+      }),
+    }).then(function (j) {
+      if (!j.ok) { msg.textContent = '실패: ' + (j.error || ''); return; }
+      var sc = j.school || {};
+      document.getElementById('schoolCodeInput').value = sc.code || '';
+      document.getElementById('schoolNameInput').value = sc.name || '';
+      msg.textContent = '저장됨 · 교사 앱과 학생 웹에 이 코드를 안내하세요.';
+      log('학교 코드 저장됨: ' + (sc.code || ''));
+    }).catch(function () { msg.textContent = '연결 실패'; });
+  };
+  document.getElementById('copyStudentUrl').onclick = function () {
+    var t = document.getElementById('studentUrl').textContent;
+    if (t && t !== '-') { try { navigator.clipboard.writeText(t); log('학생 웹 주소 복사됨'); } catch (e) { log('복사 실패'); } }
+  };
   document.getElementById('saveToken').onclick = function () {
     localStorage.setItem('edutalk_admin_token', tokenInput.value.trim());
     log('토큰 저장됨');
@@ -166,9 +246,18 @@
       document.getElementById('status').innerHTML =
         '<div>라이선스: <b>' + esc(l.mode || '-') + '</b> · ' + esc(l.message || '') + '</div>' +
         '<div>듀얼 네트워크: ' + (l.isPaidDualNetworkActive ? '<span class="pill on">켜짐</span>' : '<span class="pill off">꺼짐</span>') + ' · 만료 ' + esc(l.expiresAt || '-') + '</div>' +
+        '<div>인원 상한: ' + (j.quota && j.quota.max ? ('<b>' + j.quota.max + '명</b> · 사용 ' + j.quota.used + '명') : '무제한') + '</div>' +
+        '<div>학교 코드: <b>' + esc((j.school || {}).code || '-') + '</b> · ' + esc((j.school || {}).name || '학교 이름 미설정') + '</div>' +
         '<div>서버 IP: ' + (j.ips || []).map(function (x) { return '<span class="pill info">' + esc(x.address) + ':' + j.port + '</span>'; }).join(' ') + '</div>' +
         '<div>사용자 ' + j.counts.users + ' · 부서 ' + j.counts.departments + ' · 방 ' + j.counts.rooms + ' · 메시지 ' + j.counts.messages + ' · 파일 ' + j.counts.files + '</div>';
       document.getElementById('srvHwid').textContent = j.hwid || '-';
+      document.getElementById('studentUrl').textContent = location.origin + '/student/';
+      var sc = j.school || {};
+      document.getElementById('schoolCodeInput').value = sc.code || '';
+      document.getElementById('schoolNameInput').value = sc.name || '';
+      if (j.quota && j.quota.max && j.quota.left === 0) {
+        document.getElementById('schoolMsg').textContent = '⚠ 라이선스 인원 상한(' + j.quota.max + '명)에 도달했어요. 새 계정을 등록하려면 이용권을 갱신하세요.';
+      }
       api('/api/admin/secret').then(function (s) {
         if (s.ok) document.getElementById('srvSecret').textContent = s.secret || '-';
       }).catch(function () {});
@@ -178,14 +267,129 @@
       };
       log('상태 불러옴');
     }).catch(function (e) { log('연결 실패: 서버 주소와 토큰을 확인해 주세요.'); });
+    api('/api/admin/school').then(function (j) {
+      if (!j.ok) return;
+      var sc = j.school || {};
+      document.getElementById('schoolCodeInput').value = sc.code || '';
+      document.getElementById('schoolNameInput').value = sc.name || '';
+    }).catch(function () {});
     api('/api/admin/users').then(function (j) {
       if (!j.ok) return;
-      document.getElementById('users').innerHTML = '<table><tr><th>사번</th><th>이름</th><th>부서</th><th>권한</th><th>상태</th><th>유료</th></tr>' +
-        j.users.slice(0, 200).map(function (u) {
-          return '<tr><td>' + esc(u.username) + '</td><td>' + esc(u.real_name) + '</td><td>' + esc(u.department_name || '-') + '</td><td>' + esc(u.role) + '</td><td>' + esc(u.status) + '</td><td>' + (u.is_paid_dual_network ? '예' : '-') + '</td></tr>';
-        }).join('') + '</table>';
+      var roleName = { ADMIN: '관리자', TEACHER: '교사', STAFF: '행정', STUDENT: '학생' };
+      var rows = j.users.slice(0, 200).map(function (u) {
+        return '<tr><td>' + esc(u.username) + '</td><td>' + esc(u.real_name) + '</td><td>' + esc(u.department_name || '-') + '</td><td>' + esc(roleName[u.role] || u.role) + '</td><td>' + esc(u.status) + '</td><td>' + (u.is_paid_dual_network ? '예' : '-') + '</td><td><button class="ghost" data-reset-id="' + esc(u.id) + '" data-reset-name="' + esc(u.username) + '">재설정</button></td></tr>';
+      }).join('');
+      document.getElementById('users').innerHTML = '<table><tr><th>사번/학번</th><th>이름</th><th>부서</th><th>권한</th><th>상태</th><th>유료</th><th>관리</th></tr>' + rows + '</table>';
+      Array.prototype.forEach.call(document.querySelectorAll('[data-reset-id]'), function (btn) {
+        btn.onclick = function () {
+          var id = btn.getAttribute('data-reset-id');
+          var name = btn.getAttribute('data-reset-name') || '사용자';
+          var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+          var arr = new Uint8Array(12); crypto.getRandomValues(arr);
+          var pw = '';
+          for (var i = 0; i < arr.length; i++) pw += chars.charAt(arr[i] % chars.length);
+          if (!confirm(name + ' 계정의 비밀번호를 새로 만들까요?\n기존 로그인 세션도 모두 끊깁니다.')) return;
+          api('/api/admin/users/' + encodeURIComponent(id) + '/password', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw }),
+          }).then(function (r) {
+            if (!r.ok) { alert('실패: ' + (r.error || '')); return; }
+            alert(name + ' 새 비밀번호 (이 창을 닫으면 다시 볼 수 없어요)\n\n' + pw);
+            log('비밀번호 재설정: ' + name);
+          }).catch(function () { alert('연결 실패'); });
+        };
+      });
     }).catch(function () {});
+    api('/api/admin/health').then(function (j) {
+      if (!j.ok) return;
+      document.getElementById('health').innerHTML =
+        '동시 접속(소켓) ' + j.sockets + ' · 메모리 ' + j.rssMB + 'MB · DB ' + (j.dbBytes / 1048576).toFixed(1) + 'MB · 백업 ' + (j.backups || []).length + '개 · 가동 ' + Math.round(j.uptimeSec / 60) + '분 · ' + esc(j.backupDir || '');
+    }).catch(function () {});
+    polLoad();
+    bakLoad();
   };
+  // ---- 관리자 도구: 정책 · 감사 리포트 · 데이터 정리 · 백업 ----
+  function polLoad() {
+    api('/api/admin/policies').then(function (j) {
+      if (!j.ok) return;
+      var p = j.policies || {};
+      document.getElementById('polUpload').value = p.uploadMaxMB || '';
+      document.getElementById('polRecall').value = p.recallMinutes || '';
+      document.getElementById('polRetention').value = p.retentionYears || '0';
+      document.getElementById('polForce').checked = String(p.forceUpdate) === '1';
+      document.getElementById('polOffice').value = p.neisOfficeCode || '';
+      document.getElementById('polSchool').value = p.neisSchoolCode || '';
+    }).catch(function () {});
+  }
+  document.getElementById('polLoad').onclick = polLoad;
+  document.getElementById('polSave').onclick = function () {
+    api('/api/admin/policies', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uploadMaxMB: document.getElementById('polUpload').value,
+        recallMinutes: document.getElementById('polRecall').value,
+        retentionYears: document.getElementById('polRetention').value,
+        forceUpdate: document.getElementById('polForce').checked,
+        neisOfficeCode: document.getElementById('polOffice').value,
+        neisSchoolCode: document.getElementById('polSchool').value,
+      }),
+    }).then(function (j) {
+      log(j.ok ? '정책 저장됨 — 서버에 즉시 반영' : '정책 실패: ' + (j.error || ''));
+      if (j.ok) polLoad();
+    });
+  };
+  document.getElementById('audGo').onclick = function () {
+    var f = document.getElementById('audFrom').value, t = document.getElementById('audTo').value;
+    var qs = [];
+    if (f) qs.push('from=' + encodeURIComponent(f));
+    if (t) qs.push('to=' + encodeURIComponent(t));
+    document.getElementById('audMsg').textContent = '만드는 중…';
+    fetch('/api/admin/audit/export' + (qs.length ? '?' + qs.join('&') : ''), { headers: { 'x-admin-token': localStorage.getItem('edutalk_admin_token') || '' } })
+      .then(function (r) {
+        if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { document.getElementById('audMsg').textContent = '실패: ' + (j.error || ('HTTP ' + r.status)); });
+        return r.blob().then(function (b) {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(b);
+          a.download = 'breeze-audit_' + (f || '기본') + '_' + (t || '오늘') + '.xlsx';
+          document.body.appendChild(a); a.click(); a.remove();
+          document.getElementById('audMsg').textContent = '내려받기를 시작했어요.';
+          log('감사 리포트 내려받음');
+        });
+      }).catch(function () { document.getElementById('audMsg').textContent = '연결 실패'; });
+  };
+  document.getElementById('purgeGo').onclick = function () {
+    var y = Number(document.getElementById('purgeYears').value) || 0;
+    if (y < 1) { document.getElementById('purgeMsg').textContent = '보존 연수(1~30)를 적어 주세요.'; return; }
+    if (!confirm('보존 연수 ' + y + '년이 지난 쪽지·대화를 정말 지울까요?\n되돌릴 수 없어요 (먼저 백업 권장).')) return;
+    api('/api/admin/maintenance/purge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ years: y }) })
+      .then(function (j) {
+        document.getElementById('purgeMsg').textContent = j.ok
+          ? ('쪽지 ' + j.deleted.notes + ' · 대화 ' + j.deleted.messages + ' · 파일 ' + j.deleted.files + '건 정리됨')
+          : ('실패: ' + (j.error || ''));
+        log('데이터 정리 실행');
+      });
+  };
+  function bakLoad() {
+    api('/api/admin/backups').then(function (j) {
+      if (!j.ok) return;
+      document.getElementById('bakList').innerHTML = (j.backups && j.backups.length)
+        ? j.backups.slice(0, 5).map(function (b) { return '<div>' + esc(b.file) + ' · ' + (b.bytes / 1048576).toFixed(1) + 'MB · ' + esc(b.at) + '</div>'; }).join('')
+        : '아직 백업이 없어요.';
+    }).catch(function () {});
+  }
+  document.getElementById('bakGo').onclick = function () {
+    api('/api/admin/backup/run', { method: 'POST' }).then(function (j) {
+      document.getElementById('bakMsg').textContent = j.ok ? ('백업 완료: ' + j.backup.file) : ('실패: ' + (j.error || ''));
+      log('수동 백업');
+      bakLoad();
+    });
+  };
+  // 감사 리포트 기본 기간 = 최근 90일
+  (function () {
+    var d = new Date();
+    document.getElementById('audTo').value = d.toISOString().slice(0, 10);
+    document.getElementById('audFrom').value = new Date(d.getTime() - 90 * 86400000).toISOString().slice(0, 10);
+  })();
   document.getElementById('saveLicense').onclick = function () {
     api('/api/admin/license', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: document.getElementById('lickey').value }) })
       .then(function (j) { log(j.ok ? '라이선스 저장됨: ' + (j.license || {}).message : '실패: ' + (j.error || '')); });
@@ -200,6 +404,20 @@
         document.getElementById('xlresult').textContent = j.ok
           ? ('생성 ' + j.created + ' · 수정 ' + j.updated + ' · 부서 ' + j.departmentsCreated + (j.errors.length ? ' · 오류: ' + j.errors.join(' / ') : ''))
           : ('실패: ' + (j.error || ''));
+        var box = document.getElementById('xlpasswords');
+        box.replaceChildren();
+        if (j.ok && j.temporaryPasswords && j.temporaryPasswords.length) {
+          var warn = document.createElement('p');
+          warn.textContent = '⚠ 비밀번호를 비워 둔 계정의 임시 비밀번호예요. 이 화면을 닫으면 다시 볼 수 없으니 지금 안전하게 전달하세요.';
+          warn.style.color = '#b45309';
+          warn.style.fontWeight = '700';
+          box.appendChild(warn);
+          var ta = document.createElement('textarea');
+          ta.readOnly = true;
+          ta.style.minHeight = '100px';
+          ta.value = j.temporaryPasswords.map(function (x) { return x.username + ' : ' + x.password; }).join('\n');
+          box.appendChild(ta);
+        }
         log('엑셀 업로드 완료');
       }).catch(function () { log('업로드 실패'); });
   };

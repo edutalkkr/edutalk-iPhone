@@ -9,8 +9,8 @@ import {
   OrgNode,
   ScratchRow,
   SearchHit,
-  TemplateRow,
 } from "../lib/tauri";
+import { useTemplates } from "../lib/templates";
 import { readCsvText } from "../lib/csv";
 
 function Section({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
@@ -257,6 +257,7 @@ function HandoverBox() {
   const [newTag, setNewTag] = useState("");
   const [rows, setRows] = useState<HandoverRow[]>([]);
   const [body, setBody] = useState("");
+  const [err, setErr] = useState("");
   async function loadTags() {
     try {
       const t = await call<string[]>("handover_tags");
@@ -275,6 +276,7 @@ function HandoverBox() {
   async function add() {
     const tg = (newTag.trim() || tag).trim();
     if (!tg || !body.trim()) return;
+    setErr("");
     try {
       await call<string>("handover_add", { tag: tg, body: body.trim() });
       setBody("");
@@ -283,7 +285,7 @@ function HandoverBox() {
       setTag(tg);
       await loadRows(tg);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "남기지 못했어요.");
+      setErr(e instanceof Error ? e.message : "남기지 못했어요.");
     }
   }
   return (
@@ -300,6 +302,7 @@ function HandoverBox() {
           onKeyDown={(e) => e.key === "Enter" && add()} placeholder="넘길 말을 적어 주세요" />
         <button className="edu-btn whitespace-nowrap" onClick={add}>남기기</button>
       </div>
+      {err && <div className="text-[12px] font-bold text-[#B42318] bg-[#FFF0F1] border border-[#F5C6C6] rounded-lg px-2.5 py-1.5 mb-2">⚠️ {err}</div>}
       {rows.map((r) => (
         <div key={r.id} className="text-xs border-b border-edu-line py-1.5 last:border-0">
           {r.body}
@@ -441,40 +444,38 @@ function ScratchBox() {
   );
 }
 
-// 문구함 관리 (넣기·지우기)
+// 문구함 관리 — 쪽지 작성기의 [서식·문구]와 같은 저장소(useTemplates)를 쓴다 (Breeze Templates)
 function TemplateBox({ onToast }: { onToast: (t: string) => void }) {
-  const [rows, setRows] = useState<TemplateRow[]>([]);
+  const rows = useTemplates((s) => s.templates);
+  const addTpl = useTemplates((s) => s.add);
+  const removeTpl = useTemplates((s) => s.remove);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  async function load() {
-    try {
-      setRows(await call<TemplateRow[]>("template_list"));
-    } catch { /* 다음에 */ }
-  }
-  useEffect(() => { load(); }, []);
-  async function add() {
+  function add() {
     if (!title.trim() || !body.trim()) {
       onToast("제목과 내용을 적어 주세요.");
       return;
     }
-    try {
-      await call<string>("template_add", { title: title.trim(), body: body.trim() });
-      setTitle("");
-      setBody("");
-      await load();
-    } catch { /* 다음에 */ }
+    addTpl(title.trim(), body.trim());
+    setTitle("");
+    setBody("");
+    onToast("서식을 저장했어요. 쪽지 쓸 때 [서식·문구]에서 꺼내 써요.");
   }
   return (
-    <Section title="문구함" desc="쪽지 쓸 때 꺼내 쓰는 표준 문구예요.">
+    <Section title="문구함 (서식 저장소)" desc="쪽지 쓸 때 꺼내 쓰는 표준 문구예요. 작성기의 [서식·문구]와 같은 목록이에요.">
       <div className="flex gap-2 mb-2 flex-wrap">
         <input className="edu-input !w-36" value={title} maxLength={30} onChange={(e) => setTitle(e.target.value)} placeholder="제목" />
         <input className="edu-input flex-1" value={body} maxLength={1000} onChange={(e) => setBody(e.target.value)} placeholder="내용" />
         <button className="edu-btn !py-2" onClick={add}>넣기</button>
       </div>
+      {rows.length === 0 && <div className="text-xs text-edu-sub">저장된 서식이 없어요. 위에 적고 [넣기]를 눌러 보세요.</div>}
       {rows.map((r) => (
         <div key={r.id} className="flex items-center gap-2 text-sm border-b border-edu-line py-1.5 last:border-0">
-          <span className="flex-1"><b>{r.title}</b> <span className="text-xs text-edu-sub">{r.body.slice(0, 50)}</span></span>
-          <button className="text-xs text-edu-sub underline" onClick={async () => { await call("template_delete", { id: r.id }); load(); }}>
+          <span className="flex-1 min-w-0"><b>{r.title}</b> <span className="text-xs text-edu-sub">{r.body.slice(0, 50)}</span></span>
+          <button
+            className="text-xs text-edu-sub underline"
+            onClick={() => { removeTpl(r.id); onToast("서식을 삭제했어요."); }}
+          >
             지우기
           </button>
         </div>

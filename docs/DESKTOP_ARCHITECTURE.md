@@ -1,36 +1,37 @@
-# Breeze Desktop-First Native Architecture (웹래퍼 탈피)
+# 브리즈 아키텍처 (2026-10 정리)
 
-> 목표: 설치 파일 10~20MB, RAM <60MB, 오프라인(교내연결) 0.001초 부팅, OS 직접제어.
+초기 웹래퍼 시절 구조는 폐기했습니다. 아래 3계층으로 정리합니다.
+(중복이던 루트 `src-tauri/`와 레거시 `desktop/`은 제거)
 
-## 왜 웹래퍼가 불가한가 (3가지)
-1. 내부망 차단 시 흰화면: `https://edutalk.cloud` 로드가 막히면 앱 자체가 안 뜸 → 로컬 `public/index.html` 우선 로드로 해결.
-2. OS 제어 불가: USB(WM_DEVICECHANGE), PrintScreen 블러, P2P 소켓은 네이티브 백엔드만 가능 → Electron 메인 / Tauri Rust로 이동.
-3. RAM 폭증: 브라우저 전체+웹래퍼 150~300MB → Tauri 30~50MB, Electron도 로컬-first + 백그라운드 스로틀 유지로 절감.
+## 1. 브리즈 — 웹/모바일
+- 위치: `public/`(정적 웹), iOS/Android는 Capacitor 셸(`ios/`, `android/`)
+- 대상: 학생·학부모·이동 교직원 (하이브리드 외부망/클라우드)
+- 배포: 클라우드 호스팅 · 모바일 빌드는 자동화 파이프라인 사용
+- 기능: 학교 코드 가입, 학급/모둠 채팅, 푸시 알림, 하단 리퀴드 글래스 탭바
 
-## 구조
-```
-[교사 PC]
-┌ 브리즈 데스크톱 (Local Native Runtime) ─────────────┐
-│ Local UI (public/*.html/css/js, 오프라인 우선)  IPC  Native Backend (Rust/C#/Node) │
-└──────────────────────────────┬──────────────────────┘
-                               ▼
-                 SQLite DB / ONNX DLP / P2P Direct Socket / AutoPurge 캐시
-```
+## 2. 브리즈코어 — PC 교직원 앱
+- 위치: `edutalk-core/` (데스크톱 런타임 + Rust + React)
+- 대상: 교사·행정·교장/교감 (학교 내부망)
+- 저장: PC 로컬 SQLite + 교내망 P2P (`47801/UDP`, `47802/TCP`, `0.0.0.0` 바인딩)
+- 학교 서버 연동: `edutalk-core/src-tauri/src/srv.rs`
+  - onprem 서버에 `Authorization: Bearer <token>`으로 접속
+  - **토큰은 Rust 안에만 보관**(웹뷰로 비노출), `/api/...` 경로만 허용
+- 그 외: DLP 사전검사, 감사로그, 시간표·대강, 원격 화면보기, 최초 실행 방화벽 규칙 자동 등록
 
-## 현 구현 (Electron Local-First, Tauri 이행 다리)
-- `desktop/main.js`: `localUiPath()` → `loadFile(public/index.html)` 우선, 실패 시만 클라우드 폴백. `did-fail-load`에서 file://는 재시도 안 함.
-- `desktop/preload.js`: allowlist 채널만 노출 (`edutalk:*`), `ipcRenderer` 원본 차단.
-- `desktop/native/`: `dlp.js` / `p2p.js` / `autopurge.js` / `ramPreview.js` / `deviceGuard.js` / `netmode.js`
-- `desktop/package.json`: `public/**` + `native/**` 번들, `extraResources: ../public → public`
-- `src-tauri/`: Tauri 2 + Rust 백엔드 (`dlp_verify`, `local_memo_save`, `p2p_peers`). `frontendDist=../public` 공유로 UI 재사용.
-- `public/lite.js`: 외부 라이트 웹 (수신전용, 백그라운드 연산 차단). `?lite=1` 또는 모바일폭에서 자동.
-- `public/memo-hybrid.js/css`: 클래식 쪽지(제목-수신자-본문/HWP-수신확인) + 하단 댓글 스레드 + 1:1 퀵채팅.
+## 3. 에듀톡 서버 — 학교 온프레미스
+- 위치: `onprem/` (Express + Socket.io + node:sqlite), GUI 셸 `onprem-electron/`
+- 저장: 학교 로컬 `data/edutalk.db` (계정·방·메시지·파일) — **데이터 주권은 학교에**
+- 역할: `ADMIN`(학교관리자, 최상위) / `TEACHER` / `STAFF`
+- 계정: 학교관리자 직접 추가 또는 NEIS 연동, 엑셀 일괄 등록 지원
+- 라이선스: 벤더 Ed25519 서명 + HWID 바인딩 + 만료/체험 (만료 시 듀얼망 OFF, 서버는 계속 동작)
+- 초기 설정은 **학교 PC 본체에서만**(원격 차단), 설정 전에는 API·소켓 차단
 
 ## 네트워크 모드
-- `intranet (파란)`: P2P 직송 우선, 클라우드 송신 금지, DLP는 warn만.
-- `external (초록)`: Pre-Send DLP 필수 경유 → block 시 패킷 송신 안 함 + 암호화 감사로그.
+- `intranet`: 교내망 직접(P2P/서버 직송) 우선
+- `external`: 외부망(P2P 불가) → 클라우드/중계 경유, Pre-Send DLP 필수
 
-## Tauri 이행 순서 (권장)
-1. `npm run smoke` (Electron native 스모크) 통과 확인.
-2. `cargo tauri build` → 10~20MB 설치파일, RAM 30~50MB 확인.
-3. ONNX는 `ort` 크레이트로 교체, HWP 파서는 Rust `hwpx` 계열로 이식, USB/캡처는 `windows` 크레이트로 네이티브 후킹.
+## 보안 원칙 (온프레미스/구축형)
+- 중앙(총관리자)은 개별 학교의 방·메시지·신고 내용을 **조회하는 API/테이블을 두지 않는다**.
+- 총관리자가 제어하는 것은 **라이선스 토큰 만료**와 **중계(외부 접속) 통로 개폐**뿐이다.
+- 메시지 데이터는 중앙에 저장하지 않는다 (중계 서버는 상태·라이선스만 관리).
+- 계정·대화 데이터는 각 학교 로컬 서버에만 저장한다.

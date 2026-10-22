@@ -2,6 +2,9 @@
 node_modules/
 functions/node_modules/
 
+# Expo 잔재 (제거됨 — 실수로 남아도 무시)
+.expo/
+
 # Firebase
 .firebase/
 .firebase-debug.log
@@ -16,10 +19,7 @@ ios/App/App/public/
 ios/App/Pods/
 ios/capacitor-cordova-ios-plugins/
 
-# Desktop build artifacts (large, exceeds GitHub 100MB)
-desktop/dist/
-desktop/.cache/
-desktop/dist_electron/
+# Build outputs (large) — 설치 파일/압축은 저장소에 올리지 않는다
 *.exe
 *.zip
 
@@ -50,3 +50,8 @@ onprem-electron/dist/
 **/target/
 edutalk-core/dist/
 edutalk-core/node_modules/
+
+onprem/.test-features-data/
+.tmp-visual/
+onprem/.test-*/
+public/firebase-config.js

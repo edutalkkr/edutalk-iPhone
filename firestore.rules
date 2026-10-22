@@ -104,6 +104,12 @@ service cloud.firestore {
         || (signedIn() && resource.data.get('schoolId', '') != '' && resource.data.get('schoolId', '') == mySchool());
       allow create, update, delete: if isAdmin();
     }
+    // 이용권 주문 licenseOrders/{orderId} — 결제·발급은 Functions만 수행한다.
+    // 읽기는 구매자 본인과 총관리자만. 학교 관리자 목록은 본인 주문만 조회한다.
+    match /licenseOrders/{orderId} {
+      allow get, list: if isAdmin() || (signedIn() && resource.data.get('buyerUid', '') == request.auth.uid);
+      allow create, update, delete: if false;
+    }
     // 시간표 변경 요청 timetableChanges/{autoId} — 교사 요청 → 교사/학교관리자 승인 시 override 반영
     // 읽기: 같은 학교 구성원 + 총관리자. 쓰기: 교사 이상이 같은 학교 것만. 삭제: 총관리자만.
     match /timetableChanges/{cid} {

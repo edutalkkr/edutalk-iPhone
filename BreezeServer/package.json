@@ -1,0 +1,91 @@
+{
+  "name": "breeze-server",
+  "version": "1.0.0",
+  "description": "브리즈서버 - 학교 내부망용 백엔드 + 시스템 트레이 + 관리자 패널 + OTA 업데이트 시스템",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\" \"npm run dev:server\"",
+    "dev:main": "tsc -w -p tsconfig.main.json",
+    "dev:renderer": "vite",
+    "dev:server": "tsx watch src/server/index.ts",
+    "build": "npm run build:main && npm run build:renderer && npm run build:server",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "start": "electron dist/main/index.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "electron": "^30.0.0",
+    "electron-log": "^5.1.0",
+    "electron-updater": "^6.1.7",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5",
+    "uuid": "^9.0.1",
+    "crypto-js": "^4.2.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "multer": "^1.4.5-lts.1",
+    "semver": "^7.6.0",
+    "node-machine-id": "^1.1.12"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/cors": "^2.8.17",
+    "@types/crypto-js": "^4.2.2",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.12.0",
+    "@types/react": "^18.2.61",
+    "@types/react-dom": "^18.2.19",
+    "@types/semver": "^7.5.8",
+    "@types/uuid": "^9.0.8",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron-builder": "^24.13.3",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.6"
+  },
+  "build": {
+    "appId": "kr.breeze.server",
+    "productName": "브리즈서버",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "dist/main/**/*",
+      "dist/renderer/**/*",
+      "dist/server/**/*",
+      "resources/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/updates",
+        "to": "updates",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "resources/icons",
+        "to": "icons",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

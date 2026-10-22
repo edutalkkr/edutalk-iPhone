@@ -14,7 +14,10 @@ export const WINDOWS_ONLY_FEATURES = [
 
 export function isTauriDesktop(): boolean {
   try {
-    return typeof window !== "undefined" && "__TAURI__" in window;
+    if (typeof window === "undefined") return false;
+    // __TAURI__(withGlobalTauri) 또는 __TAURI_INTERNALS__(v2 기본 IPC) 중 하나라도 있으면 진짜 앱이다.
+    // 이 검사가 틀리면 설치판에서도 앱이 스스로 '미리보기'로 착각해 러스트 기능을 건너뛴다.
+    return "__TAURI__" in window || "__TAURI_INTERNALS__" in window;
   } catch {
     return false;
   }

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="브리즈코어는 교내 서버에서 도는 학교 전용 업무 메신저예요. 선생님은 380px 데스크톱으로, 학생은 설치 없이 브라우저로 이어져요." />
+  <meta name="theme-color" content="#F5F8F7" />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ko_KR" />
+  <meta property="og:title" content="브리즈코어 · 학교의 하루가 끊김 없이 흐르도록" />
+  <meta property="og:description" content="교내 서버에서 도는 학교 전용 업무 메신저. 선생님은 380px 데스크톱으로, 학생은 설치 없이 브라우저로 이어져요." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <title>브리즈코어 · 학교의 하루가 끊김 없이 흐르도록</title>
+  <script>
+    (function () {
+      document.documentElement.classList.add("js");
+      try {
+        var saved = localStorage.getItem("breezecore-theme");
+        var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로 가기</a>
+
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a class="brand" href="#top" aria-label="브리즈코어 홈">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img" focusable="false">
+            <path class="wind wind-a" d="M7 11.5h11.2c2.3 0 3.8-1.1 3.8-2.9 0-1.6-1.2-2.7-2.9-2.7-1.4 0-2.4.7-2.8 1.9" />
+            <path class="wind wind-b" d="M7 16h16.2c2.5 0 4.1 1.2 4.1 3.1 0 1.8-1.3 3-3.2 3-1.5 0-2.7-.8-3.1-2.1" />
+            <path class="wind wind-c" d="M7 20.5h8.4c1.9 0 3.1.9 3.1 2.4 0 1.4-1 2.3-2.4 2.3-1.1 0-1.9-.6-2.2-1.5" />
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong>브리즈코어</strong>
+          <small>BreezeCore</small>
+        </span>
+      </a>
+
+      <nav class="main-nav" id="mainNav" aria-label="주요 메뉴">
+        <a href="#features">기능</a>
+        <a href="#day">하루</a>
+        <a href="#security">보안</a>
+        <a href="#adopt">도입</a>
+        <a href="#faq">자주 묻는 질문</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="icon-btn theme-btn" id="themeBtn" type="button" aria-label="다크 모드로 바꾸기" aria-pressed="false">
+          <svg class="ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>
+          <svg class="ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"/></svg>
+        </button>
+        <a class="header-cta" href="#adopt">도입 살펴보기</a>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mainNav">
+          <span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-bg" aria-hidden="true">
+        <span class="orb orb-a"></span>
+        <span class="orb orb-b"></span>
+        <span class="orb orb-c"></span>
+        <span class="grid-fade"></span>
+      </div>
+
+      <div class="hero-inner">
+        <div class="hero-copy reveal">
+          <span class="eyebrow"><span class="pulse-dot" aria-hidden="true"></span>교내 서버에서만 도는 학교 메신저</span>
+          <h1>학교의 하루가,<br /><em>끊김 없이</em> 흐르도록.</h1>
+          <p class="hero-desc">
+            선생님은 380px 슬림 데스크톱으로, 학생은 설치 없이 브라우저로 이어져요.
+            쪽지·학생 문의·급식·일정·보안 기록까지 한 곳에서 흐릅니다.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#features">브리즈코어 둘러보기</a>
+            <a class="btn btn-ghost" href="#adopt">도입 3단계 보기</a>
+          </div>
+          <ul class="hero-points" aria-label="핵심 특징">
+            <li><span aria-hidden="true">✓</span> 교내망 온프레미스</li>
+            <li><span aria-hidden="true">✓</span> 학생은 설치 없이</li>
+            <li><span aria-hidden="true">✓</span> 7초 발송 취소</li>
+          </ul>
+        </div>
+
+        <div class="hero-visual reveal" aria-label="브리즈코어 스마트 배너 미리보기">
+          <div class="console-shell">
+            <div class="console-top">
+              <span class="console-logo" aria-hidden="true">B</span>
+              <div class="console-title">
+                <strong>오늘의 브리즈</strong>
+                <span id="consoleDate">오늘의 학교</span>
+              </div>
+              <span class="console-live"><span aria-hidden="true"></span>교내 연결</span>
+            </div>
+
+            <div class="smart-banner" id="smartBanner" aria-live="polite">
+              <div class="banner-track" id="bannerTrack"></div>
+              <div class="banner-foot">
+                <div class="banner-dots" id="bannerDots" aria-label="스마트 배너 페이지"></div>
+                <button class="banner-pause" id="bannerPause" type="button" aria-label="자동 넘김 멈추기" aria-pressed="false">Ⅱ</button>
+                <span class="banner-hint" id="bannerHint">자동으로 넘어가요</span>
+              </div>
+            </div>
+
+            <div class="console-grid">
+              <div class="mini-card">
+                <div class="mini-head"><span>쪽지함</span><b>2</b></div>
+                <div class="mini-line wide"></div>
+                <div class="mini-line"></div>
+                <div class="mini-line short"></div>
+                <div class="mini-note"><span class="mini-avatar">김</span><span>학생 문의 · 3단원 질문</span></div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-head"><span>오늘의 시간표</span><b>4교시</b></div>
+                <div class="mini-row"><span>3교시</span><strong>국어</strong></div>
+                <div class="mini-row"><span>4교시</span><strong>수학</strong></div>
+                <div class="mini-row muted"><span>5교시</span><strong>과학</strong></div>
+              </div>
+            </div>
+
+            <div class="console-compose">
+              <span class="compose-plus" aria-hidden="true">+</span>
+              <span>쪽지 쓰기 · Enter는 줄바꿈, 보내기는 버튼으로</span>
+              <span class="compose-send">보내기</span>
+            </div>
+          </div>
+
+          <div class="float-chip chip-a"><span aria-hidden="true">⏱</span><div><b>7초</b><small>발송 취소</small></div></div>
+          <div class="float-chip chip-b"><span aria-hidden="true">🔒</span><div><b>내부망</b><small>전용 기능 잠금</small></div></div>
+          <div class="float-chip chip-c"><span aria-hidden="true">🍱</span><div><b>점심 배너</b><small>시간에 맞춰 자동</small></div></div>
+        </div>
+      </div>
+
+      <div class="hero-strip reveal" aria-label="브리즈코어 요약">
+        <div class="strip-item"><strong>380px</strong><span>선생님 슬림 데스크톱</span></div>
+        <div class="strip-item"><strong>설치 없이</strong><span>학생은 브라우저로</span></div>
+        <div class="strip-item"><strong>교내 서버</strong><span>온프레미스 운영</span></div>
+        <div class="strip-item"><strong>텍스트 로그</strong><span>서버 PC에 차곡차곡</span></div>
+      </div>
+    </section>
+
+    <section class="section features" id="features">
+      <div class="section-head reveal">
+        <span class="eyebrow">한 번에 이어지는 학교</span>
+        <h2>메신저 하나로,<br />학교의 흐름을 잡아요.</h2>
+        <p>쪽지와 학생 문의, 급식과 일정, 보안 기록까지. 선생님과 학생이 같은 서버에서 자연스럽게 이어져요.</p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card reveal tilt">
+          <span class="feature-icon icon-teal" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="12" rx="2.2"/><path d="M8 20h8M12 16.5V20"/><path d="M7.5 9.5h9M7.5 12.5h5.5"/></svg>
+          </span>
+          <h3>선생님의 380px 데스크톱</h3>
+          <p>작은 창에 필요한 것만 담았어요. 시스템 트레이에 상주하고, 쪽지는 이메일형으로 길게 써요. Enter는 줄바꿈, 보내기는 마우스 버튼으로만.</p>
+          <span class="feature-tag">PC 데스크톱 전용</span>
+        </article>
+
+        <article class="feature-card reveal tilt">
+          <span class="feature-icon icon-amber" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="14" rx="2.2"/><path d="M8 21h8M12 18v3"/><circle cx="12" cy="10.5" r="2.2"/><path d="M8.5 15c.7-1.5 2-2.2 3.5-2.2s2.8.7 3.5 2.2"/></svg>
+          </span>
+          <h3>학생은 설치 없이, 브라우저로</h3>
+          <p>크롬북에서 학교 코드와 학번으로 로그인해요. 선생님께 쪽지를 보내고, 답장은 교사 앱에 실시간으로 도착해요.</p>
+          <span class="feature-tag">/student · 반응형 웹</span>
+        </article>
+
+        <article class="feature-card reveal tilt">
+          <span class="feature-icon icon-blue" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 7.5c0-1.7 1.3-3 3-3h10c1.7 0 3 1.3 3 3v9c0 1.7-1.3 3-3 3H7c-1.7 0-3-1.3-3-3Z"/><path d="M7.5 9.5h9M7.5 13h6M7.5 16.5h4"/><path d="M16.5 3v18"/></svg>
+          </span>
+          <h3>교내 서버, 온프레미스</h3>
+          <p>Express와 SQLite로 학교 PC에서 바로 돌아가요. 관리자 콘솔에서 계정·정책·백업·업데이트를 한 곳에서 관리해요.</p>
+          <span class="feature-tag">BreezeCore Server</span>
+        </article>
+
+        <article class="feature-card reveal tilt">
+          <span class="feature-icon icon-green" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 18.5h16"/><path d="M6.5 16V9.5M11.5 16V5.5M16.5 16v-4"/><circle cx="6.5" cy="7.5" r="1.4"/><circle cx="11.5" cy="3.5" r="1.4"/><circle cx="16.5" cy="10.5" r="1.4"/></svg>
+          </span>
+          <h3>시간에 맞춰 떠오르는 배너</h3>
+          <p>안 읽은 학생 메시지, 오늘 할 일, 다가오는 일정은 물론 점심시간이 가까워지면 오늘의 급식 메뉴까지 먼저 보여줘요.</p>
+          <span class="feature-tag">스마트 배너</span>
+        </article>
+
+        <article class="feature-card reveal tilt">
+          <span class="feature-icon icon-coral" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3.5 4.5 7v5.2c0 4.2 3 7.5 7.5 8.8 4.5-1.3 7.5-4.6 7.5-8.8V7Z"/><path d="m8.5 12 2.2 2.2 4.8-4.7"/></svg>
+          </span>
+          <h3>외부망에서는 무거운 기능을 잠가요</h3>
+          <p>듀얼망 학교만 내부망·외부망을 전환해요. 외부망에서는 클라우드 같은 내부망 전용 기능을 숨기고, 열려 있으면 중앙 안내로 멈춰요.</p>
+          <span class="feature-tag">듀얼망 안전 전환</span>
+        </article>
+
+        <article class="feature-card reveal tilt">
+          <span class="feature-icon icon-plum" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 4.5h14v15H5z"/><path d="M8 8h8M8 11.5h8M8 15h5"/><path d="M16.5 18.5 18.5 21l3-4"/></svg>
+          </span>
+          <h3>남는 기록은 서버 PC에 텍스트로</h3>
+          <p>누가·언제·어떤 기능을 썼는지 서버 컴퓨터의 활동 로그에 한 줄씩 남겨요. 비밀번호와 쪽지 본문은 기록하지 않아요.</p>
+          <span class="feature-tag">activity-YYYY-MM-DD.log</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="section day-section" id="day">
+      <div class="day-wrap">
+        <div class="section-head align-left reveal">
+          <span class="eyebrow">선생님의 하루</span>
+          <h2>아침부터 저녁까지,<br />필요한 순간에 떠올라요.</h2>
+          <p>알림을 쫓아다니지 않아도 괜찮아요. 브리즈코어가 학교의 리듬에 맞춰 먼저 보여줄게요.</p>
+        </div>
+
+        <div class="day-board reveal">
+          <div class="day-tabs" role="tablist" aria-label="선생님의 하루 시간대">
+            <button class="day-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="dayPanel" data-day="morning">아침</button>
+            <button class="day-tab" type="button" role="tab" aria-selected="false" aria-controls="dayPanel" data-day="lunch">점심</button>
+            <button class="day-tab" type="button" role="tab" aria-selected="false" aria-controls="dayPanel" data-day="afternoon">오후</button>
+            <button class="day-tab" type="button" role="tab" aria-selected="false" aria-controls="dayPanel" data-day="evening">저녁</button>
+          </div>
+
+          <div class="day-panel" id="dayPanel" role="tabpanel" aria-live="polite">
+            <div class="day-copy">
+              <span class="day-time" id="dayTime">08:10</span>
+              <h3 id="dayTitle">문을 열면, 오늘 할 일이 먼저 보여요.</h3>
+              <p id="dayDesc">안 읽은 학생 문의와 오늘 일정, 아직 끝내지 못한 할 일을 한 장의 배너로 정리해요. 화살표로 넘기면 필요한 것만 빠르게 확인할 수 있어요.</p>
+              <ul class="day-list" id="dayList">
+                <li>학생 문의 3건 · 아직 답장 전</li>
+                <li>오늘 4교시 수학 · 1학년 2반</li>
+                <li>제출 마감 · 안전 점검 결과</li>
+              </ul>
+            </div>
+            <div class="day-visual" id="dayVisual" aria-hidden="true">
+              <div class="day-bubble"><span>💬</span><div><b>학생 문의 3건</b><small>3단원 5번 문제가 궁금해요</small></div></div>
+              <div class="day-bubble alt"><span>📅</span><div><b>오늘 4교시</b><small>수학 · 1학년 2반</small></div></div>
+              <div class="day-bubble soft"><span>✅</span><div><b>할 일 2건</b><small>안전 점검 결과 정리</small></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section security" id="security">
+      <div class="security-inner">
+        <div class="security-copy reveal">
+          <span class="eyebrow light">학교가 직접 지키는 기록</span>
+          <h2>보안은 기능이 아니라,<br />운영의 기본이에요.</h2>
+          <p>브리즈코어는 학교 서버를 중심으로 돌아가요. 전송 전 검사, 보안 인쇄, 권한 분리, 감사 기록을 한 흐름으로 묶었어요.</p>
+          <a class="btn btn-light" href="#adopt">도입 전 확인할 것</a>
+        </div>
+
+        <div class="security-list reveal">
+          <article>
+            <span class="check" aria-hidden="true">✓</span>
+            <div><h3>전송 전 개인정보 검사</h3><p>주민등록번호·휴대폰·카드번호 같은 패턴을 먼저 살펴요. 위험한 내용은 감사 기록과 함께 멈춰요.</p></div>
+          </article>
+          <article>
+            <span class="check" aria-hidden="true">✓</span>
+            <div><h3>보안 인쇄 대기열</h3><p>시험지와 성적표는 바로 출력되지 않아요. 인쇄실에서 승인한 순간에만 종이로 나가요.</p></div>
+          </article>
+          <article>
+            <span class="check" aria-hidden="true">✓</span>
+            <div><h3>권한과 세션 분리</h3><p>학생은 선생님에게만 쪽지를 보내요. 관리자·교사·학생 권한을 나누고, 비밀번호를 바꾸면 다른 기기 세션을 끊어요.</p></div>
+          </article>
+          <article>
+            <span class="check" aria-hidden="true">✓</span>
+            <div><h3>서버 PC의 텍스트 활동 로그</h3><p>API 요청과 주요 화면 행동을 날짜별 텍스트 파일로 남겨요. 비밀번호·토큰·쪽지 본문은 남기지 않아요.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section adopt" id="adopt">
+      <div class="section-head reveal">
+        <span class="eyebrow">도입은 세 단계</span>
+        <h2>학교 서버 한 대에서<br />바로 시작할 수 있어요.</h2>
+        <p>복잡한 외부 클라우드 계정 없이, 교내 PC와 내부망만으로 준비해요.</p>
+      </div>
+
+      <div class="step-grid">
+        <article class="step-card reveal">
+          <span class="step-num">01</span>
+          <h3>학교 서버에 브리즈코어 설치</h3>
+          <p>교내 PC에 서버를 설치하고 관리자 계정과 이용권을 등록해요. 데이터와 업로드 파일은 학교 폴더에 쌓여요.</p>
+          <span class="step-meta">Express · SQLite · 관리자 콘솔</span>
+        </article>
+        <article class="step-card reveal">
+          <span class="step-num">02</span>
+          <h3>학교 코드와 계정 만들기</h3>
+          <p>관리자 콘솔에서 학교 코드를 정하고, 엑셀로 교사·학생 계정을 등록해요. 비워 둔 비밀번호는 임시 비밀번호로 안전하게 발급해요.</p>
+          <span class="step-meta">엑셀 일괄 등록 · 임시 비밀번호</span>
+        </article>
+        <article class="step-card reveal">
+          <span class="step-num">03</span>
+          <h3>선생님 앱과 학생 웹 연결</h3>
+          <p>선생님은 PC 앱을 설치하고, 학생은 같은 서버 주소의 <code>/student</code>로 접속해요. 같은 학교 코드로 쪽지와 알림이 이어져요.</p>
+          <span class="step-meta">PC 설치판 · 설치 없는 학생 웹</span>
+        </article>
+      </div>
+
+      <div class="adopt-note reveal">
+        <span aria-hidden="true">💡</span>
+        <p><b>처음 도입한다면</b> 체험용 라이선스로 먼저 학교 PC 한 대에서 흐름을 확인해 보세요. 실제 운영 전에 계정·권한·백업 위치를 정해 두면 좋아요.</p>
+      </div>
+    </section>
+
+    <section class="section faq" id="faq">
+      <div class="faq-wrap">
+        <div class="section-head align-left reveal">
+          <span class="eyebrow">자주 묻는 질문</span>
+          <h2>도입 전에<br />많이 묻는 것들</h2>
+        </div>
+        <div class="faq-list reveal">
+          <details class="faq-item">
+            <summary>외부 인터넷이 없어도 쓸 수 있나요?</summary>
+            <p>핵심 메신저 기능은 교내 서버와 내부망만으로 동작해요. 다만 나이스 급식·일정 연동이나 AI 요약처럼 외부 API를 쓰는 기능은 학교 설정과 인터넷 연결이 필요해요.</p>
+          </details>
+          <details class="faq-item">
+            <summary>학생도 앱을 설치해야 하나요?</summary>
+            <p>아니요. 학생은 크롬북이나 PC 브라우저에서 서버 주소의 <code>/student</code>로 접속하면 돼요. 학교 코드·학번·비밀번호로 로그인해요.</p>
+          </details>
+          <details class="faq-item">
+            <summary>쪽지가 카톡처럼 실시간 대화창으로 바뀌나요?</summary>
+            <p>아니요. 브리즈코어의 쪽지는 이메일형이에요. Enter는 줄바꿈만 하고, 보내기는 마우스로 [보내기]를 눌러야 해요. 보낸 뒤 7초 동안은 취소할 수 있어요.</p>
+          </details>
+          <details class="faq-item">
+            <summary>클라우드 자료는 학교 서버에 저장되나요?</summary>
+            <p>현재 브리즈 클라우드는 선생님 PC의 브라우저 저장소(IndexedDB)에 저장돼요. 학교 서버나 외부 클라우드로 자동 동기화되지 않으므로, 다른 PC와 나누려면 파일을 내려받아 쪽지나 공용 자료로 전달해 주세요.</p>
+          </details>
+          <details class="faq-item">
+            <summary>듀얼망 학교가 아니어도 되나요?</summary>
+            <p>네. 단일망 학교에서는 내부망·외부망 전환 버튼이 보이지 않아요. 듀얼망 학교에서만 외부망 전환과 내부망 전용 기능 잠금이 동작해요.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-section">
+      <div class="cta-inner reveal">
+        <div class="cta-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><path d="M9 17h17c3.4 0 5.8-1.7 5.8-4.4 0-2.4-1.8-4.1-4.4-4.1-2.1 0-3.7 1.1-4.3 2.9"/><path d="M9 24h24.5c3.8 0 6.2 1.8 6.2 4.7 0 2.7-2 4.6-4.8 4.6-2.3 0-4.1-1.2-4.7-3.2"/><path d="M9 31h12.7c2.8 0 4.7 1.4 4.7 3.6 0 2.1-1.5 3.5-3.6 3.5-1.6 0-2.9-.9-3.4-2.3"/></svg>
+        </div>
+        <div>
+          <span class="eyebrow">브리즈코어</span>
+          <h2>우리 학교의 하루에<br />맞춰 볼까요?</h2>
+          <p>서버 한 대와 학교 코드 하나로 시작해요. 선생님과 학생이 같은 흐름에서 이어집니다.</p>
+        </div>
+        <div class="cta-actions">
+          <a class="btn btn-primary" href="#adopt">도입 순서 다시 보기</a>
+          <button class="btn btn-ghost" type="button" data-open-policy="contact">도입 문의 안내</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-mark small" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M7 11.5h11.2c2.3 0 3.8-1.1 3.8-2.9 0-1.6-1.2-2.7-2.9-2.7-1.4 0-2.4.7-2.8 1.9"/><path d="M7 16h16.2c2.5 0 4.1 1.2 4.1 3.1 0 1.8-1.3 3-3.2 3-1.5 0-2.7-.8-3.1-2.1"/><path d="M7 20.5h8.4c1.9 0 3.1.9 3.1 2.4 0 1.4-1 2.3-2.4 2.3-1.1 0-1.9-.6-2.2-1.5"/></svg>
+        </span>
+        <div>
+          <strong>브리즈코어</strong>
+          <p>학교의 하루가 끊김 없이 흐르도록.</p>
+        </div>
+      </div>
+      <nav class="footer-links" aria-label="바닥글 메뉴">
+        <a href="#features">기능</a>
+        <a href="#security">보안</a>
+        <a href="#adopt">도입</a>
+        <button type="button" data-open-policy="privacy">개인정보 처리방침</button>
+        <button type="button" data-open-policy="terms">이용약관</button>
+      </nav>
+      <p class="footer-copy">© <span id="year">2026</span> BreezeCore. 이 페이지는 제품 소개용 데모예요. 실제 학교 서버 주소와 계정은 학교 관리자가 안내해요.</p>
+    </div>
+  </footer>
+
+  <dialog class="policy-dialog" id="policyDialog" aria-labelledby="policyTitle">
+    <div class="policy-head">
+      <h2 id="policyTitle">개인정보 처리방침</h2>
+      <button class="icon-btn" id="policyClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="policy-body" id="policyBody"></div>
+    <div class="policy-foot">
+      <button class="btn btn-primary" id="policyOk" type="button">확인했어요</button>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

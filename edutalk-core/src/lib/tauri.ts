@@ -180,7 +180,7 @@ export interface DlpHit {
 }
 
 function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI__" in window;
+  return typeof window !== "undefined" && ("__TAURI__" in window || "__TAURI_INTERNALS__" in window);
 }
 
 async function realCall<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -349,6 +349,15 @@ async function mockCall<T>(cmd: string, args?: Record<string, unknown>): Promise
     case "capture_set":
     case "firewall_register":
       return undefined as unknown as T;
+    case "srv_status":
+      return ({ connected: false, base: "", user: null } as unknown) as T;
+    case "srv_logout":
+      return undefined as unknown as T;
+    case "srv_get":
+    case "srv_post":
+      return ({} as unknown) as T;
+    case "srv_login":
+      throw new Error("미리보기에서는 학교 서버에 연결할 수 없어요.");
     case "secret_load":
       return ("" as unknown) as T;
     case "scratch_get":
@@ -406,4 +415,17 @@ export function listenEvent(name: string, handler: (payload: unknown) => void): 
   return () => {
     if (stop) stop();
   };
+}
+
+// 다른 창(팝업)에 변화를 알린다. 모든 창이 같은 이벤트를 받는다 (브라우저 미리보기에서는 무시).
+export function emitEvent(name: string, payload?: unknown): void {
+  if (!isTauri()) return;
+  void (async () => {
+    try {
+      const { emit } = await import("@tauri-apps/api/event");
+      await emit(name, payload);
+    } catch {
+      /* 알림 실패는 화면 동작을 막지 않는다 */
+    }
+  })();
 }

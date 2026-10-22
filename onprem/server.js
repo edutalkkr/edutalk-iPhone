@@ -1,5 +1,7 @@
 'use strict';
 /* EduTalk on-premise school LAN server: Express + Socket.io + SQLite */
+/* .env(AI API 키 등)를 db 로드 전에 읽는다 — EDUTALK_DATA_DIR 같은 값도 .env로 지정 가능 */
+require('./load-env').loadEnv();
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -11,9 +13,11 @@ const XLSX = require('xlsx');
 const cron = require('node-cron');
 const { Server } = require('socket.io');
 
-const { db, row, all, run, counts, purgeExpiredFiles, VALID_STATUS, VALID_ROLES, DATA_DIR, APP_ROOT } = require('./db');
+const { db, row, all, run, counts, purgeExpiredFiles, VALID_STATUS, VALID_ROLES, DATA_DIR, APP_ROOT, getKV, setKV } = require('./db');
+const { getPolicyNumber, getPolicyBool } = require('./policies');
 const auth = require('./auth');
 const license = require('./license');
+const whiteboard = require('./whiteboard');
 
 /* ---------- 서비스/백그라운드 모드 감지 + 파일 로그 ---------- */
 // Windows 서비스(node-windows)나 Electron GUI 자식 프로세스로 뜨면 콘솔이 없다.
@@ -44,6 +48,42 @@ function localTsSafe(d) {
     const p = (n) => String(n).padStart(2, '0');
     return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}:${p(t.getSeconds())}`;
   } catch (e) { return new Date().toISOString(); }
+}
+
+/* ---------- 활동 로그 (사람이 읽는 텍스트) ----------
+   서버 컴퓨터의 logs/activity-YYYY-MM-DD.log 에 한 줄씩 남긴다.
+   비밀번호·토큰·본문은 절대 쓰지 않고, 누가·언제·어떤 API/행동을 했는지만 남긴다. */
+function activityFilePath() {
+  const d = new Date();
+  const name = `activity-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.log`;
+  return path.join(LOG_DIR, name);
+}
+function activityText(v) {
+  try {
+    const s = typeof v === 'string' ? v : JSON.stringify(v);
+    return String(s || '').replace(/[\t\r\n]+/g, ' ').slice(0, 1200);
+  } catch (e) { return ''; }
+}
+function writeActivity(req, action, detail) {
+  try {
+    const ip = String((req && req.socket && req.socket.remoteAddress) || (req && req.ip) || 'unknown').replace(/^::ffff:/, '');
+    const u = (req && req.user) || {};
+    const who = u.id ? `${u.id}:${u.username || u.real_name || ''}` : '-';
+    const role = u.role || '-';
+    const method = (req && req.method) || '-';
+    const p = (req && (req._activityPath || req.originalUrl || req.path)) || '-';
+    const line = [
+      localTsSafe(new Date()),
+      ip,
+      who,
+      role,
+      method,
+      p,
+      action || '-',
+      activityText(detail || ''),
+    ].join('\t') + '\n';
+    fs.appendFileSync(activityFilePath(), line);
+  } catch (e) { /* 로그 실패가 서비스를 멈추지 않는다 */ }
 }
 // console.* 을 파일에도 미러링 (서비스에서 console이 없어도 죽지 않게)
 try {
@@ -137,6 +177,20 @@ const app = express();
 app.set('trust proxy', false); // X-Forwarded-For를 절대 신뢰하지 않음 (loopback 판정 우회 방지)
 app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
+/* 모든 API 요청을 서버 컴퓨터의 텍스트 활동 로그에 남긴다 (응답이 끝난 뒤 사용자 정보까지 포함). */
+app.use((req, res, next) => {
+  // 라우터에 마운트되면 req.path가 '/send'처럼 잘리므로, 원래 주소를 지금 붙잡아 둔다.
+  const originalPath = String(req.originalUrl || req.url || '').split('?')[0];
+  if (!originalPath.startsWith('/api/')) return next();
+  // /api/activity 는 라우트에서 행동 이름·상세까지 직접 남기므로 중복 기록하지 않는다.
+  if (originalPath === '/api/activity') return next();
+  req._activityPath = originalPath;
+  const started = Date.now();
+  res.on('finish', () => {
+    writeActivity(req, 'http', { status: res.statusCode, ms: Date.now() - started });
+  });
+  next();
+});
 /* 보안 헤더 (helmet 없이 최소 세트 — 학내망 LAN 전제) */
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -168,6 +222,9 @@ function rateLimit({ windowMs, max, message }) {
 const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: '로그인을 너무 자주 시도했어요. 1분 뒤 다시 해 주세요.' });
 const adminLimiter = rateLimit({ windowMs: 60 * 1000, max: 200, message: '요청이 너무 많아요. 잠시 뒤 다시 해 주세요.' });
 const setupLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: '너무 자주 시도했어요. 잠시 뒤 다시 해 주세요.' });
+const activityLimiter = rateLimit({ windowMs: 60 * 1000, max: 300, message: '요청이 너무 많아요. 잠시 뒤 다시 해 주세요.' });
+const aiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: 'AI 요청이 너무 많아요. 1분 뒤 다시 시도해 주세요.' });
+const collabLimiter = rateLimit({ windowMs: 60 * 1000, max: 240, message: '요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.' });
 function clientIp(req) {
   try {
     const raw = String((req.socket && req.socket.remoteAddress) || req.ip || '').toLowerCase().replace(/^::ffff:/, '');
@@ -187,6 +244,7 @@ app.use((req, res, next) => {
   try{
     if(isSetupDone()) return next();
     if(req.path === '/admin' || req.path === '/api/setup-state') return next();
+    if(req.path.indexOf('/api/updates') === 0) return next(); // OTA는 설정 전에도 열어 둔다
     if(req.path.indexOf('/api/admin/setup/') === 0) return next();
     if(req.path.indexOf('/socket.io/') === 0) return next();
     if(req.path.indexOf('/api/') === 0){
@@ -206,6 +264,30 @@ function needAuth(req, res, next) {
   req.token = token;
   next();
 }
+/* 학생 계정은 교사용 기능(조직도·채팅방·인쇄·나이스·AI 등)에 접근할 수 없다. */
+function needStaff(req, res, next) {
+  try {
+    if (!req.user) return res.status(401).json({ ok: false, error: '로그인이 필요해요.' });
+    if (String(req.user.role || '').toUpperCase() === 'STUDENT') {
+      return res.status(403).json({ ok: false, error: '선생님 계정에서만 사용할 수 있는 기능이에요.' });
+    }
+    next();
+  } catch (e) { return res.status(403).json({ ok: false, error: '권한을 확인하지 못했어요.' }); }
+}
+
+/* 라이선스 인원 상한 (0 = 무제한). 학생/교직원 모두 포함해 센다. */
+function licenseUserLimit() {
+  try { return Number(license.verify().maxUsers || 0); } catch (e) { return 0; }
+}
+function userCount() {
+  try { return Number((row('SELECT COUNT(*) c FROM users') || {}).c) || 0; } catch (e) { return 0; }
+}
+function userQuota() {
+  const max = licenseUserLimit();
+  const used = userCount();
+  return { max, used, left: max > 0 ? Math.max(0, max - used) : null };
+}
+
 function needAdmin(req, res, next) {
   // 타이밍 공격 방지: 고정 시간 비교
   try {
@@ -221,13 +303,31 @@ function needAdmin(req, res, next) {
   }
   next();
 }
+/* 관리자·계정 보안 동작 감사 기록 (실패해도 원래 동작은 막지 않는다). */
+function writeServerAudit(req, actorId, actorName, action, targetType, targetId, detail) {
+  try {
+    run(
+      `INSERT INTO audit_logs (actor_id, actor_name, action, target_type, target_id, detail, ip)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      String(actorId == null ? 'system' : actorId),
+      String(actorName || ''),
+      String(action),
+      String(targetType || ''),
+      String(targetId == null ? '' : targetId),
+      JSON.stringify(detail || {}),
+      String((req && req.ip) || '')
+    );
+  } catch (e) { /* 감사 기록 실패는 본 동작을 막지 않는다. */ }
+}
+
 /* 이용권 강제: 설정 완료 후에도 매 요청마다 라이선스 확인.
  * licensed/trial이 아니면 인증 API·채팅 API 전체 차단 (관리자 갱신 경로만 허용).
  * → 이용권 없으면 서버가 켜져 있어도 절대 동작 안 함. */
 function licenseGate(req, res, next) {
   try {
     if (!isSetupDone()) return next(); // 설정 전은 기존 setup 게이트가 처리
-    if (req.path === '/admin' || req.path === '/api/setup-state' || req.path === '/api/public-info') return next();
+    if (req.path === '/admin' || req.path === '/student' || req.path.indexOf('/student/') === 0 || req.path === '/api/setup-state' || req.path === '/api/public-info') return next();
+    if (req.path.indexOf('/api/updates') === 0) return next(); // 이용권과 무관하게 갱신 가능
     if (req.path.indexOf('/api/admin/') === 0) return next(); // 갱신용 (토큰 필요)
     if (req.path.indexOf('/socket.io/') === 0) return next(); // 소켓은 핸드셰이크에서 차단
     if (req.path.indexOf('/api/') === 0) {
@@ -241,15 +341,32 @@ function licenseGate(req, res, next) {
 }
 
 /* ---------- 공개/인증 API ---------- */
-app.post('/api/login', loginLimiter, (req, res) => {
+/* /api/auth/login은 문서·신규 클라이언트용 별칭 (설계서 §3.1) */
+app.post(['/api/login', '/api/auth/login'], loginLimiter, (req, res) => {
   try {
-    const r = auth.login(req.body.username, req.body.password);
+    const body = req.body || {};
+    const suppliedSchool = String(body.schoolCode || body.school_code || '').trim();
+    const school = license.schoolIdentity();
+    // 학교 코드가 설정된 서버라면, 코드를 보낸 경우 반드시 일치해야 한다.
+    if (suppliedSchool && school.code && suppliedSchool.toUpperCase() !== school.code.toUpperCase()) {
+      return setTimeout(() => res.status(403).json({
+        ok: false, schoolMismatch: true,
+        error: `학교 코드가 서버와 맞지 않아요. 이 서버의 학교 코드는 '${school.code}'예요.`,
+      }), 300);
+    }
+    const r = auth.login(body.username, body.password);
     if (!r) {
       // 무차별 대입 완화: 실패 응답을 일부러 늦춤
       return setTimeout(() => res.status(401).json({ ok: false, error: '사번(학번)이나 비밀번호를 확인해 주세요.' }), 600);
     }
+    // 학생은 학교 코드를 반드시 확인한다 (다른 학교 서버에 붙는 실수 방지)
+    if (String(r.user.role || '').toUpperCase() === 'STUDENT' && school.code
+        && suppliedSchool.toUpperCase() !== school.code.toUpperCase()) {
+      auth.logout(r.token);
+      return res.status(403).json({ ok: false, schoolMismatch: true, error: '학생은 학교 코드를 입력해야 해요.' });
+    }
     try { run("UPDATE users SET status='ONLINE', status_message='' WHERE id=?", r.user.id); } catch (e) {}
-    res.json({ ok: true, token: r.token, user: r.user });
+    res.json({ ok: true, token: r.token, user: r.user, school: { code: school.code, name: school.name } });
   } catch (e) { res.status(500).json({ ok: false, error: '로그인 처리 중 문제가 생겼어요.' }); }
 });
 
@@ -261,6 +378,41 @@ app.post('/api/logout', needAuth, (req, res) => {
 
 app.get('/api/me', needAuth, (req, res) => res.json({ ok: true, user: req.user }));
 
+/* 화면에서 일어난 행동(인수인계·퀵 메모·클라우드 등)을 서버 컴퓨터 텍스트 로그에 남긴다. */
+app.post('/api/activity', activityLimiter, needAuth, (req, res) => {
+  try {
+    const action = String((req.body || {}).action || '').replace(/[^a-zA-Z0-9_.:-]/g, '').slice(0, 80);
+    if (!action) return res.status(400).json({ ok: false, error: '기록할 행동 이름이 필요해요.' });
+    let detail = (req.body || {}).detail;
+    if (detail != null && typeof detail !== 'object') detail = String(detail);
+    writeActivity(req, action, detail || {});
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: '활동을 기록하지 못했어요.' });
+  }
+});
+
+/* 내 비밀번호 변경 — 현재 비밀번호를 확인하고, 다른 기기의 세션은 폐기한다. */
+app.post('/api/me/password', loginLimiter, needAuth, (req, res) => {
+  try {
+    const cur = String((req.body || {}).currentPassword || (req.body || {}).current_password || '');
+    const next = String((req.body || {}).newPassword || (req.body || {}).new_password || '');
+    if (!cur || !next) return res.status(400).json({ ok: false, error: '현재 비밀번호와 새 비밀번호를 입력해 주세요.' });
+    if (next.length < 8 || next.length > 128) return res.status(400).json({ ok: false, error: '새 비밀번호는 8~128자로 정해 주세요.' });
+    if (cur === next) return res.status(400).json({ ok: false, error: '이전과 다른 비밀번호를 써 주세요.' });
+    const u = row('SELECT id, password_hash FROM users WHERE id = ?', req.user.id);
+    if (!u || !auth.verifyPassword(cur, u.password_hash)) {
+      // 인증 토큰 자체는 유효하므로 401을 쓰지 않는다 (클라이언트가 세션 만료로 오해하지 않게).
+      return res.status(400).json({ ok: false, error: '현재 비밀번호가 맞지 않아요.' });
+    }
+    run('UPDATE users SET password_hash = ? WHERE id = ?', auth.hashPassword(next), req.user.id);
+    // 현재 기기만 유지하고 나머지 세션은 로그아웃시킨다.
+    run('DELETE FROM sessions WHERE user_id = ? AND token <> ?', req.user.id, req.token);
+    writeServerAudit(req, req.user.id, req.user.real_name || req.user.username, 'user_password_change', 'user', req.user.id, { username: req.user.username || '' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: '비밀번호를 바꾸지 못했어요.' }); }
+});
+
 app.get('/api/network-info', (req, res) => {
   res.json({ ok: true, serverIps: localIPv4s(), port: PORT, privateRanges: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'] });
 });
@@ -269,15 +421,25 @@ app.get('/api/network-info', (req, res) => {
 app.get('/api/public-info', (req, res) => {
   try {
     const lic = license.verify();
-    res.json({ ok: true, dual: lic.licensed && lic.isPaidDualNetworkActive === true, school: lic.school || '', version: '1.0.0', now: localTs(new Date()) });
+    const school = license.schoolIdentity();
+    res.json({
+      ok: true,
+      dual: lic.licensed && lic.isPaidDualNetworkActive === true,
+      school: school.name || lic.school || '',
+      schoolCode: school.code,
+      schoolName: school.name || lic.school || '',
+      schoolConfigured: !school.generated,
+      version: '1.0.0',
+      now: localTs(new Date()),
+    });
   } catch (e) { res.status(500).json({ ok: false, error: '정보를 불러오지 못했어요.' }); }
 });
 
 /* 조직도 트리 */
-app.get('/api/departments/tree', needAuth, (req, res) => {
+app.get('/api/departments/tree', needAuth, needStaff, (req, res) => {
   try {
     const deps = all('SELECT * FROM departments ORDER BY order_index, id');
-    const users = all("SELECT id, username, real_name, department_id, status, status_message, role FROM users WHERE status != 'OFFLINE' OR 1=1 ORDER BY real_name");
+    const users = all("SELECT id, username, real_name, department_id, status, status_message, role FROM users WHERE role != 'STUDENT' ORDER BY real_name");
     const byParent = new Map();
     deps.forEach((d) => {
       const k = d.parent_id == null ? 0 : d.parent_id;
@@ -295,25 +457,44 @@ app.get('/api/departments/tree', needAuth, (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: '조직도를 불러오지 못했어요.' }); }
 });
 
-app.get('/api/users', needAuth, (req, res) => {
+app.get('/api/users', needAuth, needStaff, (req, res) => {
   try {
-    res.json({ ok: true, users: all('SELECT id, username, real_name, department_id, status, status_message, role FROM users ORDER BY real_name') });
+    res.json({ ok: true, users: all("SELECT id, username, real_name, department_id, status, status_message, role FROM users WHERE role != 'STUDENT' ORDER BY real_name") });
   } catch (e) { res.status(500).json({ ok: false, error: '사용자를 불러오지 못했어요.' }); }
 });
 
+/* 학생용 선생님 목록 — 학생 웹에서만 사용. 학생 계정 정보는 노출하지 않는다. */
+app.get('/api/student/teachers', needAuth, (req, res) => {
+  try {
+    if (String(req.user.role || '').toUpperCase() !== 'STUDENT') {
+      return res.status(403).json({ ok: false, error: '학생 계정에서만 사용할 수 있어요.' });
+    }
+    const teachers = all(
+      `SELECT u.id, u.real_name, u.status, u.status_message, u.role,
+              d.name AS department_name
+       FROM users u LEFT JOIN departments d ON d.id = u.department_id
+       WHERE u.role IN ('TEACHER', 'STAFF')
+       ORDER BY CASE u.role WHEN 'TEACHER' THEN 0 ELSE 1 END,
+                COALESCE(d.name, ''), u.real_name`
+    );
+    res.json({ ok: true, teachers });
+  } catch (e) { res.status(500).json({ ok: false, error: '선생님 목록을 불러오지 못했어요.' }); }
+});
+
 /* 채팅방 */
-app.get('/api/rooms', needAuth, (req, res) => {
+app.get('/api/rooms', needAuth, needStaff, (req, res) => {
   try {
     const rooms = all('SELECT * FROM rooms ORDER BY created_at DESC').filter((r) => isMember(r, req.user.id));
     res.json({ ok: true, rooms: rooms.map((r) => ({ ...r, member_ids: memberIdsOf(r) })) });
   } catch (e) { res.status(500).json({ ok: false, error: '채팅방을 불러오지 못했어요.' }); }
 });
 
-app.post('/api/rooms', needAuth, (req, res) => {
+app.post('/api/rooms', needAuth, needStaff, (req, res) => {
   try {
     const name = String(req.body.name || '').trim().slice(0, 40);
     if (!name) return res.status(400).json({ ok: false, error: '방 이름을 적어 주세요.' });
-    let members = Array.isArray(req.body.member_ids) ? req.body.member_ids.map(Number).filter(Boolean) : [];
+    const staffIds = new Set(all("SELECT id FROM users WHERE role != 'STUDENT'").map((u) => Number(u.id)));
+    let members = Array.isArray(req.body.member_ids) ? req.body.member_ids.map(Number).filter((id) => staffIds.has(id)) : [];
     if (!members.includes(req.user.id)) members.push(req.user.id);
     const id = uuid();
     run('INSERT INTO rooms (id, name, network_type, member_ids, created_by) VALUES (?, ?, ?, ?, ?)',
@@ -333,6 +514,9 @@ app.get('/api/rooms/:id', needAuth, (req, res) => {
 
 function needRoomMember(req, res, next) {
   try {
+    if (String((req.user || {}).role || '').toUpperCase() === 'STUDENT') {
+      return res.status(403).json({ ok: false, error: '선생님 계정에서만 사용할 수 있는 기능이에요.' });
+    }
     const room = row('SELECT * FROM rooms WHERE id = ?', req.params.id);
     if (!room || !memberIdsOf(room).includes(Number(req.user.id))) {
       return res.status(403).json({ ok: false, error: '들어갈 수 있는 방이 아니에요.' });
@@ -565,9 +749,13 @@ function parseMultipart(req, maxFileSize) {
     } catch (e) { reject(e); }
   });
 }
-app.post('/api/upload', needAuth, async (req, res) => {
+app.post('/api/upload', needAuth, needStaff, async (req, res) => {
   let parsed = null;
-  try { parsed = await parseMultipart(req); }
+  try {
+    // 관리자 정책: 1회 업로드 최대 크기 (기본 100MB — admin.html에서 조절)
+    const capMB = Math.max(1, Math.round(getPolicyNumber('uploadMaxMB') || 100));
+    parsed = await parseMultipart(req, capMB * 1024 * 1024);
+  }
   catch (e) { return res.status(400).json({ ok: false, error: '파일을 읽지 못했어요.' }); }
   const f = parsed.file;
   try {
@@ -590,7 +778,7 @@ app.post('/api/upload', needAuth, async (req, res) => {
   finally { try { if (f && f.filepath && fs.existsSync(f.filepath)) fs.unlinkSync(f.filepath); } catch (e) {} }
 });
 
-app.get('/api/files/:id', needAuth, (req, res) => {
+app.get('/api/files/:id', needAuth, needStaff, (req, res) => {
   try {
     const f = row('SELECT * FROM files WHERE id = ?', Number(req.params.id));
     if (!f) return res.status(404).json({ ok: false, error: '파일을 찾지 못했어요.' });
@@ -629,7 +817,7 @@ app.post('/api/admin/setup/license', setupLimiter, needSetupLocal, (req, res) =>
   try{
     const key=String(((req.body||{}).key)||'').trim();
     const trial=!!(req.body||{}).trial;
-    if(key){ fs.writeFileSync(path.join(APP_ROOT(), 'license.key'), key); }
+    if(key){ license.writeKeyFile(key); }
     else if(!trial) return res.status(400).json({ ok:false, error:'키를 넣거나 체험을 선택해 주세요.' });
     const v=license.verify();
     if(v.mode!=='licensed'&&v.mode!=='trial') return res.status(400).json({ ok:false, error:v.message||'라이선스가 올바르지 않아요.' });
@@ -641,7 +829,7 @@ app.post('/api/admin/setup/license', setupLimiter, needSetupLocal, (req, res) =>
 /* ---------- 관리자 ---------- */
 app.get('/api/admin/status', adminLimiter, needAdmin, (req, res) => {
   try {
-    res.json({ ok: true, license: license.verify(), hwid: license.serverHwid(), ips: localIPv4s(), port: PORT, counts: counts(), now: localTs(new Date()) });
+    res.json({ ok: true, license: license.verify(), school: license.schoolIdentity(), quota: userQuota(), studentPath: '/student/', hwid: license.serverHwid(), ips: localIPv4s(), port: PORT, counts: counts(), now: localTs(new Date()) });
   } catch (e) { res.status(500).json({ ok: false, error: '상태를 불러오지 못했어요.' }); }
 });
 
@@ -654,14 +842,42 @@ app.get('/api/admin/secret', adminLimiter, needAdmin, (req, res) => {
   catch (e) { res.status(500).json({ ok: false, error: '비밀을 불러오지 못했어요.' }); }
 });
 
+app.get('/api/admin/school', adminLimiter, needAdmin, (req, res) => {
+  try { res.json({ ok: true, school: license.schoolIdentity() }); }
+  catch (e) { res.status(500).json({ ok: false, error: '학교 정보를 불러오지 못했어요.' }); }
+});
+
+app.put('/api/admin/school', adminLimiter, needAdmin, (req, res) => {
+  try {
+    const b = req.body || {};
+    const code = String(b.code == null ? b.schoolCode : b.code).trim().toUpperCase();
+    const name = String(b.name == null ? b.schoolName : b.name).trim().slice(0, 60);
+    if (code && !/^[A-Z0-9_-]{3,20}$/.test(code)) {
+      return res.status(400).json({ ok: false, error: '학교 코드는 3~20자의 영문·숫자·-·_ 만 쓸 수 있어요.' });
+    }
+    setKV('school.code', code);
+    setKV('school.name', name);
+    const school = license.schoolIdentity();
+    writeServerAudit(req, 'admin', '관리자', 'admin_school_update', 'settings', 'school', { code, name });
+    res.json({ ok: true, school });
+  } catch (e) { res.status(500).json({ ok: false, error: '학교 정보를 저장하지 못했어요.' }); }
+});
+
 app.post('/api/admin/license', adminLimiter, needAdmin, (req, res) => {
   try {
     const key = String((req.body || {}).key || '').trim();
     if (!key) return res.status(400).json({ ok: false, error: 'license.key 내용을 넣어 주세요.' });
-    fs.writeFileSync(path.join(APP_ROOT(), 'license.key'), key);
-    res.json({ ok: true, license: license.verify() });
+    license.writeKeyFile(key);
+    const v = license.verify();
+    writeServerAudit(req, 'admin', '관리자', 'admin_license_update', 'settings', 'license', { mode: v.mode, maxUsers: v.maxUsers });
+    res.json({ ok: true, license: v });
   } catch (e) { res.status(500).json({ ok: false, error: '라이선스를 저장하지 못했어요.' }); }
 });
+
+function randomTempPassword() {
+  // 사번=비밀번호 같은 추측 가능한 기본값을 없앤다. base64url 12자(72비트 엔트로피).
+  return crypto.randomBytes(9).toString('base64url').slice(0, 12);
+}
 
 function normPaid(v) {
   const s = String(v == null ? '' : v).trim().toLowerCase();
@@ -672,6 +888,7 @@ function normRole(v) {
   const s = String(v == null ? 'TEACHER' : v).trim().toUpperCase();
   if (['ADMIN', '관리자', '총관리자'].includes(s)) return 'ADMIN';
   if (['STAFF', '직원', '행정'].includes(s)) return 'STAFF';
+  if (['STUDENT', '학생', '학생회'].includes(s)) return 'STUDENT';
   return 'TEACHER';
 }
 function ensureDepartmentByPath(depPath) {
@@ -693,7 +910,7 @@ function ensureDepartmentByPath(depPath) {
 }
 
 /* 교직원 엑셀 일괄 등록: username, real_name, password?, department(부모>자식), role, is_paid_dual_network */
-app.post('/api/admin/users/import', needAdmin, async (req, res) => {
+app.post('/api/admin/users/import', adminLimiter, needAdmin, async (req, res) => {
   let parsed = null;
   try { parsed = await parseMultipart(req, 10 * 1024 * 1024); }
   catch (e) { return res.status(400).json({ ok: false, error: '엑셀 파일을 읽지 못했어요.' }); }
@@ -706,7 +923,10 @@ app.post('/api/admin/users/import', needAdmin, async (req, res) => {
     const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
     ensureDepartmentByPath.created = 0;
     let created = 0, updated = 0;
+    const quota = userQuota();
+    let quotaLeft = quota.left;
     const errors = [];
+    const temporaryPasswords = [];
     rows.slice(0, 5000).forEach((r, i) => {
       try {
         const username = String(r.username || r['사번'] || r['학번'] || '').trim();
@@ -725,34 +945,100 @@ app.post('/api/admin/users/import', needAdmin, async (req, res) => {
           run(q.join('') + ' WHERE username = ?', ...p);
           updated++;
         } else {
-          const pw = String(r.password || r['비밀번호'] || username).trim() || username;
+          if (quotaLeft != null && quotaLeft <= 0) {
+            throw new Error(`라이선스 인원(${quota.max}명)을 초과했어요.`);
+          }
+          const givenPw = String(r.password || r['비밀번호'] || '').trim();
+          const pw = givenPw || randomTempPassword();
           run('INSERT INTO users (department_id, username, real_name, password_hash, role, is_paid_dual_network) VALUES (?, ?, ?, ?, ?, ?)',
             depId, username, realName, auth.hashPassword(pw), role, paid);
+          if (!givenPw) temporaryPasswords.push({ username, password: pw });
           created++;
+          if (quotaLeft != null) quotaLeft--;
         }
       } catch (e) { if (errors.length < 20) errors.push(`${i + 2}행: ${e.message || '실패'}`); }
     });
-    finish(200, { ok: true, created, updated, departmentsCreated: ensureDepartmentByPath.created || 0, errors });
+    writeServerAudit(req, 'admin', '관리자', 'admin_users_import', 'users', '', { created, updated, departmentsCreated: ensureDepartmentByPath.created || 0, errors: errors.length });
+    finish(200, { ok: true, created, updated, departmentsCreated: ensureDepartmentByPath.created || 0, errors, quota: userQuota(), temporaryPasswords });
   } catch (e) { finish(500, { ok: false, error: '엑셀을 읽지 못했어요.' }); }
 });
 
-app.get('/api/admin/users', needAdmin, (req, res) => {
+app.get('/api/admin/users', adminLimiter, needAdmin, (req, res) => {
   try {
-    res.json({ ok: true, users: all('SELECT u.*, d.name AS department_name FROM users u LEFT JOIN departments d ON d.id = u.department_id ORDER BY u.id DESC LIMIT 1000') });
+    res.json({ ok: true, users: all(`SELECT u.id, u.username, u.real_name, u.department_id, d.name AS department_name, u.status, u.status_message, u.role, u.is_paid_dual_network, u.created_at FROM users u LEFT JOIN departments d ON d.id = u.department_id ORDER BY u.id DESC LIMIT 1000`) });
   } catch (e) { res.status(500).json({ ok: false, error: '사용자를 불러오지 못했어요.' }); }
 });
 
-app.post('/api/admin/departments', needAdmin, (req, res) => {
+/* 관리자 비밀번호 재설정 — 새 세션을 모두 끊고, 관리자가 정한 새 비밀번호를 적용한다. */
+app.post('/api/admin/users/:id/password', adminLimiter, needAdmin, (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const pw = String((req.body || {}).password || '');
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ ok: false, error: '사용자 번호가 올바르지 않아요.' });
+    if (pw.length < 8 || pw.length > 128) return res.status(400).json({ ok: false, error: '새 비밀번호는 8~128자로 정해 주세요.' });
+    const u = row('SELECT id, username, real_name FROM users WHERE id = ?', id);
+    if (!u) return res.status(404).json({ ok: false, error: '사용자를 찾지 못했어요.' });
+    run('UPDATE users SET password_hash = ? WHERE id = ?', auth.hashPassword(pw), id);
+    run('DELETE FROM sessions WHERE user_id = ?', id);
+    writeServerAudit(req, 'admin', '관리자', 'admin_user_password_reset', 'user', id, { username: u.username });
+    res.json({ ok: true, user: { id: Number(u.id), username: u.username, real_name: u.real_name } });
+  } catch (e) { res.status(500).json({ ok: false, error: '비밀번호를 재설정하지 못했어요.' }); }
+});
+
+app.post('/api/admin/departments', adminLimiter, needAdmin, (req, res) => {
   try {
     const name = String((req.body || {}).name || '').trim().slice(0, 40);
     if (!name) return res.status(400).json({ ok: false, error: '부서 이름을 적어 주세요.' });
     const parent = Number((req.body || {}).parent_id || 0) || null;
     const r = run('INSERT INTO departments (name, parent_id) VALUES (?, ?)', name, parent);
+    writeServerAudit(req, 'admin', '관리자', 'admin_department_create', 'department', r.lastInsertRowid, { name, parent });
     res.json({ ok: true, id: Number(r.lastInsertRowid) });
   } catch (e) { res.status(500).json({ ok: false, error: '부서를 만들지 못했어요.' }); }
 });
 
+/* ---------- 쪽지(이메일형) API (5단계-1) ----------
+ * 라우트는 routes/notes.js로 분리. 설계서: docs/NOTES_BACKEND_DESIGN.md */
+app.use('/api/notes', require('./routes/notes')({ needAuth, getIo: () => io }));
+
+/* ---------- AI 3줄 요약 (Gemini 서버 캐시 + 개인정보 마스킹) — 로드맵 1-1 ----------
+ * 키는 .env에서만. 같은 공지는 1회 호출 후 DB 캐시에서 즉시 응답. */
+app.use('/api/ai/summaries', require('./routes/summaries')({ needAuth, needStaff, aiLimiter }));
+
+/* ---------- 차세대 기능 (2026-10) ----------
+ *  · 상담 일지: 원문은 서버 DB, AI에는 마스킹된 텍스트만 전송
+ *  · 간이 전자결재: 관리자 승인 + 전자서명 해시 + 실시간 알림
+ *  · 협업 보드: REST 목록/저장 + Socket.io 실시간 이동 동기화 */
+app.use('/api/consultations', require('./routes/consultations')({ needAuth, needStaff, aiLimiter }));
+app.use('/api/approvals', require('./routes/approvals')({
+  needAuth, needStaff, writeLimiter: collabLimiter, getIo: () => io,
+}));
+app.use('/api/whiteboards', require('./routes/whiteboards')({
+  needAuth, needStaff, writeLimiter: collabLimiter, getIo: () => io,
+}));
+
+/* ---------- 보안 인쇄 대기열 (Killer ①) — 승인 전까지 문서가 종이로 나가지 않는다 ---------- */
+app.use('/api/print', require('./routes/print')({ needAuth, needStaff }));
+
+/* ---------- 나이스 학사일정·급식 연동 (Killer ③) — API 키는 서버에만 보관 ---------- */
+app.use('/api/neis', require('./routes/neis')({ needAuth, needStaff }));
+
+/* ---------- 관리자 도구 (CoolManager ③④⑤) — 감사 리포트·정책·데이터 정리·백업 ---------- */
+app.use('/api/admin', require('./routes/admin-tools')({
+  needAdmin, adminLimiter,
+  purgeFiles: () => purgeExpiredFiles(UPLOAD_DIR),
+  getIo: () => io,
+}));
+
+/* ---------- 서버 주도 OTA (5단계-3) ----------
+ * 전산실이 updates/ 폴더에 설치본+latest.json 을 올리면 교사 PC가 받아 간다.
+ * 읽기 전용·로그인 불필요 (설정/이용권 상태와 무관하게 갱신 가능해야 함) */
+app.use('/api/updates', require('./routes/updates')({ forcedUpdate: () => getPolicyBool('forceUpdate') }));
+
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+
+/* 학생용 웹 (온프레미스 전용, 설치·클라우드 불필요) */
+app.use('/student', express.static(path.join(__dirname, 'student'), { index: 'index.html', maxAge: '1h' }));
+app.get('/', (req, res) => res.redirect('/student/'));
 
 /* ---------- Socket.io ---------- */
 const server = http.createServer(app);
@@ -798,6 +1084,7 @@ io.on('connection', (socket) => {
 
   socket.on('message:send', (payload, ack) => {
     try {
+      if (String(me.role || '').toUpperCase() === 'STUDENT') { if (ack) ack({ ok: false, error: 'staff-only' }); return; }
       const p = payload || {};
       const room = row('SELECT * FROM rooms WHERE id = ?', String(p.roomId || ''));
       if (!room || !isMember(room, me.id)) { if (ack) ack({ ok: false, error: 'no-room' }); return; }
@@ -854,8 +1141,8 @@ io.on('connection', (socket) => {
       const mid = Number((payload || {}).messageId || 0);
       const m = row('SELECT * FROM messages WHERE id = ?', mid);
       if (!m || Number(m.sender_id) !== Number(me.id)) { if (ack) ack({ ok: false, error: '본인 메시지만 회수할 수 있어요.' }); return; }
-      run("UPDATE messages SET is_recalled = 1, content = '회수된 메시지입니다' WHERE id = ?", mid);
-      io.to('room:' + m.room_id).emit('message:recalled', { messageId: mid, content: '회수된 메시지입니다' });
+      run("UPDATE messages SET is_recalled = 1, content = '회수된 메시지예요' WHERE id = ?", mid);
+      io.to('room:' + m.room_id).emit('message:recalled', { messageId: mid, content: '회수된 메시지예요' });
       if (ack) ack({ ok: true });
     } catch (e) { if (ack) ack({ ok: false }); }
   });
@@ -907,17 +1194,141 @@ io.on('connection', (socket) => {
     } catch (e) { if (ack) ack({ ok: false }); }
   });
 
-  socket.on('disconnect', () => {});
+  /* ---------- 협업 보드 실시간 동기화 ---------- */
+  socket.data.whiteboards = new Set();
+  function socketActivity(action, detail) {
+    writeActivity({
+      socket: { remoteAddress: socket.handshake && socket.handshake.address },
+      user: me,
+      method: 'SOCKET',
+      _activityPath: String(action || 'socket'),
+    }, action, detail || {});
+  }
+  function boardRoom(id) { return 'whiteboard:' + String(id || ''); }
+  function boardPresence(id) {
+    try {
+      const room = boardRoom(id);
+      const count = (io.sockets.adapter.rooms.get(room) || new Set()).size;
+      io.to(room).emit('whiteboard:presence', {
+        boardId: String(id || ''),
+        count,
+        name: String(me.real_name || me.username || ''),
+        at: localTs(new Date()),
+      });
+    } catch (e) { /* 표시용 정보라 실패해도 무시 */ }
+  }
+
+  socket.on('whiteboard:join', (payload, ack) => {
+    try {
+      if (String(me.role || '').toUpperCase() === 'STUDENT') {
+        if (ack) ack({ ok: false, error: '선생님 계정에서만 사용할 수 있어요.' });
+        return;
+      }
+      const id = String((payload && payload.boardId) || '');
+      const board = whiteboard.getBoard(id);
+      if (!board) { if (ack) ack({ ok: false, error: '보드를 찾지 못했어요.' }); return; }
+      socket.join(boardRoom(id));
+      socket.data.whiteboards.add(id);
+      socketActivity('whiteboard_join', { boardId: id });
+      boardPresence(id);
+      if (ack) ack({ ok: true, board });
+    } catch (e) { if (ack) ack({ ok: false, error: '보드에 들어가지 못했어요.' }); }
+  });
+
+  socket.on('whiteboard:leave', (payload, ack) => {
+    try {
+      const id = String((payload && payload.boardId) || '');
+      socket.leave(boardRoom(id));
+      socket.data.whiteboards.delete(id);
+      socketActivity('whiteboard_leave', { boardId: id });
+      boardPresence(id);
+      if (ack) ack({ ok: true });
+    } catch (e) { if (ack) ack({ ok: false }); }
+  });
+
+  socket.on('whiteboard:update', (payload, ack) => {
+    try {
+      if (String(me.role || '').toUpperCase() === 'STUDENT') {
+        if (ack) ack({ ok: false, error: '선생님 계정에서만 사용할 수 있어요.' });
+        return;
+      }
+      const now = Date.now();
+      if (now - Number(socket.data.wbLast || 0) < 40) {
+        if (ack) ack({ ok: false, error: '보드를 너무 빠르게 저장했어요. 잠시 후 다시 시도해 주세요.' });
+        return;
+      }
+      socket.data.wbLast = now;
+      const p = payload || {};
+      const id = String(p.boardId || '');
+      const result = whiteboard.updateBoard({
+        id,
+        data: p.data,
+        expectedVersion: p.expectedVersion,
+        user: me,
+      });
+      if (!result.ok && result.conflict) {
+        if (ack) ack({ ok: true, conflict: true, board: result.board });
+        return;
+      }
+      socketActivity('whiteboard_update', {
+        boardId: result.board.id,
+        version: result.board.version,
+        items: result.board.data.items.length,
+      });
+      const out = {
+        boardId: result.board.id,
+        data: result.board.data,
+        version: result.board.version,
+        updatedByName: result.board.updatedByName,
+        updatedAt: result.board.updatedAt,
+        source: 'socket',
+      };
+      io.to(boardRoom(id)).emit('whiteboard:updated', out);
+      if (ack) ack({ ok: true, board: result.board });
+    } catch (e) {
+      const msg = e && e.code === 'TOO_LARGE' ? e.message : (e && e.code === 'NOT_FOUND' ? e.message : '보드를 저장하지 못했어요.');
+      if (ack) ack({ ok: false, error: msg });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    try {
+      for (const id of socket.data.whiteboards) boardPresence(id);
+      socket.data.whiteboards.clear();
+    } catch (e) { /* 무시 */ }
+  });
 });
 
 /* ---------- 30일 만료 배치 ---------- */
 function runPurgeBatch() {
   try {
     const n = purgeExpiredFiles(UPLOAD_DIR);
-    if (n) console.log(`  ${CC.dim}🧹 만료 파일 ${n}개 정리 (${localTs(new Date())})${CC.x}`);
+    // 보안 인쇄: 하루 지난 대기열 원문 삭제 (개인정보 최소 보관 — 목록/메타는 남긴다)
+    let p = 0;
+    try { p = require('./routes/print').purgeOldPrintContent(); } catch (e) { /* 다음 날 */ }
+    // 관리자 정책: 보존 연수(retentionYears)가 설정된 경우 오래된 쪽지·대화 자동 정리
+    let m = 0, nt = 0;
+    try {
+      const years = Math.round(getPolicyNumber('retentionYears') || 0);
+      if (years >= 1) {
+        m = run(`DELETE FROM messages WHERE created_at < datetime('now','localtime', ?)`, `-${years} years`).changes || 0;
+        nt = run(`DELETE FROM notes WHERE created_at < datetime('now','localtime', ?)`, `-${years} years`).changes || 0;
+      }
+    } catch (e) { /* 다음 날 */ }
+    if (n || p || m || nt) {
+      console.log(`  ${CC.dim}🧹 정리 완료 — 만료 파일 ${n} · 인쇄 원문 ${p} · 대화 ${m} · 쪽지 ${nt} (${localTs(new Date())})${CC.x}`);
+    }
   } catch (e) { console.error('[purge] 실패:', e.message || e); }
 }
 cron.schedule('0 0 * * *', runPurgeBatch);
+
+/* 매일 새벽 3시 30분 자동 DB 백업 (CoolManager ⑤) — 관리자 콘솔에서 수동 실행도 가능 */
+cron.schedule('30 3 * * *', () => {
+  try {
+    const b = require('./backup').backupNow();
+    console.log(`  ${CC.dim}🗄  자동 DB 백업 ${b.file} (${(b.bytes / 1048576).toFixed(1)}MB)${CC.x}`);
+  } catch (e) { console.error('[backup] 실패:', e.message || e); }
+});
 
 /* ---------- 실행 ---------- */
 const lic = license.verify();
@@ -973,6 +1384,7 @@ server.on('error', (e) => {
   setTimeout(() => { try { process.exit(1); } catch (_) {} }, IS_SERVICE ? 1000 : 30000);
 });
 server.listen(PORT, '0.0.0.0', () => {
+  try { const n = auth.purgeExpiredSessions(); if (n) writeLog('INFO', `만료 세션 ${n}개 정리`); } catch (e) {}
   const bar = CC.dim + '────────────────────────────────────────' + CC.x;
   console.log('');
   console.log(`  ${CC.b}🏫 브리즈 학내망 서버${CC.x}  ${CC.g}● 켜짐${CC.x}`);
@@ -986,6 +1398,7 @@ server.listen(PORT, '0.0.0.0', () => {
   if (ips.length) {
     console.log(`  ${CC.c}🏫 학교 접속 주소${CC.x}`);
     ips.forEach((x) => console.log(`     ${CC.b}http://${x.address}:${PORT}${CC.x}  ${CC.dim}(${x.iface})${CC.x}`));
+    console.log(`  ${CC.c}🎓 학생 웹${CC.x}  ${CC.b}http://${(ips[0] || {}).address || 'localhost'}:${PORT}/student/${CC.x}  ${CC.dim}(크롬북·태블릿, 설치 불필요)${CC.x}`);
   } else {
     console.log(`  ${CC.r}✕ LAN IP를 찾지 못했어요. 네트워크 연결을 확인해 주세요.${CC.x}`);
   }

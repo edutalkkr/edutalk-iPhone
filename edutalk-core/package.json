@@ -1,6 +1,6 @@
 {
   "name": "edutalk-core",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "description": "브리즈 데스크톱 코어 MVP (Tauri + React)",
   "type": "module",
@@ -17,6 +17,8 @@
     "@tauri-apps/plugin-fs": "^2.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "socket.io-client": "^4.8.4",
+    "xlsx": "^0.18.5",
     "zustand": "^4.5.5"
   },
   "devDependencies": {

@@ -1,26 +1,30 @@
 /** @type {import('tailwindcss').Config} */
+// 브리즈 토큰: 모든 색을 CSS 변수(RGB 트리플렛)로 정의한다.
+// 변수 정의는 src/styles.css 의 :root / [data-theme="dark"] 참고.
+// → 다크모드 전환 시 컴포넌트 코드 수정 없이 명암비가 보정된다 (WCAG 4.5:1 이상).
+const v = (name) => `rgb(var(${name}) / <alpha-value>)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
-      // 브리즈 토큰: 스카이 블루 (대한항공 세련된 하늘색 모티브)
-      // Primary Sky #0082C8 · Breeze Ice #E8F4FB · Cool Background #F8FAFC
       colors: {
         edu: {
-          blue: "#0082C8", // Primary Sky — 브랜드·전송 버튼·활성 탭·주요 아이콘
-          strong: "#0069A8", // 진한 하늘 — 그라디언트 끝·강조 텍스트
-          soft: "#E8F4FB", // Breeze Ice — 내 말풍선·태그 배경·리스트 하이라이트
-          line: "#E2E8F0",
-          blueline: "#9BD3EE",
-          ink: "#0F172A", // Text Dark Blue — 본문 타이포
-          sub: "#475569",
-          muted: "#64748B", // Text Muted — 시각·부서명·안 읽음 수
-          bg: "#F8FAFC", // Cool Background — 앱 기본 배경
-          chip: "#F1F5F9",
-          hover: "#F1F5F9",
-          green: "#16A34A",
-          deepblue: "#2563EB",
-          danger: "#E5484D",
+          blue: v("--edu-blue"), // Primary Sky — 브랜드·전송 버튼·활성 탭
+          strong: v("--edu-strong"), // 강조 텍스트 (다크에선 밝은 하늘)
+          soft: v("--edu-soft"), // Breeze Ice — 내 말풍선·태그 배경
+          line: v("--edu-line"),
+          blueline: v("--edu-blueline"),
+          ink: v("--edu-ink"), // 본문 텍스트
+          sub: v("--edu-sub"), // 보조 텍스트
+          muted: v("--edu-muted"), // 시각·부서명·안 읽음 수
+          bg: v("--edu-bg"), // 앱 기본 배경
+          surface: v("--edu-surface"), // 카드·패널 표면 (다크에서 #1A2029)
+          chip: v("--edu-chip"),
+          hover: v("--edu-hover"),
+          green: v("--edu-green"),
+          deepblue: v("--edu-deepblue"),
+          danger: v("--edu-danger"),
         },
       },
       borderRadius: {

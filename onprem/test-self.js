@@ -16,7 +16,7 @@ async function main() {
   const TEST_DATA = path.join(HERE, '.test-data');
   try { require('fs').rmSync(TEST_DATA, { recursive: true, force: true }); } catch (e) {}
   const child = spawn(process.execPath, [path.join(HERE, 'server.js')], {
-    env: { ...process.env, EDUTALK_PORT: String(PORT), EDUTALK_DATA_DIR: TEST_DATA, EDUTALK_ADMIN_TOKEN: 'test-admin-token' },
+    env: { ...process.env, EDUTALK_PORT: String(PORT), EDUTALK_DATA_DIR: TEST_DATA, EDUTALK_LICENSE_PATH: path.join(TEST_DATA, 'license.key'), EDUTALK_LOG_DIR: path.join(TEST_DATA, 'logs'), EDUTALK_ADMIN_TOKEN: 'test-admin-token' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let out = '';
@@ -75,6 +75,8 @@ async function main() {
   fd.append('file', new Blob([require('fs').readFileSync(xlPath)]), 'import.xlsx');
   const imp = await (await fetch(BASE + '/api/admin/users/import', { method: 'POST', headers: H, body: fd })).json();
   ok('excel import', imp.ok && imp.created === 2, JSON.stringify({ created: imp.created, updated: imp.updated, dep: imp.departmentsCreated }));
+  const temp2 = (imp.temporaryPasswords || []).find((x) => x.username === 't002');
+  ok('temporary password issued', temp2 && temp2.password && temp2.password !== 't002');
 
   const login = await jpost('/api/login', { username: 't001', password: 'pw1234' });
   ok('login', login.ok && login.token, (login.user || {}).real_name);
@@ -112,7 +114,7 @@ async function main() {
   ok('message read broadcast', rd.ok && got.read && got.read.readCount === 1);
   const rc = await emitAck('message:recall', { messageId: snd.message.id });
   await new Promise((r) => setTimeout(r, 400));
-  ok('message recall broadcast', rc.ok && got.recalled && got.recalled.content === '회수된 메시지입니다');
+  ok('message recall broadcast', rc.ok && got.recalled && got.recalled.content === '회수된 메시지예요');
   const reads = await jget(`/api/messages/${snd.message.id}/reads`, AU);
   ok('reads roster', reads.ok && reads.read.length === 1, `읽음 ${reads.read.length} · 안읽음 ${reads.unread.length}`);
   s1.close();
@@ -120,7 +122,7 @@ async function main() {
   // 방 1개 조회 + 초대 + 나가기 + 삭제 + 공개 정보
   const rg = await jget(`/api/rooms/${room.room.id}`, AU);
   ok('room get', rg.ok && rg.room.id === room.room.id);
-  const login2 = await jpost('/api/login', { username: 't002', password: 't002' });
+  const login2 = await jpost('/api/login', { username: 't002', password: temp2 ? temp2.password : 'wrong' });
   ok('second login', login2.ok);
   const AU2 = { Authorization: 'Bearer ' + login2.token };
   const addm = await (await fetch(BASE + `/api/rooms/${room.room.id}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...AU }, body: JSON.stringify({ user_ids: [login2.user.id] }) })).json();
@@ -183,6 +185,19 @@ async function main() {
   ok('file upload', up.ok && up.fileId, String(up.fileId));
   const dl = await fetch(BASE + `/api/files/${up.fileId}`, { headers: AU });
   ok('file download', dl.ok);
+
+  // 활동 로그: 화면 행동 이벤트 + API 요청이 서버 PC의 텍스트 파일에 남는다
+  const act = await jpost('/api/activity', { action: 'selftest_event', detail: { ok: true } }, AU);
+  ok('activity event accepted', act.ok);
+  await new Promise((r) => setTimeout(r, 150));
+  let actLine = '';
+  try {
+    const logDir = path.join(TEST_DATA, 'logs');
+    const logFile = require('fs').readdirSync(logDir).find((f) => f.startsWith('activity-') && f.endsWith('.log'));
+    if (logFile) actLine = require('fs').readFileSync(path.join(logDir, logFile), 'utf8');
+  } catch (e) {}
+  ok('activity text log', actLine.includes('selftest_event') && actLine.includes('/api/activity') && actLine.includes('t001'));
+  ok('activity api path not truncated', actLine.includes('\t/api/rooms/') || actLine.includes('\t/api/upload'));
 
   const fails = results.filter((r) => !r.pass).length;
   console.log(fails === 0 ? 'ALL PASS' : fails + ' FAILURES');

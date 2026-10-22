@@ -2,9 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   브리즈 컬러 토큰 (RGB 트리플렛)
+   - tailwind.config.js 의 edu-* 색상이 이 변수를 참조한다.
+   - 다크모드 전환은 여기서 값만 바꾸면 전 화면에 반영된다.
+   - 명암비 기준: 본문 ≥ 4.5:1, 보조 텍스트 ≥ 4.5:1 (WCAG AA)
+   ============================================================ */
+:root {
+  --edu-blue: 0 130 200;
+  --edu-strong: 0 105 168;
+  --edu-soft: 232 244 251;
+  --edu-line: 226 232 240;
+  --edu-blueline: 155 211 238;
+  --edu-ink: 15 23 42;
+  --edu-sub: 71 85 105;
+  --edu-muted: 100 116 139;
+  --edu-bg: 248 250 252;
+  --edu-surface: 255 255 255;
+  --edu-chip: 241 245 249;
+  --edu-hover: 241 245 249;
+  --edu-green: 22 163 74;
+  --edu-deepblue: 37 99 235;
+  --edu-danger: 229 72 77;
+}
+
+[data-theme="dark"] {
+  --edu-blue: 0 130 200; /* 버튼 배경은 유지 — 흰 글자 대비 확보 */
+  --edu-strong: 124 197 238; /* 강조 텍스트: 밝은 하늘 (약 8:1) */
+  --edu-soft: 20 52 75;
+  --edu-line: 44 53 66;
+  --edu-blueline: 45 90 118;
+  --edu-ink: 230 234 242; /* 본문: #10141B 위 약 13:1 */
+  --edu-sub: 167 177 194; /* 보조: 약 7.3:1 */
+  --edu-muted: 138 148 166;
+  --edu-bg: 16 20 27;
+  --edu-surface: 26 32 41;
+  --edu-chip: 35 43 54;
+  --edu-hover: 42 50 62;
+  --edu-green: 52 199 123;
+  --edu-deepblue: 96 165 250;
+  --edu-danger: 248 113 113;
+}
+
 body {
   @apply bg-edu-bg text-edu-ink;
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -16,6 +58,20 @@ button, input, textarea, select {
    창은 투명·무테두리라서, 바깥 컨테이너가 모서리를 만들고 내용을 잘라낸다. */
 html, body, #root {
   background: transparent;
+}
+html, body { width: 100%; height: 100%; }
+#root { width: 100%; height: 100%; }
+/* 브라우저 미리보기에서만 CSS 줌. 설치판은 WebView 자체 줌을 써서 창 밖으로 넘치지 않는다. */
+html[data-preview-zoom="1"] #root {
+  zoom: var(--ui-scale, 1);
+  width: calc(100% / var(--ui-scale, 1));
+  height: calc(100% / var(--ui-scale, 1));
+}
+/* 100vw/100vh는 줌의 영향을 받지 않아 창 밖으로 넘칠 수 있다. 미리보기에서는 부모 크기를 그대로 쓴다. */
+html[data-preview-zoom="1"] .app-window,
+html[data-preview-zoom="1"] .app-window > .h-screen {
+  width: 100%;
+  height: 100%;
 }
 
 .app-window {
@@ -79,12 +135,22 @@ html, body, #root {
 }
 
 .edu-card {
-  @apply bg-white border border-edu-line;
+  @apply bg-edu-surface border border-edu-line;
   border-radius: 16px;
 }
 
+/* 좁은 레일에서도 상태 픽커의 캐럿이 잘리지 않게 — 텍스트만 말줄임 */
+.edu-rail .bz-st-pick { min-width: 0; }
+.edu-rail .bz-st-pick .bz-st { min-width: 0; overflow: hidden; }
+.edu-rail .bz-st-pick .bz-st-txt { white-space: nowrap; }
+
 .edu-input {
-  @apply w-full border border-edu-line bg-white rounded-edu px-3.5 py-2.5 text-[15px] outline-none;
+  @apply w-full border border-edu-line bg-edu-surface rounded-edu px-3.5 py-2.5 text-[15px] outline-none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.edu-input:hover:not(:disabled) {
+  border-color: rgb(var(--edu-blueline));
 }
 
 .edu-input:focus {
@@ -99,11 +165,31 @@ html, body, #root {
 }
 
 .edu-btn:hover {
-  filter: brightness(0.97);
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -12px rgba(0, 105, 168, 0.65);
 }
 
 .edu-btn:active {
-  transform: scale(0.97);
+  transform: translateY(0) scale(0.975);
+  box-shadow: none;
+}
+
+/* 보조 버튼 (로그인 연결 테스트·데모 등) — 흰 바탕 + 또렷한 테두리 */
+.edu-btn-secondary {
+  @apply rounded-[10px] px-4 py-2.5 text-sm font-bold text-edu-strong bg-edu-surface border border-edu-line disabled:opacity-50;
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.edu-btn-secondary:hover:not(:disabled) {
+  background: rgb(var(--edu-soft));
+  border-color: rgb(var(--edu-blueline));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -12px rgba(15, 23, 42, 0.35);
+}
+
+.edu-btn-secondary:active:not(:disabled) {
+  transform: translateY(0) scale(0.975);
 }
 
 .edu-ghost {
@@ -114,6 +200,16 @@ html, body, #root {
 
 .edu-ghost:active {
   transform: scale(0.97);
+}
+
+/* 키보드 사용자에게 명확한 포커스 링 (마우스 클릭 시에는 나타나지 않음) */
+.edu-btn:focus-visible,
+.edu-btn-secondary:focus-visible,
+.edu-ghost:focus-visible,
+.edu-rail-tab:focus-visible,
+.icon-btn:focus-visible {
+  outline: 2px solid rgba(0, 130, 200, 0.55);
+  outline-offset: 2px;
 }
 
 /* 아이콘만 있는 동작 버튼 (쪽지·대화·화면보기 등) — 테두리로 확실히 구분 */
@@ -360,6 +456,22 @@ html, body, #root {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* 사라질 때: 웹 브리즈처럼 위로 스르륵 올라가며 사라진다 (뚝 끊김 없음) */
+@keyframes edu-toast-lift {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-150%) scale(0.97); }
+}
+
+.edu-toast.leaving {
+  animation: edu-toast-lift 0.26s cubic-bezier(0.55, 0, 0.7, 0.35) both;
+  pointer-events: none;
+}
+
+@keyframes edu-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 .edu-toast-x {
   flex: 0 0 auto;
   background: transparent;
@@ -452,16 +564,25 @@ html, body, #root {
   background: #b0b8c1;
 }
 
-.presence-dot.online { background: #12b980; }
-.presence-dot.teaching { background: #0082C8; }
-.presence-dot.away { background: #f5b400; }
-.presence-dot.offwork { background: #b0b8c1; }
-.presence-dot.dnd { background: #E5484D; }
+/* 8종 상태 — lib/status.ts 컬러와 동일 (아이콘+점+텍스트 체계의 점) */
+.presence-dot.online { background: #22C55E; }
+.presence-dot.busy { background: #EF4444; }
+.presence-dot.away { background: #F59E0B; }
+.presence-dot.in_class { background: #3B82F6; }
+.presence-dot.out_of_office { background: #A855F7; }
+.presence-dot.lunch { background: #EAB308; }
+.presence-dot.meeting { background: #EC4899; }
+.presence-dot.on_call { background: #64748B; }
+
+/* 레거시 별칭 — 구버전 저장 데이터가 남아 있어도 색이 깨지지 않게 */
+.presence-dot.teaching { background: #3B82F6; }
+.presence-dot.offwork { background: #F59E0B; }
+.presence-dot.dnd { background: #EF4444; }
 
 /* ---------- 모션 (기본: 부드럽게) ---------- */
 
 @keyframes edu-page-in {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -490,10 +611,21 @@ html, body, #root {
   50% { transform: scale(1.25); opacity: 0.7; }
 }
 
-.anim-page { animation: edu-page-in 0.22s ease both; }
+@keyframes edu-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.anim-page { animation: edu-page-in 0.16s ease both; }
+.anim-view { animation: edu-page-in 0.16s ease both; }
 .anim-card { animation: edu-card-in 0.2s ease both; }
+.anim-pop { animation: edu-pop-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes edu-pop-in { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
 .anim-bubble { animation: edu-bubble-in 0.18s ease both; }
 .anim-pill { animation: edu-pulse-dot 0.5s ease; }
+
+.animate-shake { animation: edu-shake 0.5s ease-in-out; }
 
 .skeleton {
   background: linear-gradient(90deg, #eef1f6 25%, #dfe5ee 50%, #eef1f6 75%);
@@ -502,9 +634,22 @@ html, body, #root {
   border-radius: 8px;
 }
 
+/* 버튼 로딩 스피너 */
+@keyframes edu-spin { to { transform: rotate(360deg); } }
+.edu-spinner {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: edu-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
 /* ---------- 모션 줄이기: 나타나기·사라지기만 ---------- */
 
 [data-motion="fade"] .anim-page,
+[data-motion="fade"] .anim-view,
 [data-motion="fade"] .anim-card,
 [data-motion="fade"] .anim-bubble,
 [data-motion="fade"] .edu-toast,
@@ -515,6 +660,12 @@ html, body, #root {
   animation-name: edu-fade !important;
   animation-duration: 0.12s !important;
   animation-delay: 0s !important;
+}
+
+/* 줄이기·페이드 모드에서도 사라질 때는 "사라지는" 모션만 */
+[data-motion="fade"] .edu-toast.leaving {
+  animation-name: edu-fade-out !important;
+  animation-duration: 0.16s !important;
 }
 
 [data-motion="fade"] .edu-boot-mark,
@@ -557,6 +708,7 @@ html, body, #root {
 /* 운영체제에서 줄이기를 켰는데 아직 정하지 않았다면 페이드만으로 시작 */
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-motion]) .anim-page,
+  :root:not([data-motion]) .anim-view,
   :root:not([data-motion]) .anim-card,
   :root:not([data-motion]) .anim-bubble,
   :root:not([data-motion]) .edu-toast,
@@ -564,23 +716,17 @@ html, body, #root {
     animation-name: edu-fade !important;
     animation-duration: 0.12s !important;
   }
+
+  :root:not([data-motion]) .edu-toast.leaving {
+    animation-name: edu-fade-out !important;
+    animation-duration: 0.12s !important;
+  }
 }
 
-/* ---------- 세로형 기본: classic에서는 절대 다단으로 흩어지지 않는다 ----------
-   창을 늘려도 카드·버튼이 가로로 쭉 늘어날 뿐, 1열 세로형 그대로 쓴다. */
-
-[data-layout="classic"] .xl\:grid-cols-2,
-[data-layout="classic"] .lg\:grid-cols-2,
-[data-layout="classic"] .lg\:grid-cols-3,
-[data-layout="classic"] .lg\:grid-cols-5 {
-  grid-template-columns: 1fr !important;
-}
-
-[data-layout="classic"] .lg\:col-span-2,
-[data-layout="classic"] .lg\:col-span-3,
-[data-layout="classic"] .xl\:col-span-2 {
-  grid-column: auto !important;
-}
+/* ---------- 세로형 기본 ----------
+   기본은 1열 세로형이지만, 창을 넓게 키우면 여백을 남기지 않는다.
+   넓은 화면에서는 카드·목록이 창 폭을 그대로 채우고, 화면이 아주 넓으면
+   쪽지·업무처럼 원래 다단인 화면은 다단을 살린다 (아래 kill 규칙 제거). */
 
 [data-layout="classic"] .core-main-inner {
   max-width: none !important;
@@ -655,11 +801,12 @@ html, body, #root {
   order: 2;
 }
 
-/* 세로형은 브라우저 미리보기에서도 500px로 묶어 세로 메신저처럼 보이게.
-   Tauri 설치판(400px)에는 영향 없음. */
+/* 세로형은 "브라우저 미리보기"에서만 400px로 묶어 세로 메신저처럼 보이게 한다.
+   설치판(.exe)에서는 창을 키우거나 팝업 창을 열어도 이 규칙이 꺼져 있어
+   내용이 창 폭 전체를 채운다 — 양옆 여백이 생기지 않는다. */
 @media (min-width: 700px) {
-  [data-layout="classic"] .h-screen {
-    max-width: 500px;
+  html[data-layout="classic"] body[data-preview="1"] .h-screen {
+    max-width: 400px;
     margin-left: auto;
     margin-right: auto;
     border-left: 1px solid #E6E8F0;
@@ -668,8 +815,113 @@ html, body, #root {
   }
 }
 
-/* ---------- 야간 모드 ---------- */
+/* ---------- 좌측 레일 (2026-10 개편: 단일 유연 레이아웃) ----------
+   좁은 창에서도 아이콘 단독 노출 금지 — [아이콘 + 텍스트] 유지.
+   최소 너비 140px, 서브 텍스트는 창 폭에 따라 자동 축소. */
+.edu-rail {
+  min-width: 140px;
+}
 
+/* 접힌 레일 — 아이콘만 남기고 폭을 최소화 (localStorage에 상태 기억) */
+.edu-rail[data-collapsed="true"] {
+  min-width: 62px;
+}
+.edu-rail-collapse {
+  width: 24px; height: 24px; border-radius: 8px;
+  display: grid; place-items: center;
+  color: rgb(var(--edu-sub)); background: rgb(var(--edu-chip));
+  border: 1px solid rgb(var(--edu-line));
+  transition: background-color 0.14s ease, color 0.14s ease, transform 0.14s ease;
+}
+.edu-rail-collapse:hover { color: rgb(var(--edu-ink)); background: rgb(var(--edu-hover)); }
+.edu-rail-collapse:active { transform: scale(0.92); }
+.edu-rail[data-collapsed="true"] .profile-row { padding-left: 0; padding-right: 0; }
+.edu-rail[data-collapsed="true"] .edu-rail-collapse {
+  position: absolute; right: -2px; top: -1px;
+  width: 18px; height: 18px; border-radius: 6px; z-index: 2;
+  background: rgb(var(--edu-surface)); box-shadow: 0 2px 8px rgba(16, 24, 40, 0.12);
+}
+.edu-rail-resizer {
+  position: absolute; top: 0; right: -3px; width: 6px; height: 100%;
+  z-index: 30; cursor: col-resize; touch-action: none;
+}
+.edu-rail-resizer::after {
+  content: ""; position: absolute; top: 0; left: 2px; width: 2px; height: 100%;
+  background: rgb(var(--edu-blue)); opacity: 0; transition: opacity 0.14s ease;
+}
+.edu-rail-resizer:hover::after, .rail-dragging .edu-rail-resizer::after { opacity: 0.5; }
+.rail-dragging { transition: none !important; }
+.edu-rail .rail-label { font-size: 13px; letter-spacing: -0.15px; }
+.edu-rail .rail-sub { font-size: 11px; line-height: 1.35; }
+.edu-rail .rail-tiny { font-size: 10px; letter-spacing: -0.1px; }
+.edu-rail[data-rail="compact"] .rail-label { font-size: 12.5px; }
+.edu-rail[data-rail="compact"] .rail-sub { font-size: 10.5px; letter-spacing: -0.2px; }
+.edu-rail-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: rgb(var(--edu-sub));
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.edu-rail-tab:hover { background: rgb(var(--edu-chip)); color: rgb(var(--edu-ink)); }
+.edu-rail-tab:active { transform: scale(0.975); }
+.edu-rail-tab.active {
+  background: rgb(var(--edu-soft));
+  color: rgb(var(--edu-strong));
+  box-shadow: inset 0 0 0 1px rgb(var(--edu-blueline));
+}
+.edu-rail-ico { display: inline-flex; width: 20px; justify-content: center; flex: 0 0 auto; }
+.edu-rail-txt { flex: 1; min-width: 0; }
+.edu-rail-badge {
+  flex: 0 0 auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: #E5484D; color: #fff; font-size: 10.5px; font-weight: 800;
+  display: inline-grid; place-items: center;
+}
+.edu-rail-badge.soft { background: rgb(var(--edu-chip)); color: rgb(var(--edu-sub)); }
+.edu-rail-danger:hover { background: rgba(229, 72, 77, 0.12); color: #D92D20; }
+[data-theme="dark"] .edu-rail-danger:hover { color: #F87171; background: rgba(248, 113, 113, 0.14); }
+.edu-rail[data-rail="compact"] .edu-rail-tab { height: 36px; padding: 0 8px; gap: 8px; }
+
+/* 접힘 상태: 텍스트·부가 정보 숨기고 아이콘만 중앙 정렬 (마우스 올리면 툴팁) */
+.edu-rail[data-collapsed="true"] .rail-label,
+.edu-rail[data-collapsed="true"] .rail-sub,
+.edu-rail[data-collapsed="true"] .rail-tiny,
+.edu-rail[data-collapsed="true"] .rail-status-extra,
+.edu-rail[data-collapsed="true"] .bz-st-txt,
+.edu-rail[data-collapsed="true"] .bz-st-caret {
+  display: none !important;
+}
+
+.edu-rail[data-collapsed="true"] .edu-rail-tab {
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+.edu-rail[data-collapsed="true"] .edu-rail-txt { display: none; }
+.edu-rail[data-collapsed="true"] .edu-rail-ico { width: 22px; }
+.edu-rail[data-collapsed="true"] .bz-st-pick { justify-content: center; padding: 5px 0; }
+
+.edu-rail[data-collapsed="true"] .edu-rail-badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  min-width: 8px;
+  height: 8px;
+  padding: 0;
+  font-size: 0;
+  border: 2px solid rgb(var(--edu-surface));
+}
+
+.edu-rail[data-collapsed="true"] .edu-rail-badge.soft { display: none; }
+
+/* ---------- 야간 모드 ---------- */
 [data-theme="dark"] {
   color-scheme: dark;
 }
