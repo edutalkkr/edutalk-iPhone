@@ -184,7 +184,18 @@ export default function NoteVault({ open, onOpenChange, onToast, onUnreadChange,
 
         <div className="bz-scroll flex-1 overflow-y-auto px-3 py-3">
           {loading && !selected && (
-            <div className="py-10 text-center text-[12.5px] text-[var(--bz-muted)]">불러오는 중…</div>
+            <div className="px-1 py-1" aria-label="쪽지를 불러오는 중">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-2.5 px-2 py-2.5">
+                  <span className="skeleton h-9 w-9 shrink-0 rounded-full" />
+                  <span className="min-w-0 flex-1">
+                    <span className="skeleton block h-3 w-2/5" />
+                    <span className="skeleton mt-1.5 block h-2.5 w-4/5" />
+                  </span>
+                  <span className="skeleton h-2.5 w-10 shrink-0" />
+                </div>
+              ))}
+            </div>
           )}
 
           {!loading && !selected && rows.length === 0 && (

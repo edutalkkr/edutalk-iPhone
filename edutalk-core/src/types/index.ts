@@ -338,6 +338,8 @@ export interface WhiteboardBoard extends WhiteboardMeta {
 export interface ToastMsg {
   id: number;
   text: string;
+  /** 토스트가 머무는 시간(ms) — 하단 진행 막대와 같은 시간으로 움직인다 */
+  durationMs?: number;
   /** 사라지는 중(위로 올라가는 퇴장 모션) — 잠깐 남겨 두었다가 지운다 */
   leaving?: boolean;
 }

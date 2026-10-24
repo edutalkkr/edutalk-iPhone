@@ -8,6 +8,7 @@ import { APP_VERSION, EDITION_LABEL } from "../../lib/version";
 import { bzConfirm } from "../ui/BzDialog";
 import { previewSiren } from "../../lib/siren";
 import { focusWindowText } from "../../lib/focus";
+import type { ActiveView } from "../../types";
 
 interface Props {
   autoStatus: boolean;
@@ -28,6 +29,13 @@ interface Props {
   /** 학교 관리자(교장·교감·관리자)만 다른 교사의 자료를 대신 이관할 수 있다. */
   canHandoverAll?: boolean;
   onHandover?: (fromId: string, toId: string) => Promise<{ folders: number; files: number; notices: number } | { error: string }>;
+  /** 사이드 메뉴 목록 — 숨긴 메뉴를 여기서 되살린다. */
+  navItems?: { id: ActiveView; label: string }[];
+  hiddenTabs?: ActiveView[];
+  onHideTab?: (id: ActiveView) => void;
+  onRestoreTab?: (id: ActiveView) => void;
+  onRestoreAllTabs?: () => void;
+  onResetTabOrder?: () => void;
 }
 
 type SrvUser = { username?: string; real_name?: string; role?: string };
@@ -357,6 +365,65 @@ export default function SettingsPane(p: Props) {
           ))}
         </div>
       </div>
+      {p.navItems && p.navItems.length > 0 && (
+        <div className="edu-card p-4">
+          <div className="flex items-center gap-2">
+            <div className="font-extrabold text-[15px]">사이드 메뉴</div>
+            <span className="ml-auto text-[11.5px] font-bold text-edu-sub">
+              숨김 {p.navItems.filter((item) => (p.hiddenTabs ?? []).includes(item.id)).length}개
+            </span>
+          </div>
+          <div className="text-sm text-edu-sub mt-1">
+            자주 쓰지 않는 메뉴는 숨겨 두고, 필요할 때 여기서 다시 꺼낼 수 있어요.
+            왼쪽 메뉴를 마우스 오른쪽 버튼으로 누르면 숨기기와 순서 변경을 할 수 있어요.
+          </div>
+          <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {p.navItems.map((item) => {
+              const hidden = (p.hiddenTabs ?? []).includes(item.id);
+              const locked = item.id === "settings";
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${hidden ? "border-edu-line bg-edu-bg" : "border-edu-line"}`}
+                >
+                  <span className={`min-w-0 flex-1 truncate text-[13px] font-bold ${hidden ? "text-edu-muted" : "text-edu-ink"}`}>
+                    {item.label}
+                  </span>
+                  {locked ? (
+                    <span className="shrink-0 text-[10.5px] font-bold text-edu-muted">항상 표시</span>
+                  ) : hidden ? (
+                    <button
+                      className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-extrabold bg-edu-soft text-edu-strong"
+                      onClick={() => p.onRestoreTab?.(item.id)}
+                    >
+                      다시 표시
+                    </button>
+                  ) : (
+                    <button
+                      className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-extrabold bg-edu-chip text-edu-sub"
+                      onClick={() => p.onHideTab?.(item.id)}
+                    >
+                      숨기기
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {(p.hiddenTabs ?? []).length > 0 && (
+              <button className="edu-ghost !py-1.5 !text-[12px]" onClick={p.onRestoreAllTabs}>
+                숨긴 메뉴 모두 다시 표시
+              </button>
+            )}
+            {p.onResetTabOrder && (
+              <button className="edu-ghost !py-1.5 !text-[12px]" onClick={p.onResetTabOrder}>
+                메뉴 순서 처음으로
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <div className="edu-card p-4">
         <div className="font-extrabold text-[15px]">🚗 내 차량 4자리</div>
         <div className="text-sm text-edu-sub mt-1">

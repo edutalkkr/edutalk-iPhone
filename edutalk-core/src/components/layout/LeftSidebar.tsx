@@ -10,6 +10,7 @@ import type { ActiveView, DeptGroup, NetworkState, Teacher, TeacherStatus, UserR
 import { STATUS_META, normalizeStatus, isPresentStatus } from "../../lib/status";
 import { FOCUS_MESSAGE } from "../../lib/focus";
 import BzTooltip from "../ui/BzTooltip";
+import { useContextMenu, type BzMenuItem } from "../ui/BzContextMenu";
 import { StatusBadge, StatusPicker } from "../ui/BzStatus";
 import { bzConfirm } from "../ui/BzDialog";
 import {
@@ -41,7 +42,7 @@ export function PresenceDot({ status, className = "" }: { status: TeacherStatus;
   return <span className={`presence-dot ${s} ${className}`} aria-hidden="true" />;
 }
 
-interface TabDef {
+export interface TabDef {
   id: ActiveView;
   icon: ReactNode;
   label: string;
@@ -64,7 +65,7 @@ const TEACHER_TABS: TabDef[] = [
   { id: "settings", icon: <IconSettingsGear size={19} />, label: "설정" },
 ];
 
-const RAIL_MIN = 168;
+const RAIL_MIN = 176;
 const RAIL_MAX = 360;
 const RAIL_COLLAPSE_AT = 128;
 
@@ -91,6 +92,22 @@ const ADMIN_TABS: TabDef[] = [
   { id: "org", icon: <IconSchool size={19} />, label: "조직도" },
   { id: "settings", icon: <IconSettingsGear size={19} />, label: "설정" },
 ];
+
+/** 로그인 역할과 네트워크에 따라 실제로 보여 줄 수 있는 메뉴 목록. */
+export function navItemsForRole(role: UserRole | undefined, net: NetworkState): TabDef[] {
+  const isAdmin = role === "admin" || role === "superadmin";
+  return (isAdmin ? ADMIN_TABS : TEACHER_TABS).filter((t) => !(net === "external" && t.id === "cloud"));
+}
+
+function normalizeOrder(order: ActiveView[] | undefined, ids: ActiveView[]): ActiveView[] {
+  const known = new Set(ids);
+  const out: ActiveView[] = [];
+  for (const id of order ?? []) {
+    if (known.has(id) && !out.includes(id)) out.push(id);
+  }
+  for (const id of ids) if (!out.includes(id)) out.push(id);
+  return out;
+}
 
 interface Props {
   me: Teacher;
@@ -119,6 +136,12 @@ interface Props {
   /** 듀얼망 학교만 내부/외부 전환을 보여준다. 단일망 학교는 이 값을 false로 숨긴다. */
   dualNetwork?: boolean;
   userRole?: UserRole;
+  /** 교사가 숨긴 메뉴 (설정에서 다시 표시) */
+  hiddenTabs?: ActiveView[];
+  /** 사용자가 끌어서 바꾼 메뉴 순서 */
+  tabOrder?: ActiveView[];
+  onHideTab?: (id: ActiveView) => void;
+  onReorderTabs?: (order: ActiveView[]) => void;
   /** 로그아웃 (설정 화면과 동일 동작) */
   onLogout?: () => void;
   /** 퀵 메모(포스트잇) 레이어 토글 */
@@ -136,8 +159,14 @@ interface Props {
 export default function LeftSidebar(p: Props) {
   const isAdmin = p.userRole === "admin" || p.userRole === "superadmin";
   const compact = !!p.narrow && !p.expand;
-  // 외부망에서는 무거운 클라우드 메뉴를 아예 숨긴다.
-  const tabs = (isAdmin ? ADMIN_TABS : TEACHER_TABS).filter((t) => !(p.net === "external" && t.id === "cloud"));
+  // 외부망에서는 무거운 클라우드 메뉴를 아예 숨기고, 교사가 숨긴 메뉴는 설정에서 되살린다.
+  const baseTabs = navItemsForRole(p.userRole, p.net);
+  const hidden = new Set(p.hiddenTabs ?? []);
+  const orderedIds = normalizeOrder(p.tabOrder, baseTabs.map((t) => t.id));
+  const orderIndex = new Map(orderedIds.map((id, i) => [id, i]));
+  const tabs = baseTabs
+    .filter((t) => !hidden.has(t.id))
+    .sort((a, b) => (orderIndex.get(a.id) ?? 999) - (orderIndex.get(b.id) ?? 999));
 
   // 접기/펴기 — 넓은 화면에서 레일을 아이콘만 남겨 작업 공간을 확보한다.
   //  · 상태는 localStorage에 기억해 앱을 다시 켜도 유지된다.
@@ -151,12 +180,15 @@ export default function LeftSidebar(p: Props) {
   const [railWidth, setRailWidth] = useState<number>(() => {
     try {
       const saved = Number(localStorage.getItem("edutalk-rail-width"));
-      return clampRail(Number.isFinite(saved) && saved > 0 ? saved : compact ? 152 : 208);
+      return clampRail(Number.isFinite(saved) && saved > 0 ? saved : compact ? 184 : 224);
     } catch {
-      return compact ? 152 : 208;
+      return compact ? 184 : 224;
     }
   });
   const [dragging, setDragging] = useState(false);
+  const [reorderMode, setReorderMode] = useState(false);
+  const [dragTabId, setDragTabId] = useState<ActiveView | null>(null);
+  const contextMenu = useContextMenu();
   const autoRestore = useRef<boolean | null>(null);
 
   // AI 상담·전자결재·협업 보드는 좁은 창에서 작업 공간이 필요하다.
@@ -189,7 +221,7 @@ export default function LeftSidebar(p: Props) {
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
-    const startWidth = collapsed ? 62 : compact ? Math.min(190, railWidth) : railWidth;
+    const startWidth = collapsed ? 70 : compact ? Math.min(210, railWidth) : railWidth;
     let isCollapsed = collapsed;
     let nextWidth = railWidth;
     setDragging(true);
@@ -229,7 +261,7 @@ export default function LeftSidebar(p: Props) {
     window.addEventListener("pointerup", up);
   };
 
-  const effectiveWidth = collapsed ? 62 : compact ? Math.min(190, railWidth) : railWidth;
+  const effectiveWidth = collapsed ? 70 : compact ? Math.min(210, railWidth) : railWidth;
 
   const getBadge = (id: ActiveView) => {
     if (id === "memo") return p.unreadMemo;
@@ -271,43 +303,87 @@ export default function LeftSidebar(p: Props) {
     if (ok) p.onLogout();
   };
 
+  const openTabMenu = (e: React.MouseEvent, tab: TabDef) => {
+    const items: BzMenuItem[] = [
+      {
+        id: "hide",
+        label: "메뉴 숨기기",
+        hint: tab.id === "settings" ? "항상 표시" : "설정에서 복원",
+        disabled: tab.id === "settings",
+        onSelect: () => p.onHideTab?.(tab.id),
+      },
+      { id: "sep", separator: true },
+      {
+        id: "reorder",
+        label: "순서 변경",
+        hint: "끌어서 이동",
+        onSelect: () => {
+          setReorderMode(true);
+          p.onToast("메뉴를 끌어서 순서를 바꾼 뒤 [완료]를 눌러 주세요.");
+        },
+      },
+    ];
+    contextMenu(e, items, tab.label);
+  };
+
+  const commitReorder = (fromId: ActiveView, toId: ActiveView) => {
+    if (fromId === toId || !p.onReorderTabs) return;
+    const ids = normalizeOrder(p.tabOrder, baseTabs.map((t) => t.id));
+    const from = ids.indexOf(fromId);
+    const to = ids.indexOf(toId);
+    if (from < 0 || to < 0) return;
+    const [moved] = ids.splice(from, 1);
+    ids.splice(to, 0, moved);
+    p.onReorderTabs(ids);
+  };
+
   return (
     <aside
       data-rail={compact ? "compact" : "wide"}
       data-collapsed={collapsed ? "true" : "false"}
+      data-reorder={reorderMode ? "true" : "false"}
       style={{ width: effectiveWidth }}
       className={`edu-rail relative z-20 shrink-0 h-full bg-edu-surface border-r border-edu-line flex flex-col py-2.5 px-1.5 ${
         dragging ? "rail-dragging" : "transition-[width] duration-200"
       }`}
     >
       {/* ---------- 프로필 + 작은 접기 버튼 ---------- */}
-      <div className={`profile-row relative flex items-center gap-2.5 px-1 ${collapsed ? "justify-center" : ""}`}>
-        <BzTooltip content={`${p.me.name || "내 프로필"} · ${p.me.dept}`} position="right" disabled={!collapsed}>
-          <div
-            className="w-10 h-10 rounded-xl grid place-items-center text-white font-black text-base shrink-0 select-none"
-            style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}
-          >
-            {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
-          </div>
-        </BzTooltip>
-        <div className={`min-w-0 flex-1 ${collapsed ? "hidden" : ""}`}>
-          <div className="rail-label font-extrabold truncate text-edu-ink">{p.me.name || "내 프로필"}</div>
-          <div className="rail-sub text-edu-sub truncate">
+      {/* 이름·부서는 각각 한 줄을 온전히 쓰고, 접힌 상태에서는 아바타와 펴기 버튼만 세로로 쌓는다. */}
+      <div className={`profile-row relative flex flex-col px-1 ${collapsed ? "items-center gap-1.5" : "gap-1"}`}>
+        <div className={`flex items-center gap-2.5 min-w-0 ${collapsed ? "flex-col gap-1.5" : "w-full"}`}>
+          <BzTooltip content={`${p.me.name || "내 프로필"} · ${p.me.dept}`} position="right" disabled={!collapsed}>
+            <div
+              className={`${collapsed ? "w-8 h-8 rounded-lg text-[13px]" : "w-10 h-10 rounded-xl text-base"} grid place-items-center text-white font-black shrink-0 select-none`}
+              style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}
+            >
+              {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
+            </div>
+          </BzTooltip>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <div className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
+                {p.me.name || "내 프로필"}
+              </div>
+            </div>
+          )}
+          <BzTooltip content={collapsed ? "메뉴 펼치기" : "메뉴 접기"} position="right">
+            <button
+              type="button"
+              onClick={toggleRail}
+              aria-label={collapsed ? "메뉴 펼치기" : "메뉴 접기"}
+              aria-expanded={!collapsed}
+              className="edu-rail-collapse shrink-0"
+            >
+              {collapsed ? <IconChevronRight size={13} /> : <IconChevronLeft size={13} />}
+            </button>
+          </BzTooltip>
+        </div>
+        {!collapsed && (
+          <div className="rail-sub text-edu-sub truncate w-full" title={`${p.me.dept}${p.me.subject ? ` · ${p.me.subject}` : ""}`}>
             {p.me.dept}
             {p.me.subject ? ` · ${p.me.subject}` : ""}
           </div>
-        </div>
-        <BzTooltip content={collapsed ? "메뉴 펼치기" : "메뉴 접기"} position="right">
-          <button
-            type="button"
-            onClick={toggleRail}
-            aria-label={collapsed ? "메뉴 펼치기" : "메뉴 접기"}
-            aria-expanded={!collapsed}
-            className="edu-rail-collapse shrink-0"
-          >
-            {collapsed ? <IconChevronRight size={13} /> : <IconChevronLeft size={13} />}
-          </button>
-        </BzTooltip>
+        )}
       </div>
 
       {/* 사이드바 폭 조절 손잡이 — 왼쪽 끝까지 끌면 접힌다. */}
@@ -380,6 +456,22 @@ export default function LeftSidebar(p: Props) {
       <span className="my-2 h-px bg-edu-line w-full" aria-hidden />
 
       {/* ---------- 탭 ---------- */}
+      {reorderMode && (
+        <div className="edu-rail-reorder mt-1 mb-1 mx-0.5 flex items-center gap-1 rounded-lg px-1.5 py-1">
+          {!collapsed && <span className="min-w-0 flex-1 truncate text-[10.5px] font-bold">끌어서 순서 변경</span>}
+          <button
+            type="button"
+            className="ml-auto rounded-md px-1.5 py-0.5 text-[10.5px] font-extrabold"
+            onClick={() => {
+              setReorderMode(false);
+              setDragTabId(null);
+              p.onToast("메뉴 순서를 저장했어요.");
+            }}
+          >
+            완료
+          </button>
+        </div>
+      )}
       <nav className="w-full flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5" aria-label="주 메뉴">
         {tabs.map((t) => {
           const badge = getBadge(t.id);
@@ -387,15 +479,33 @@ export default function LeftSidebar(p: Props) {
           const btn = (
             <button
               key={t.id}
-              onClick={() => p.onView(t.id)}
-              className={`edu-rail-tab ${active ? "active" : ""}`}
+              onClick={() => { if (!reorderMode) p.onView(t.id); }}
+              onContextMenu={(e) => openTabMenu(e, t)}
+              draggable={reorderMode}
+              onDragStart={(e) => {
+                if (!reorderMode) return;
+                setDragTabId(t.id);
+                try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", t.id); } catch { /* Safari */ }
+              }}
+              onDragOver={(e) => { if (reorderMode) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } }}
+              onDrop={(e) => {
+                if (!reorderMode) return;
+                e.preventDefault();
+                const from = (dragTabId || e.dataTransfer.getData("text/plain")) as ActiveView;
+                if (from) commitReorder(from, t.id);
+                setDragTabId(null);
+              }}
+              onDragEnd={() => setDragTabId(null)}
+              className={`edu-rail-tab ${active ? "active" : ""} ${reorderMode ? "is-reordering" : ""} ${dragTabId === t.id ? "is-dragging" : ""}`}
               data-active={active ? "true" : undefined}
               aria-current={active ? "page" : undefined}
               aria-label={badge > 0 ? `${t.label}, 안 읽음 ${badge}` : t.label}
+              title={reorderMode ? `${t.label} — 끌어서 순서를 바꿔 보세요` : undefined}
             >
               <span className="edu-rail-ico" aria-hidden>{t.icon}</span>
               <span className="rail-label edu-rail-txt truncate">{t.label}</span>
-              {badge > 0 && <span className="edu-rail-badge">{badge > 99 ? "99+" : badge}</span>}
+              {reorderMode && !collapsed && <span className="edu-rail-grip" aria-hidden>⋮⋮</span>}
+              {!reorderMode && badge > 0 && <span className="edu-rail-badge">{badge > 99 ? "99+" : badge}</span>}
             </button>
           );
           // 접힌 상태에서는 아이콘만 보이므로 마우스를 올리면 이름(과 안읽음 수)을 툴팁으로 보여준다.

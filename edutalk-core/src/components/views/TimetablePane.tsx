@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SwapRecord, Teacher, TimetableCell } from "../../types";
 import { TIMETABLE_CSV_SAMPLE } from "../../mock/initialData";
 import { readCsvText } from "../../lib/csv";
 import { FreeMatchBox, NextClassBanner } from "../FusionBanner";
-import { cellKey, monthlySubCount } from "../../lib/fusion";
+import { cellKey, monthlySubCount, PERIOD_TABLE } from "../../lib/fusion";
 
 const WD = ["", "월", "화", "수", "목", "금"];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
@@ -37,6 +37,251 @@ export function splitSubject(s: string): string[] {
   const nospace = t.replace(/\s+/g, "");
   if (/기술.*가정|가정.*기술/.test(nospace) && nospace.length <= 8) return ["기술", "가정"];
   return [t];
+}
+
+
+const LOOKUP_DAYS = [1, 2, 3, 4, 5] as const;
+const DAY_LABEL = ["", "월", "화", "수", "목", "금"];
+
+function pad2(n: number) { return String(n).padStart(2, "0"); }
+
+function TimetableLookup({ cells, teachers, meName, grade, classNo }: {
+  cells: TimetableCell[];
+  teachers: Teacher[];
+  meName: string;
+  grade: string;
+  classNo: string;
+}) {
+  const [now, setNow] = useState(() => new Date());
+  const [mode, setMode] = useState<"mine" | "teacher" | "class" | "today">("mine");
+  const [teacherName, setTeacherName] = useState(meName);
+  const [classKey, setClassKey] = useState(`${grade}|${classNo}`);
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const todayWd = now.getDay();
+  const isWeekday = todayWd >= 1 && todayWd <= 5;
+  const hh = pad2(now.getHours());
+  const mm = pad2(now.getMinutes());
+  const ss = pad2(now.getSeconds());
+  const currentPeriod = (() => {
+    const hm = `${hh}:${mm}`;
+    const t = PERIOD_TABLE.find((x) => hm >= x.start && hm < x.end);
+    return t?.period ?? null;
+  })();
+  const dateLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 ${["일", "월", "화", "수", "목", "금", "토"][todayWd]}요일`;
+
+  const classOptions = useMemo(() => {
+    const map = new Map<string, { key: string; grade: string; classNo: string; label: string }>();
+    for (const c of cells) {
+      if (!c.grade || !c.classNo) continue;
+      const key = `${c.grade}|${c.classNo}`;
+      if (!map.has(key)) map.set(key, { key, grade: c.grade, classNo: c.classNo, label: `${c.grade} ${c.classNo}` });
+    }
+    if (grade && classNo) {
+      const key = `${grade}|${classNo}`;
+      if (!map.has(key)) map.set(key, { key, grade, classNo, label: `${grade} ${classNo}` });
+    }
+    return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, "ko"));
+  }, [cells, grade, classNo]);
+
+  const teacherOptions = useMemo(() => {
+    const names = new Set<string>();
+    if (meName) names.add(meName);
+    for (const t of teachers) if (t.name) names.add(t.name);
+    for (const c of cells) if (c.teacher) names.add(c.teacher);
+    return [...names].sort((a, b) => a.localeCompare(b, "ko"));
+  }, [teachers, cells, meName]);
+
+  const selectedClass = classOptions.find((c) => c.key === classKey) ?? classOptions[0];
+  const selectedTeacher = teacherOptions.includes(teacherName) ? teacherName : (teacherOptions[0] ?? meName);
+
+  const weekCells = useMemo(() => {
+    if (mode === "class") {
+      return cells.filter((c) => c.grade === selectedClass?.grade && c.classNo === selectedClass?.classNo);
+    }
+    if (mode === "teacher" || mode === "mine") {
+      return cells.filter((c) => c.teacher === (mode === "mine" ? meName : selectedTeacher));
+    }
+    return [];
+  }, [mode, cells, selectedClass, selectedTeacher, meName]);
+
+  const renderWeek = (list: TimetableCell[]) => (
+    <div className="overflow-x-auto">
+      {/* 좁은 앱 창에서도 5일이 한눈에 들어오도록 교시·과목만 남기고
+          학급·교사·교실은 칸의 title(마우스 올림)과 아래 상세 표에서 확인한다. */}
+      <table className="w-full table-fixed border-collapse text-[12px]">
+        <thead>
+          <tr>
+            <th className="w-[30px] border border-edu-line bg-edu-bg px-0 py-1 text-[11px]">교시</th>
+            {LOOKUP_DAYS.map((d) => (
+              <th key={d} className={`border border-edu-line px-0.5 py-1 text-[11.5px] ${todayWd === d ? "bg-edu-soft text-edu-strong" : "bg-edu-bg"}`}>
+                {DAY_LABEL[d]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {PERIODS.map((period) => {
+            const time = PERIOD_TABLE.find((x) => x.period === period);
+            return (
+              <tr key={period}>
+                <td
+                  title={time ? `${period}교시 ${time.start}~${time.end}` : `${period}교시`}
+                  className={`border border-edu-line px-0 py-1 text-center text-[11px] ${currentPeriod === period ? "bg-edu-soft font-extrabold text-edu-strong" : "bg-edu-bg font-bold"}`}
+                >
+                  {period}
+                </td>
+                {LOOKUP_DAYS.map((d) => {
+                  const c = list.find((x) => x.weekday === d && x.period === period);
+                  const detail = c
+                    ? `${c.subject || "수업"} · ${mode === "class" ? c.teacher : `${c.grade} ${c.classNo}`}${c.room ? ` · ${c.room}` : ""}`
+                    : "수업 없음";
+                  return (
+                    <td key={d} title={detail} className={`border border-edu-line p-0 align-middle ${todayWd === d ? "bg-[#F8FCFF]" : ""}`}>
+                      <div className="min-h-[44px] px-0.5 py-1 text-center">
+                        {c ? (
+                          <div className="break-keep text-[12px] font-bold leading-snug text-edu-ink">
+                            {c.subject || "수업"}
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-edu-muted">—</span>
+                        )}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const todayRows = useMemo(() => {
+    if (!isWeekday) return [];
+    return classOptions.map((c) => {
+      const list = cells.filter((x) => x.weekday === todayWd && x.grade === c.grade && x.classNo === c.classNo);
+      return { ...c, list };
+    });
+  }, [classOptions, cells, todayWd, isWeekday]);
+
+  return (
+    <div className="edu-card p-3.5 anim-card">
+      <div className="flex items-start gap-3 flex-wrap">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[15px] font-extrabold text-edu-ink">시간표 조회</span>
+            <span className={`text-[10.5px] font-extrabold rounded-full px-2 py-0.5 ${currentPeriod ? "bg-edu-soft text-edu-strong" : "bg-edu-chip text-edu-sub"}`}>
+              {currentPeriod ? `지금 ${currentPeriod}교시` : "수업 시간 아님"}
+            </span>
+          </div>
+          <div className="text-[12px] text-edu-sub mt-0.5">{dateLabel}</div>
+        </div>
+        <div className="ml-auto text-right">
+          <div className="text-[22px] font-black tabular-nums tracking-[0.5px] text-edu-ink leading-none" aria-label="현재 시각">
+            {hh}:{mm}<span className="text-[14px] font-extrabold text-edu-strong">:{ss}</span>
+          </div>
+          <div className="text-[10.5px] text-edu-muted mt-1">실시간 · 1초마다 갱신</div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {([
+          ["mine", "내 시간표"],
+          ["teacher", "교사별"],
+          ["class", "학급별"],
+          ["today", "오늘 전체"],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setMode(id)}
+            className={`px-3 py-1.5 rounded-xl text-[12.5px] font-extrabold transition-colors ${mode === id ? "bg-edu-soft text-edu-strong shadow-[inset_0_0_0_1px_rgb(var(--edu-blueline))]" : "bg-edu-chip text-edu-sub hover:text-edu-ink"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "teacher" && (
+        <div className="mt-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-bold text-edu-sub">선생님</span>
+            <span className="ml-auto text-[11px] text-edu-muted">{weekCells.length}시간</span>
+          </div>
+          <select aria-label="선생님 선택" className="edu-input mt-1 w-full !py-1.5 !text-[12.5px]" value={selectedTeacher} onChange={(e) => setTeacherName(e.target.value)}>
+            {teacherOptions.map((n) => <option key={n} value={n}>{n} 선생님</option>)}
+          </select>
+        </div>
+      )}
+      {mode === "class" && (
+        <div className="mt-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-bold text-edu-sub">학급</span>
+            <span className="ml-auto text-[11px] text-edu-muted">{weekCells.length}시간</span>
+          </div>
+          <select aria-label="학급 선택" className="edu-input mt-1 w-full !py-1.5 !text-[12.5px]" value={selectedClass?.key ?? ""} onChange={(e) => setClassKey(e.target.value)}>
+            {classOptions.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+          </select>
+        </div>
+      )}
+
+      {mode === "today" ? (
+        !isWeekday ? (
+          <div className="mt-3 rounded-xl border border-dashed border-edu-line px-3 py-8 text-center text-[12.5px] text-edu-sub">
+            오늘은 주말이라 수업이 없어요. 월요일 시간표를 확인해 주세요.
+          </div>
+        ) : (
+          <div className="mt-2.5 flex flex-col gap-2">
+            {todayRows.map((row) => (
+              <div key={row.key} className="overflow-hidden rounded-xl border border-edu-line">
+                <div className="flex items-center gap-2 bg-edu-bg px-2.5 py-1.5">
+                  <span className="text-[12.5px] font-extrabold">{row.label}</span>
+                  <span className="ml-auto text-[10.5px] font-bold text-edu-muted">
+                    {row.list.length ? `${row.list.length}시간` : "수업 없음"}
+                  </span>
+                </div>
+                <div className="divide-y divide-edu-line">
+                  {[...row.list].sort((a, b) => a.period - b.period).map((c) => (
+                    <div key={`${row.key}-${c.period}`} className="flex items-center gap-2 px-2.5 py-1">
+                      <span className={`w-10 shrink-0 rounded-md px-0.5 py-0.5 text-center text-[11px] font-extrabold ${currentPeriod === c.period ? "bg-edu-soft text-edu-strong" : "bg-edu-chip text-edu-sub"}`}>
+                        {c.period}교시
+                      </span>
+                      <span className="min-w-0 truncate text-[11.5px] font-bold">{c.subject || "수업"}</span>
+                      <span className="ml-auto shrink-0 text-[10.5px] text-edu-sub">{c.teacher}</span>
+                    </div>
+                  ))}
+                  {row.list.length === 0 && (
+                    <div className="px-2.5 py-1.5 text-[11.5px] text-edu-muted">오늘은 수업이 없어요.</div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {todayRows.length === 0 && (
+              <div className="rounded-xl border border-edu-line px-3 py-6 text-center text-[12.5px] text-edu-sub">
+                등록된 학급 시간표가 없어요. 시간표를 먼저 가져와 주세요.
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        <div className="mt-2.5">
+          {weekCells.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-edu-line px-3 py-8 text-center text-[12.5px] text-edu-sub">
+              {mode === "mine" ? "내 시간표가 아직 없어요. 아래에서 CSV를 가져오거나 대강을 요청해 보세요." : "이 시간표에 등록된 수업이 없어요."}
+            </div>
+          ) : renderWeek(weekCells)}
+        </div>
+      )}
+      <div className="mt-2 text-[10.5px] leading-relaxed text-edu-muted">
+        교사별·학급별 시간표는 학교 서버에 등록된 주간 시간표를 기준으로 보여 줘요.
+        주간 표의 칸에 마우스를 올리면 교사·교실까지 확인할 수 있어요.
+      </div>
+    </div>
+  );
 }
 
 export default function TimetablePane(p: Props) {
@@ -116,6 +361,7 @@ export default function TimetablePane(p: Props) {
   return (
     <div className="flex flex-col gap-3">
       <NextClassBanner cells={p.cells} grade={p.grade} classNo={p.classNo} myName={p.myName ?? ""} onToast={p.onToast} />
+      <TimetableLookup cells={p.cells} teachers={p.teachers} meName={p.myName ?? ""} grade={p.grade} classNo={p.classNo} />
       {p.external && (
         <div className="edu-card p-3.5 anim-card border-edu-blueline">
           <div className="font-extrabold text-[14px]">🟢 외부연결 모드예요</div>

@@ -1034,6 +1034,7 @@ app.use('/api/admin', require('./routes/admin-tools')({
  * 읽기 전용·로그인 불필요 (설정/이용권 상태와 무관하게 갱신 가능해야 함) */
 app.use('/api/updates', require('./routes/updates')({ forcedUpdate: () => getPolicyBool('forceUpdate') }));
 
+app.use('/fonts', express.static(path.join(__dirname, 'fonts'), { maxAge: '7d' }));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
 /* 학생용 웹 (온프레미스 전용, 설치·클라우드 불필요) */

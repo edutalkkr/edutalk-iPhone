@@ -68,7 +68,7 @@ import {
 } from "./lib/repo";
 import { fetchSchoolLicense, isDualNetworkSchool, type SchoolLicense } from "./lib/schoolSync";
 import { useCloud } from "./lib/cloudStore";
-import LeftSidebar from "./components/layout/LeftSidebar";
+import LeftSidebar, { navItemsForRole } from "./components/layout/LeftSidebar";
 import RightPanel from "./components/layout/RightPanel";
 import TitleBar from "./components/layout/TitleBar";
 import BootSplash from "./components/BootSplash";
@@ -183,12 +183,15 @@ export default function App() {
   const [booted, setBooted] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
   const [view, setView] = useState<ActiveView>(popupView ?? "org");
+  const [serverRole, setServerRole] = useState<UserRole>("teacher");
+  const [hiddenTabs, setHiddenTabs] = useState<ActiveView[]>([]);
+  const [tabOrder, setTabOrder] = useState<ActiveView[]>([]);
   const [net, setNet] = useState<NetworkState>("intranet");
   const [meStatus, setMeStatus] = useState<TeacherStatus>("online");
   const [autoStatus, setAutoStatus] = useState(true);
   // 연결 자동 전환(하이브리드 망): 교내망 PC가 보이면 교내연결, 안 보이면 외부연결
   const [netAuto, setNetAuto] = useState(true);
-  const [font, setFont] = useState<FontKind>("system");
+  const [font, setFont] = useState<FontKind>("pretendard");
   const [school, setSchool] = useState<SchoolSetup>({ schoolId: "", schoolName: "" });
   const [license, setLicense] = useState<SchoolLicense | null>(null);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -381,6 +384,8 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         storeGet<GradeClass[]>("gradeClasses"),
         storeGet<School>("schoolInfo"),
         storeGet<SchoolSettings>("schoolSettings"),
+        storeGet<ActiveView[]>("nav-hidden"),
+        storeGet<ActiveView[]>("nav-order"),
       ]);
       setHasProfile(got[0]);
       if (got[1]) setNet(got[1] as NetworkState);
@@ -411,6 +416,8 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       if (got[22]) setGradeClasses(got[22] as GradeClass[]);
       if (got[23]) setSchoolInfo(got[23] as School);
       if (got[24]) setSchoolSettings(got[24] as SchoolSettings);
+      if (Array.isArray(got[25])) setHiddenTabs(got[25] as ActiveView[]);
+      if (Array.isArray(got[26])) setTabOrder(got[26] as ActiveView[]);
       const my = (got[6] as Teacher[] | null)?.find((t) => t.id === ME_ID);
       if (got[0] && my) syncMe(my.name);
       setBooted(true);
@@ -424,6 +431,13 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
 
   // 바뀌면 로컬 DB에 저장 (설치형이므로 서버 전송 없음)
   useEffect(() => { if (booted) storeSet("net", net); }, [net, booted]);
+  // 사이드 메뉴 숨김·순서는 이 PC에만 저장한다.
+  useEffect(() => { if (booted) void storeSet("nav-hidden", hiddenTabs); }, [hiddenTabs, booted]);
+  useEffect(() => { if (booted) void storeSet("nav-order", tabOrder); }, [tabOrder, booted]);
+  // 관리자 전용 화면은 학교 관리자 계정으로 로그인했을 때만 열린다.
+  useEffect(() => {
+    if (serverRole !== "admin" && String(view).startsWith("admin-")) setView("org");
+  }, [serverRole, view]);
   // 망 모드를 코어(Rust)에도 알린다. 미리보기에서는 무시된다.
   useEffect(() => {
     if (!booted) return;
@@ -1048,15 +1062,32 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       /* 그대로 표시 */
     }
     const id = toastSeq++;
+    // 글이 길수록 조금 더 머물되, 너무 오래 화면을 가리지 않는다.
+    const durationMs = Math.max(3200, Math.min(6500, 2200 + Array.from(text).length * 28));
     // 웹 브리즈처럼 한 번에 하나만: 새 알림이 오면 이전 알림은 위로 스르륵 빠지며 사라진다.
-    setToasts((s) => [...s.map((t) => ({ ...t, leaving: true })), { id, text }].slice(-3));
-    window.setTimeout(() => dismissToast(id), 3200);
+    setToasts((s) => [...s.map((t) => ({ ...t, leaving: true })), { id, text, durationMs }].slice(-3));
+    window.setTimeout(() => dismissToast(id), durationMs);
   };
 
   // 사라질 때 모션(0.26s 위로 상승)을 보여 준 뒤 실제로 지운다 — "뚝" 끊기지 않게.
   const dismissToast = (id: number) => {
     setToasts((s) => s.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
     window.setTimeout(() => setToasts((s) => s.filter((t) => t.id !== id)), 360);
+  };
+
+  const hideNavTab = (id: ActiveView) => {
+    if (id === "settings") return;
+    setHiddenTabs((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    if (view === id) setView("settings");
+    toast("메뉴를 숨겼어요. 설정에서 언제든 다시 꺼낼 수 있어요.");
+  };
+  const restoreNavTab = (id: ActiveView) => {
+    setHiddenTabs((prev) => prev.filter((x) => x !== id));
+    toast("메뉴를 다시 표시했어요.");
+  };
+  const resetNavOrder = () => {
+    setTabOrder([]);
+    toast("메뉴 순서를 처음 상태로 되돌렸어요.");
   };
 
   // P2P 도착 알림은 메인 창에서만 띄운다 (팝업 창마다 뜨면 시끄럽다).
@@ -1837,8 +1868,8 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   // 🎓 학년말 인수인계 마법사 (Killer ④) — 전임 교사의 클라우드 자료 소유권과 공지 작성자를 후임에게 한 번에 넘긴다.
   //  · 자료는 지우지 않고 관리 권한만 이동. 반대로 다시 실행하면 원상 복구된다.
   const runHandover = async (fromId: string, toId: string) => {
-    // 권한: 전임 본인 계정이거나 학교 관리자(교장·교감·관리자)만 실행할 수 있다.
-    const canHandoverAll = me?.position === "교장" || me?.position === "교감" || me?.position === "관리자";
+    // 권한: 전임 본인 계정이거나 브리즈코어 학교 관리자 계정만 실행할 수 있다.
+    const canHandoverAll = serverRole === "admin";
     if (!canHandoverAll && fromId !== ME_ID) {
       return { error: "본인 계정의 자료만 인수인계할 수 있어요. 다른 교사 자료는 본인 또는 학교 관리자만 이관할 수 있어요." } as const;
     }
@@ -1940,10 +1971,12 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       if (!result?.user) {
         throw new Error("인증에 실패했어요. 서버 주소와 교원 ID·비밀번호를 확인해 주세요.");
       }
-      if (String(result.user.role || "").toUpperCase() === "STUDENT") {
+      const rawRole = String(result.user.role || "").toUpperCase();
+      if (rawRole === "STUDENT") {
         try { await call("srv_logout"); } catch { /* 무시 */ }
         throw new Error("학생 계정이에요. 학생은 브리즈 학생 웹에서 로그인해 주세요.");
       }
+      setServerRole(rawRole === "ADMIN" || rawRole === "SUPERADMIN" ? "admin" : "teacher");
       // 로그인 성공 → 학교 서버 조직도를 조직도에 합친다
       try {
         const uRes = await call<{ users?: ServerUser[] }>("srv_get", { path: "/api/users" });
@@ -2059,6 +2092,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
     setNet("intranet");
     setMemoPreset(null);
     setChatPeer(null);
+    setServerRole("teacher");
     setHasProfile(true);
     setIsLoggedIn(true);
     syncMe("정담임");
@@ -2069,6 +2103,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
 
   const handleLogout = useCallback(() => {
     setIsLoggedIn(false);
+    setServerRole("teacher");
     setUnreadStudent(0);
     api.setAuthToken(null);
     disconnectNotesRealtime();
@@ -2134,6 +2169,11 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       const base = normalizeServerUrl(baseRaw);
       setApiBaseUrl(base);
       api.setAuthToken(token);
+      try {
+        const meRes = await api.getMe();
+        const rawRole = String(meRes.data?.user?.role || "").toUpperCase();
+        if (alive) setServerRole(rawRole === "ADMIN" || rawRole === "SUPERADMIN" ? "admin" : "teacher");
+      } catch { /* 역할 확인 실패 — 교사 메뉴로 안전하게 둔다 */ }
       await connectNotesRealtime({ url: base, token });
       if (!alive) return;
       off = startNotesRealtime({
@@ -2269,14 +2309,18 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         focusActive={focusActive}
         netOnline={netOnline}
         outboxCount={outboxItems.length}
-        userRole={me?.position === "교장" || me?.position === "교감" || me?.position === "관리자" ? "admin" : "teacher"}
+        userRole={serverRole}
+        hiddenTabs={hiddenTabs}
+        tabOrder={tabOrder}
+        onHideTab={hideNavTab}
+        onReorderTabs={setTabOrder}
       />
       )}
       <main className="flex-1 min-w-0 h-full overflow-y-auto">
         <div key={view} className={`anim-page py-2.5 core-main-inner mx-auto ${isClassic && !popupMode ? "px-2.5 max-w-[430px]" : "px-3.5 max-w-[1100px]"}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="font-black text-[16px] tracking-[-0.2px]">{VIEW_TITLE[view]}</h1>
-            <span className="text-[11px] text-edu-sub">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-2">
+            <h1 className="shrink-0 whitespace-nowrap font-black text-[16px] tracking-[-0.2px]">{VIEW_TITLE[view]}</h1>
+            <span className="min-w-0 basis-full text-[11px] text-edu-sub">
               {net === "intranet" ? "교내연결 · 내부망" : "외부연결"}
               {school.schoolName ? ` · ${school.schoolName}` : ""}
               {chatOnly ? " · 소통 전용" : ""}
@@ -2441,7 +2485,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
               notices={notices}
               teachers={visibleTeachers.filter((t) => t.id !== ME_ID)}
               meName={me?.name ?? "나"}
-              isAdmin={me?.position === "교장" || me?.position === "교감" || me?.position === "관리자"}
+              isAdmin={serverRole === "admin"}
               onPublish={(d) => {
                 const n: NoticeItem = {
                   id: uid("n"),
@@ -2489,21 +2533,21 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
           {view === "consult" && (
             <ConsultPane
               meName={me?.name ?? "나"}
-              localIsAdmin={me?.position === "교장" || me?.position === "교감" || me?.position === "관리자"}
+              localIsAdmin={serverRole === "admin"}
               onToast={toast}
             />
           )}
           {view === "approval" && (
             <ApprovalPane
               meName={me?.name ?? "나"}
-              localIsAdmin={me?.position === "교장" || me?.position === "교감" || me?.position === "관리자"}
+              localIsAdmin={serverRole === "admin"}
               onToast={toast}
             />
           )}
           {view === "whiteboard" && (
             <WhiteboardPane
               meName={me?.name ?? "나"}
-              localIsAdmin={me?.position === "교장" || me?.position === "교감" || me?.position === "관리자"}
+              localIsAdmin={serverRole === "admin"}
               onToast={toast}
             />
           )}
@@ -2513,7 +2557,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
                 id: ME_ID,
                 name: me?.name ?? "나",
                 dept: me?.dept ?? "미지정",
-                role: me?.position === "교장" || me?.position === "교감" || me?.position === "관리자" ? "admin" : "teacher",
+                role: serverRole === "admin" ? "admin" : "teacher",
               }}
               onToast={toast}
             />
@@ -2577,8 +2621,14 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
                 ...teachers.filter((t) => t.id !== ME_ID).map((t) => ({ id: t.id, name: t.name, dept: t.dept })),
               ]}
               currentTeacherId={ME_ID}
-              canHandoverAll={me.position === "교장" || me.position === "교감" || me.position === "관리자"}
+              canHandoverAll={serverRole === "admin"}
               onHandover={runHandover}
+              navItems={navItemsForRole(serverRole, net).map((t) => ({ id: t.id, label: t.label }))}
+              hiddenTabs={hiddenTabs}
+              onHideTab={hideNavTab}
+              onRestoreTab={restoreNavTab}
+              onRestoreAllTabs={() => { setHiddenTabs([]); toast("숨긴 메뉴를 모두 다시 표시했어요."); }}
+              onResetTabOrder={resetNavOrder}
             />
           )}
           {view === "admin-dashboard" && (
@@ -2739,6 +2789,11 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
             <button className="edu-toast-x" aria-label="알림 닫기" onClick={() => dismissToast(t.id)}>
               ✕
             </button>
+            <span
+              className="edu-toast-bar"
+              aria-hidden="true"
+              style={{ animationDuration: `${t.durationMs ?? 3200}ms` }}
+            />
           </div>
         ))}
       </div>

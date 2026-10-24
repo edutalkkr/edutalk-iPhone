@@ -137,7 +137,7 @@ export default function StudentInboxPane({ onToast, onUnreadChange, onNeedLogin 
           </p>
         </div>
         <button type="button" className="edu-ghost !py-1.5 !px-3 !text-[12px]" onClick={() => void load()} disabled={loading}>
-          {loading ? "불러오는 중…" : "새로고침"}
+          새로고침
         </button>
       </div>
 
@@ -161,6 +161,20 @@ export default function StudentInboxPane({ onToast, onUnreadChange, onNeedLogin 
             </span>
           </div>
           <div className="max-h-[440px] overflow-y-auto p-1.5">
+            {loading && threads.length === 0 && (
+              <div className="p-1.5" aria-label="학생 문의를 불러오는 중">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-2.5 px-2.5 py-2.5">
+                    <span className="skeleton h-9 w-9 shrink-0 rounded-full" />
+                    <span className="min-w-0 flex-1">
+                      <span className="skeleton block h-3 w-2/5" />
+                      <span className="skeleton mt-1.5 block h-2.5 w-4/5" />
+                      <span className="skeleton mt-1.5 block h-2.5 w-3/5" />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             {threads.length === 0 && !loading && (
               <div className="px-4 py-10 text-center text-[12px] leading-relaxed text-[var(--bz-muted)]">
                 아직 학생이 보낸 쪽지가 없어요.<br />학생 웹에서 쪽지가 오면 여기에 표시돼요.

@@ -1,3 +1,10 @@
+@font-face {
+  font-family: "Pretendard Variable";
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+  src: url("/fonts/PretendardVariable.woff2") format("woff2-variations");
+}
 :root {
   --brand: #0069a8;
   --brand-strong: #00527f;
@@ -22,7 +29,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: system-ui, sans-serif;
+  font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -392,7 +399,7 @@ button:disabled { cursor: default; opacity: .6; }
   position: fixed; left: 50%; bottom: 22px;
   transform: translate(-50%, 12px);
   max-width: min(92vw, 520px);
-  padding: 10px 15px;
+  padding: 10px 15px 12px;
   border-radius: 999px;
   background: #0f2a3d;
   color: #fff;
@@ -402,10 +409,25 @@ button:disabled { cursor: default; opacity: .6; }
   transition: opacity .2s ease, transform .2s ease;
   z-index: 100;
   text-align: center;
+  overflow: hidden;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.error { background: #8f1d1d; }
 .toast.success { background: #14532d; }
+/* 남은 시간을 오른쪽에서 왼쪽으로 줄여 주는 얇은 막대 */
+.toast::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 2px; background: #7dd3fc; transform: scaleX(1);
+  transform-origin: left center; opacity: 0; pointer-events: none;
+}
+.toast.show::after {
+  opacity: .95;
+  animation: studentToastBar var(--toast-ms, 3200ms) linear forwards;
+}
+@keyframes studentToastBar {
+  from { transform: scaleX(1); opacity: .95; }
+  to { transform: scaleX(0); opacity: .55; }
+}
 
 /* ---------- 모바일 ---------- */
 @media (max-width: 820px) {

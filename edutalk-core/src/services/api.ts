@@ -187,26 +187,36 @@ class ApiClient {
   }
 
   async getUsers(): Promise<ApiResponse<ServerUser[]>> {
-    return this.request<ServerUser[]>('GET', '/api/users');
+    const r = await this.request<{ users: ServerUser[] }>('GET', '/api/users');
+    if (!r.ok || !r.data) return { ok: false, error: r.error };
+    return { ok: true, data: r.data.users || [] };
   }
 
   // === 채팅방 ===
   async getRooms(): Promise<ApiResponse<ServerRoom[]>> {
-    return this.request<ServerRoom[]>('GET', '/api/rooms');
+    const r = await this.request<{ rooms: ServerRoom[] }>('GET', '/api/rooms');
+    if (!r.ok || !r.data) return { ok: false, error: r.error };
+    return { ok: true, data: r.data.rooms || [] };
   }
 
   async createRoom(name: string, memberIds: number[]): Promise<ApiResponse<{ id: string; name: string; network_type: string }>> {
-    return this.request('POST', '/api/rooms', { name, member_ids: memberIds });
+    const r = await this.request<{ room: { id: string; name: string; network_type: string } }>('POST', '/api/rooms', { name, member_ids: memberIds });
+    if (!r.ok || !r.data) return { ok: false, error: r.error };
+    return { ok: true, data: r.data.room };
   }
 
   async getRoom(roomId: string): Promise<ApiResponse<ServerRoom>> {
-    return this.request<ServerRoom>('GET', `/api/rooms/${roomId}`);
+    const r = await this.request<{ room: ServerRoom }>('GET', `/api/rooms/${roomId}`);
+    if (!r.ok || !r.data) return { ok: false, error: r.error };
+    return { ok: true, data: r.data.room };
   }
 
   async getRoomMessages(roomId: string, limit = 100, before?: number): Promise<ApiResponse<MessageResponse[]>> {
     const params = new URLSearchParams({ limit: String(limit) });
     if (before) params.set('before', String(before));
-    return this.request<MessageResponse[]>(`GET`, `/api/rooms/${roomId}/messages?${params}`);
+    const r = await this.request<{ messages: MessageResponse[] }>(`GET`, `/api/rooms/${roomId}/messages?${params}`);
+    if (!r.ok || !r.data) return { ok: false, error: r.error };
+    return { ok: true, data: r.data.messages || [] };
   }
 
   async getRoomFiles(roomId: string): Promise<ApiResponse<FileResponse[]>> {

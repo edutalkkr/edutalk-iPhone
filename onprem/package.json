@@ -26,7 +26,8 @@
  "pkg": {
   "assets": [
    "admin.html",
-   "student/**/*"
+   "student/**/*",
+   "fonts/**/*"
   ],
   "targets": [
    "node22-win-x64"

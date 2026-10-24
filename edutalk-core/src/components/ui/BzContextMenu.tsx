@@ -138,11 +138,13 @@ export function BzContextMenuHost() {
     setPos({ left: Math.round(x), top: Math.round(y) });
     setPlaced(true);
     el.focus();
-  }, [menu]);
+  }, [menu, mounted]);
 
   if (menu) lastMenu.current = menu;
   const view = menu ?? lastMenu.current;
-  if (!mounted || !view) return null;
+  // menu가 열린 첫 렌더부터 portal을 만들어 실측 위치를 잡는다.
+  // (usePresence의 mounted가 한 프레임 늦게 켜져도 메뉴가 화면 밖에 남지 않게)
+  if (!view || (!menu && !mounted)) return null;
 
   const selectables = view.items
     .map((it, i) => ({ it, i }))

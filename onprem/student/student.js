@@ -58,10 +58,16 @@
   const toast = (message, kind = '') => {
     const t = $('toast');
     if (!t) return;
-    t.textContent = message || '';
+    const text = String(message || '');
+    const duration = Math.max(3200, Math.min(6500, 2200 + Array.from(text).length * 28));
+    // 같은 토스트가 연달아 떠도 진행 막대가 처음부터 다시 줄어들도록 초기화한다.
+    t.className = 'toast';
+    t.textContent = text;
+    t.style.setProperty('--toast-ms', `${duration}ms`);
+    void t.offsetWidth;
     t.className = `toast show ${kind}`.trim();
     if (state.toastTimer) window.clearTimeout(state.toastTimer);
-    state.toastTimer = window.setTimeout(() => { t.className = 'toast'; }, 3200);
+    state.toastTimer = window.setTimeout(() => { t.className = 'toast'; }, duration);
   };
 
   const setConn = (on, label) => {

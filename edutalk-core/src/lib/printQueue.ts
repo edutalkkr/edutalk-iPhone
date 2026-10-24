@@ -113,10 +113,11 @@ export function openPrintWindow(title: string, content: string): boolean {
     }
     const style = doc.createElement("style");
     style.textContent =
-      "body{font-family:system-ui,sans-serif;margin:24px;color:#111}" +
+      "@font-face{font-family:'Breeze Print';font-weight:45 920;font-display:block;src:url('/fonts/PretendardVariable.woff2') format('woff2')}" +
+      "body{font-family:'Breeze Print','Pretendard Variable',Pretendard,system-ui,sans-serif;margin:24px;color:#111}" +
       "h1{font-size:18px;margin:0 0 4px}" +
       ".meta{font-size:11px;color:#555;margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid #ddd}" +
-      "pre{font-family:inherit;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin:0}";
+      "pre{font-family:inherit;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;margin:0}";
     doc.head.appendChild(style);
 
     const cover = doc.createElement("div");
@@ -132,8 +133,18 @@ export function openPrintWindow(title: string, content: string): boolean {
     cover.appendChild(pre);
     doc.body.appendChild(cover);
 
-    win.focus();
-    win.print();
+    const printNow = () => {
+      try {
+        win.focus();
+        win.print();
+      } catch { /* 인쇄 창이 닫힌 경우 */ }
+    };
+    // 번들 글꼴이 준비된 뒤 인쇄해야 미리보기에서도 같은 글꼴로 나온다.
+    if (doc.fonts && typeof doc.fonts.ready?.then === "function") {
+      void doc.fonts.ready.then(printNow).catch(printNow);
+    } else {
+      printNow();
+    }
     window.setTimeout(() => {
       try { frame.remove(); } catch { /* 이미 정리됨 */ }
     }, 60000);
