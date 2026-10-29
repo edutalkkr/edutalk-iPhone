@@ -45,7 +45,7 @@ const needAdmin = (req, res, next) => {
   if (String(req.headers['x-admin-token'] || '') !== 'secret') return res.status(403).json({ ok: false, error: '관리자 토큰이 필요해요.' });
   next();
 };
-app.use('/api/admin', require('./routes/admin-tools')({ needAdmin, purgeFiles: () => 0 }));
+app.use('/api/admin', require('./routes/admin-tools')({ needAdmin, purgeFiles: () => 2 }));
 app.use('/api/neis', require('./routes/neis')({ needAuth: (req, res, next) => next() }));
 
 let base = '';
@@ -65,8 +65,8 @@ const server = app.listen(0, '127.0.0.1', async () => {
 
     console.log('\n[2] 정책(Policy) — 검증 후 즉시 반영');
     r = await j('GET', '/api/admin/policies');
-    check('기본값 (100MB·7분·자동정리 없음)', r.json.policies.uploadMaxMB === '100' && r.json.policies.retentionYears === '0', r.json.policies);
-    r = await j('PUT', '/api/admin/policies', { uploadMaxMB: 500, recallMinutes: 10, retentionYears: 3, forceUpdate: true, neisOfficeCode: 'B10', neisSchoolCode: '7010569' });
+    check('기본값 (100MB·7분·학생 미디어 30일)', r.json.policies.uploadMaxMB === '100' && r.json.policies.studentMediaDays === '30', r.json.policies);
+    r = await j('PUT', '/api/admin/policies', { uploadMaxMB: 500, recallMinutes: 10, studentMediaDays: 90, forceUpdate: true, neisOfficeCode: 'B10', neisSchoolCode: '7010569' });
     check('정책 저장 성공', r.status === 200 && r.json.policies.uploadMaxMB === '500' && r.json.policies.forceUpdate === '1', r.json.policies);
     r = await j('PUT', '/api/admin/policies', { uploadMaxMB: 99999 });
     check('범위 밖 값 거부 → 400', r.status === 400, r.json);
@@ -75,12 +75,10 @@ const server = app.listen(0, '127.0.0.1', async () => {
     const { getPolicyBool, getPolicyNumber } = require('./policies');
     check('서버 코드에서 정책 읽기 (업로드 500, 강제 OTA on)', getPolicyNumber('uploadMaxMB') === 500 && getPolicyBool('forceUpdate') === true);
 
-    console.log('\n[3] 데이터 정리 — 5년 지난 대화 삭제');
-    r = await j('POST', '/api/admin/maintenance/purge', { years: 3 });
-    check('정리 성공 + 삭제 수 보고', r.status === 200 && r.json.deleted.messages === 1 && r.json.deleted.notes === 0, r.json);
-    check('최근 대화는 남아 있음', Number(row('SELECT COUNT(*) c FROM messages').c) === 1);
-    r = await j('POST', '/api/admin/maintenance/purge', { years: 0 });
-    check('연수 0 → 400', r.status === 400, r.json);
+    console.log('\n[3] 데이터 정리 — 만료된 학생 미디어만');
+    r = await j('POST', '/api/admin/maintenance/purge', {});
+    check('정리 성공 + 학생 미디어 수 보고', r.status === 200 && r.json.deleted.files === 2 && typeof r.json.vacuumed === 'boolean', r.json);
+    check('텍스트(쪽지·대화)는 삭제하지 않음', Number(row('SELECT COUNT(*) c FROM messages').c) === 2 && Number(row('SELECT COUNT(*) c FROM notes').c) === 1);
 
     console.log('\n[4] 감사 리포트 (.xlsx)');
     const res = await fetch(base + '/api/admin/audit/export', { headers: { 'x-admin-token': 'secret' } });

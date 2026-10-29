@@ -72,9 +72,15 @@ CREATE TABLE IF NOT EXISTS files (
   original_name TEXT NOT NULL DEFAULT '',
   stored_filename TEXT NOT NULL DEFAULT '',
   file_size INTEGER NOT NULL DEFAULT 0,
-  expires_at TEXT NOT NULL,
+  /* '' = 영구 보관(교사·교직원 미디어), 날짜 = 학생 미디어 자동 만료 */
+  expires_at TEXT NOT NULL DEFAULT '',
+  owner_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+  owner_role TEXT NOT NULL DEFAULT '',
+  note_id INTEGER NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
+CREATE INDEX IF NOT EXISTS idx_files_expiry ON files(expires_at);
+CREATE INDEX IF NOT EXISTS idx_files_owner ON files(owner_id, owner_role);
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -193,7 +199,7 @@ CREATE TABLE IF NOT EXISTS ai_summaries (
 CREATE INDEX IF NOT EXISTS idx_ai_summaries_key ON ai_summaries(cache_key);
 
 /* 시스템 정책 KV(2) — 서버 설정·정책 값을 한 곳에서 읽는다.
- *  (예: retentionYears=3 · recallMinutes=7 · uploadMaxMB=500 · forceUpdate=0)
+ *  (예: studentMediaDays=30 · recallMinutes=7 · uploadMaxMB=500 · forceUpdate=0)
  *  system_kv 테이블은 위(변조 방지용 시스템 KV)에서 이미 만들어진다. */
 
 /* 학사일정·급식 캐시 — 나이스 Open API 호출 결과를 잠시 보관해 재호출을 줄인다.
@@ -285,6 +291,21 @@ CREATE INDEX IF NOT EXISTS idx_whiteboards_updated ON whiteboards(updated_at DES
 
 /* 기존 DB 마이그레이션 — CREATE TABLE IF NOT EXISTS는 새 컬럼을 추가하지 않는다. */
 try { db.exec("ALTER TABLE approvals ADD COLUMN decision_note TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 이미 있음 */ }
+try { db.exec("ALTER TABLE files ADD COLUMN owner_id INTEGER NULL"); } catch (e) { /* 이미 있음 */ }
+try { db.exec("ALTER TABLE files ADD COLUMN owner_role TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 이미 있음 */ }
+try { db.exec("ALTER TABLE files ADD COLUMN note_id INTEGER NULL"); } catch (e) { /* 이미 있음 */ }
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_files_expiry ON files(expires_at)"); } catch (e) { /* 다음에 */ }
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_files_owner ON files(owner_id, owner_role)"); } catch (e) { /* 다음에 */ }
+/* 예전 파일은 모두 교사 업로드(당시 /api/upload는 교직원 전용)였으므로 영구 보관으로 되돌린다.
+ * 학생 미디어만 expires_at 날짜가 남아 30일 뒤 자동 삭제된다. */
+try { db.exec("UPDATE files SET expires_at = '', owner_role = 'TEACHER' WHERE owner_role = '' AND (expires_at IS NOT NULL AND expires_at <> '')"); } catch (e) { /* 다음에 */ }
+/* 관리자/감사용 읽기 전용 뷰 — 실제 저장은 files 테이블 한 곳에서만 한다. */
+try {
+  db.exec(`CREATE VIEW IF NOT EXISTS student_media_files AS
+    SELECT id, note_id AS room_id, owner_id AS sender_id, original_name AS file_name,
+           stored_filename AS file_path, created_at, expires_at
+    FROM files WHERE owner_role = 'STUDENT'`);
+} catch (e) { /* view 미지원 환경 */ }
 
 const VALID_STATUS = new Set(['ONLINE', 'IN_CLASS', 'TRIP', 'AWAY', 'OFFLINE']);
 const VALID_ROLES = new Set(['ADMIN', 'TEACHER', 'STAFF', 'STUDENT']);
@@ -314,10 +335,18 @@ function counts() {
   };
 }
 
-/* 만료 파일 정리: expires_at < now → 실제 파일 삭제 + DB 삭제. 삭제된 개수를 반환 */
+function localTimestamp(d) {
+  const t = d || new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}:${p(t.getSeconds())}`;
+}
+
+/* 만료된 학생 미디어만 정리한다.
+ *  · 교사·교직원이 올린 파일은 expires_at='' 이므로 절대 지우지 않는다.
+ *  · 텍스트(쪽지·대화)는 이 함수에서 건드리지 않는다. */
 function purgeExpiredFiles(uploadsDir) {
-  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  const rows = all('SELECT id, stored_filename FROM files WHERE expires_at < ?', now);
+  const now = localTimestamp(new Date());
+  const rows = all("SELECT id, stored_filename FROM files WHERE owner_role = 'STUDENT' AND expires_at <> '' AND expires_at <= ?", now);
   let n = 0;
   for (const r of rows) {
     try { if (r.stored_filename) fs.unlinkSync(path.join(uploadsDir, path.basename(r.stored_filename))); } catch (e) {}

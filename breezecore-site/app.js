@@ -34,7 +34,7 @@
       themeBtn.setAttribute("aria-pressed", String(isDark));
       themeBtn.setAttribute("aria-label", isDark ? "라이트 모드로 바꾸기" : "다크 모드로 바꾸기");
     }
-    if (metaTheme) metaTheme.setAttribute("content", next === "dark" ? "#0c1b20" : "#f4f8f6");
+    if (metaTheme) metaTheme.setAttribute("content", next === "dark" ? "#091722" : "#f6f9fd");
   }
 
   applyTheme(readTheme());
@@ -60,20 +60,6 @@
     };
     if (mq.addEventListener) mq.addEventListener("change", onChange);
     else if (mq.addListener) mq.addListener(onChange);
-  }
-
-  /* ---------- 날짜 ---------- */
-  const consoleDate = $("#consoleDate");
-  if (consoleDate) {
-    try {
-      consoleDate.textContent = new Intl.DateTimeFormat("ko-KR", {
-        month: "long",
-        day: "numeric",
-        weekday: "long",
-      }).format(new Date());
-    } catch (e) {
-      consoleDate.textContent = "오늘의 학교";
-    }
   }
 
   /* ---------- 헤더 / 모바일 메뉴 ---------- */
@@ -112,171 +98,12 @@
     });
   }
 
-  /* ---------- 스마트 배너 ---------- */
-  const bannerTrack = $("#bannerTrack");
-  const bannerDots = $("#bannerDots");
-  const banner = $("#smartBanner");
-  const bannerPause = $("#bannerPause");
-  const bannerHint = $("#bannerHint");
-  const bannerPages = [
-    {
-      kicker: "학생 문의",
-      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v10H9l-4.5 3v-3H4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>',
-      title: "학생 문의 3건이 도착했어요",
-      meta: "3단원 5번 문제가 궁금해요 · 2분 전",
-    },
-    {
-      kicker: "오늘 할 일",
-      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8 12 2.5 2.5L16 9"/></svg>',
-      title: "오늘 할 일 2건이 남았어요",
-      meta: "안전 점검 결과 정리 · 오늘까지",
-    },
-    {
-      kicker: "점심 시간",
-      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16a8 8 0 0 1-16 0Z"/><path d="M6 12c0-3 2.5-5.5 6-5.5s6 2.5 6 5.5"/><path d="M9 4.5c.6.8.6 1.7 0 2.5M13 4c.6.8.6 1.7 0 2.5M17 4.5c.6.8.6 1.7 0 2.5"/></svg>',
-      title: "오늘 점심은 보리밥과 닭갈비예요",
-      meta: "11:50 ~ 13:00 · 1학년 2반",
-    },
-    {
-      kicker: "다음 일정",
-      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="3"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/><path d="M8 14h2M14 14h2M8 17.5h2"/></svg>',
-      title: "4교시 수학, 1학년 2반",
-      meta: "12:40 시작 · 준비물: 학습지",
-    },
-  ];
-
-  let bannerIndex = 0;
-  let bannerTimer = null;
-  let bannerPaused = false;
-  let userPaused = false;
-
-  function renderBanner() {
-    if (!bannerTrack || !bannerDots) return;
-    bannerTrack.innerHTML = bannerPages
-      .map(
-        (page, i) =>
-          '<article class="banner-page' +
-          (i === 0 ? " is-active" : "") +
-          '" data-banner-page="' +
-          i +
-          '" aria-hidden="' +
-          (i === 0 ? "false" : "true") +
-          '">' +
-          '<span class="banner-ico" aria-hidden="true">' +
-          page.icon +
-          "</span>" +
-          '<div class="banner-copy">' +
-          '<span class="banner-kicker">' +
-          page.kicker +
-          "</span>" +
-          "<strong>" +
-          page.title +
-          "</strong>" +
-          "<p>" +
-          page.meta +
-          "</p>" +
-          "</div>" +
-          "</article>"
-      )
-      .join("");
-
-    bannerDots.innerHTML = bannerPages
-      .map(
-        (page, i) =>
-          '<button class="banner-dot' +
-          (i === 0 ? " is-active" : "") +
-          '" type="button" aria-current="' +
-          (i === 0 ? "true" : "false") +
-          '" aria-label="' +
-          page.kicker +
-          ' 배너 보기" data-banner-dot="' +
-          i +
-          '"></button>'
-      )
-      .join("");
-
-    $$("[data-banner-dot]", bannerDots).forEach((dot) => {
-      dot.addEventListener("click", () => {
-        setBanner(Number(dot.getAttribute("data-banner-dot")));
-        restartBannerTimer();
-      });
-    });
-  }
-
-  function setBanner(index) {
-    if (!bannerPages.length) return;
-    bannerIndex = ((index % bannerPages.length) + bannerPages.length) % bannerPages.length;
-    $$("[data-banner-page]", bannerTrack).forEach((page, i) => {
-      const active = i === bannerIndex;
-      page.classList.toggle("is-active", active);
-      page.setAttribute("aria-hidden", String(!active));
-    });
-    $$("[data-banner-dot]", bannerDots).forEach((dot, i) => {
-      const active = i === bannerIndex;
-      dot.classList.toggle("is-active", active);
-      dot.setAttribute("aria-current", String(active));
-    });
-  }
-
-  function nextBanner() {
-    if (bannerPaused || userPaused || document.hidden) return;
-    setBanner(bannerIndex + 1);
-  }
-
-  function restartBannerTimer() {
-    if (bannerTimer) clearInterval(bannerTimer);
-    bannerTimer = null;
-    if (reduceMotion || userPaused) return;
-    bannerTimer = setInterval(nextBanner, 5200);
-  }
-
-  function updatePauseUi() {
-    if (!bannerPause) return;
-    const paused = reduceMotion || userPaused;
-    bannerPause.textContent = paused ? "▶" : "Ⅱ";
-    bannerPause.setAttribute("aria-pressed", String(paused));
-    bannerPause.setAttribute("aria-label", paused ? "자동 넘김 다시 시작" : "자동 넘김 멈추기");
-    if (bannerHint) bannerHint.textContent = reduceMotion ? "모션 줄임 설정" : paused ? "자동 넘김 멈춤" : "자동으로 넘어가요";
-  }
-
-  renderBanner();
-  updatePauseUi();
-  restartBannerTimer();
-
-  if (bannerPause) {
-    bannerPause.addEventListener("click", () => {
-      if (reduceMotion) return;
-      userPaused = !userPaused;
-      updatePauseUi();
-      restartBannerTimer();
-    });
-  }
-
-  if (banner) {
-    banner.addEventListener("pointerenter", () => {
-      bannerPaused = true;
-    });
-    banner.addEventListener("pointerleave", () => {
-      bannerPaused = false;
-    });
-    banner.addEventListener("focusin", () => {
-      bannerPaused = true;
-    });
-    banner.addEventListener("focusout", () => {
-      bannerPaused = false;
-    });
-  }
-
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) restartBannerTimer();
-  });
-
   /* ---------- 선생님의 하루 탭 ---------- */
   const dayData = {
     morning: {
       time: "08:10",
-      title: "문을 열면, 오늘 할 일이 먼저 보여요.",
-      desc: "안 읽은 학생 문의와 오늘 일정, 아직 끝내지 못한 할 일을 한 장의 배너로 정리해요. 화살표로 넘기면 필요한 것만 빠르게 확인할 수 있어요.",
+      title: "아침에 열면, 할 일과 일정을 먼저 보여줘요.",
+      desc: "안 읽은 학생 문의, 오늘 수업, 제출 마감을 한 화면에 정리해요. 화살표로 넘기면 필요한 항목만 확인할 수 있어요.",
       list: ["학생 문의 3건 · 아직 답장 전", "오늘 4교시 수학 · 1학년 2반", "제출 마감 · 안전 점검 결과"],
       bubbles: [
         { icon: "💬", title: "학생 문의 3건", meta: "3단원 5번 문제가 궁금해요", tone: "" },
@@ -286,8 +113,8 @@
     },
     lunch: {
       time: "12:20",
-      title: "점심시간이 가까워지면, 급식 메뉴가 먼저 떠요.",
-      desc: "11시 30분부터 1시 30분 사이에는 오늘의 급식과 학급 안내가 배너에 자연스럽게 올라와요. 따로 찾지 않아도 점심 흐름이 보여요.",
+      title: "점심시간에는 오늘 급식과 배식 순서를 보여줘요.",
+      desc: "11시 30분부터 1시 30분까지 오늘의 급식과 학급별 배식 순서를 배너에 표시해요.",
       list: ["오늘 급식 · 보리밥과 닭갈비", "1학년 2반 · 12:20 배식", "오후 일정 · 5교시 과학"],
       bubbles: [
         { icon: "🍱", title: "오늘의 급식", meta: "보리밥 · 닭갈비 · 미역국", tone: "" },
@@ -303,18 +130,18 @@
       bubbles: [
         { icon: "🖨️", title: "보안 인쇄 2건", meta: "승인을 기다리고 있어요", tone: "" },
         { icon: "🔐", title: "승인자 기록", meta: "누가·언제 출력했는지", tone: "alt" },
-        { icon: "📝", title: "감사 기록", meta: "서버에 차곡차곡", tone: "soft" },
+        { icon: "📝", title: "감사 기록", meta: "서버 텍스트 로그", tone: "soft" },
       ],
     },
     evening: {
       time: "18:00",
-      title: "하루의 기록은 서버에 차곡차곡 남아요.",
+      title: "오늘 처리한 일은 서버 로그에 남아요.",
       desc: "쪽지 발송, 권한 변경, 클라우드 정리, 인쇄 승인 같은 주요 행동이 서버 PC의 텍스트 로그에 남아요. 비밀번호와 쪽지 본문은 기록하지 않아요.",
       list: ["오늘 활동 로그 · 텍스트로 저장", "민감한 본문·토큰은 남기지 않아요", "필요하면 관리자 콘솔에서 확인"],
       bubbles: [
         { icon: "🗂️", title: "활동 로그", meta: "activity-YYYY-MM-DD.log", tone: "" },
         { icon: "🛡️", title: "민감정보 제외", meta: "비밀번호·토큰·본문 없음", tone: "alt" },
-        { icon: "🌙", title: "오늘도 수고했어요", meta: "내일의 브리즈가 기다려요", tone: "soft" },
+        { icon: "🌙", title: "로그 확인", meta: "관리자 콘솔에서 검색", tone: "soft" },
       ],
     },
   };
@@ -552,6 +379,144 @@
       });
     });
   }
+
+  /* ---------- 사이트 설정 · 관리자 팝업 ---------- */
+  const siteDefaults = window.BREEZE_SITE_DEFAULTS || {};
+  const sitePopup = $("#sitePopup");
+  const sitePopupTitle = $("#sitePopupTitle");
+  const sitePopupBody = $("#sitePopupBody");
+  const sitePopupLink = $("#sitePopupLink");
+  const sitePopupClose = $("#sitePopupClose");
+  const sitePopupHide = $("#sitePopupHide");
+  const POPUP_UNTIL_KEY = "breezecore.popup.until";
+  const POPUP_SIG_KEY = "breezecore.popup.sig";
+  let lastPopupTrigger = null;
+
+  function decodeFirestoreValue(value) {
+    if (!value || typeof value !== "object") return "";
+    if (value.stringValue !== undefined) return String(value.stringValue);
+    if (value.booleanValue !== undefined) return !!value.booleanValue;
+    if (value.integerValue !== undefined) return Number(value.integerValue);
+    if (value.doubleValue !== undefined) return Number(value.doubleValue);
+    if (value.timestampValue !== undefined) return String(value.timestampValue);
+    return "";
+  }
+
+  function decodeFirestoreFields(fields) {
+    const out = {};
+    Object.keys(fields || {}).forEach((key) => {
+      out[key] = decodeFirestoreValue(fields[key]);
+    });
+    return out;
+  }
+
+  async function loadRemoteSiteConfig() {
+    const conf = window.BREEZE_FIREBASE_CONFIG;
+    if (!conf || !conf.apiKey || !conf.projectId) return null;
+    try {
+      const url =
+        "https://firestore.googleapis.com/v1/projects/" +
+        encodeURIComponent(conf.projectId) +
+        "/databases/(default)/documents/siteConfig/breezecore?key=" +
+        encodeURIComponent(conf.apiKey);
+      const res = await fetch(url, { cache: "no-store", credentials: "omit" });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return decodeFirestoreFields(json.fields || {});
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function applySiteConfig(remote) {
+    const cfg = Object.assign({}, siteDefaults, remote || {});
+    if (cfg.siteTitle) document.title = String(cfg.siteTitle);
+    const desc = $('meta[name="description"]');
+    if (desc && cfg.siteDescription) desc.setAttribute("content", String(cfg.siteDescription));
+    const heroDesc = $("#heroDesc");
+    if (heroDesc && cfg.heroDesc) heroDesc.textContent = String(cfg.heroDesc);
+    $$("[data-breeze-link]").forEach((a) => {
+      if (cfg.breezeUrl) a.setAttribute("href", String(cfg.breezeUrl));
+      if (cfg.breezeLabel) a.textContent = String(cfg.breezeLabel);
+    });
+    return cfg;
+  }
+
+  function popupSignature(cfg) {
+    return String(cfg.updatedAt || "") + "|" + String(cfg.popupTitle || "") + "|" + String(cfg.popupBody || "");
+  }
+
+  function popupSnoozed(cfg) {
+    try {
+      const until = Number(localStorage.getItem(POPUP_UNTIL_KEY) || 0);
+      const sig = String(localStorage.getItem(POPUP_SIG_KEY) || "");
+      return until > Date.now() && sig === popupSignature(cfg);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function closeSitePopup() {
+    if (!sitePopup) return;
+    sitePopup.hidden = true;
+    if (lastPopupTrigger && typeof lastPopupTrigger.focus === "function") lastPopupTrigger.focus();
+  }
+
+  function openSitePopup(cfg) {
+    if (!sitePopup || !cfg || cfg.popupEnabled === false) return;
+    const now = Date.now();
+    const start = cfg.popupStart ? Date.parse(String(cfg.popupStart)) : 0;
+    const end = cfg.popupEnd ? Date.parse(String(cfg.popupEnd)) : 0;
+    if (start && Number.isFinite(start) && now < start) return;
+    if (end && Number.isFinite(end) && now > end) return;
+    if (popupSnoozed(cfg)) return;
+    if (sitePopupTitle) sitePopupTitle.textContent = String(cfg.popupTitle || "브리즈코어 소식");
+    if (sitePopupBody) sitePopupBody.textContent = String(cfg.popupBody || "");
+    if (sitePopupLink) {
+      const label = String(cfg.popupLinkLabel || "자세히 보기");
+      sitePopupLink.textContent = label;
+      sitePopupLink.setAttribute("href", String(cfg.popupLinkUrl || "#adopt"));
+    }
+    sitePopup.hidden = false;
+    lastPopupTrigger = document.activeElement;
+  }
+
+  if (sitePopupClose) {
+    sitePopupClose.addEventListener("click", closeSitePopup);
+  }
+  if (sitePopupHide) {
+    sitePopupHide.addEventListener("click", () => {
+      const cfg = window.__breezeSiteConfig || {};
+      try {
+        const days = Math.max(1, Number(cfg.popupHideDays) || 1);
+        const until = new Date();
+        until.setHours(24 * days, 0, 0, 0);
+        localStorage.setItem(POPUP_UNTIL_KEY, String(until.getTime()));
+        localStorage.setItem(POPUP_SIG_KEY, popupSignature(cfg));
+      } catch (e) {}
+      closeSitePopup();
+    });
+  }
+  if (sitePopupLink) {
+    sitePopupLink.addEventListener("click", () => closeSitePopup());
+  }
+  if (sitePopup) {
+    sitePopup.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeSitePopup();
+    });
+  }
+
+  const defaultSiteConfig = applySiteConfig(null);
+  window.__breezeSiteConfig = defaultSiteConfig;
+  void loadRemoteSiteConfig().then((remote) => {
+    if (!remote) {
+      openSitePopup(defaultSiteConfig);
+      return;
+    }
+    const cfg = applySiteConfig(remote);
+    window.__breezeSiteConfig = cfg;
+    openSitePopup(cfg);
+  });
 
   /* ---------- 연도 ---------- */
   const year = $("#year");

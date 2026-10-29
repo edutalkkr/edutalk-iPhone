@@ -1,3 +1,4 @@
+@font-face{font-family:"Pretendard Variable";src:url("fonts/PretendardVariable.woff2") format("woff2-variations");font-weight:45 920;font-style:normal;font-display:swap}
 :root{
   /* ?��???고유 브랜?? 밝�? ?�카??블루 */
   --brand:#0082C8;--brand-strong:#0069A8;--brand-soft:#E8F4FB;--brand-line:#9BD3EE;
@@ -8,7 +9,7 @@
   --green:#10B981;--composer:84px;--sidebar:286px;--mpanel:320px;
   --hover:#F1F5F9;--chip:#F1F5F9;--ui-scale:1
 }
-*{box-sizing:border-box;font-family:system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 html,body,#app{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 /* 글자 크기 설정 — 화면 전체(모달·토스트 포함)를 같은 비율로 키운다. */
 body{--ui-eff:var(--ui-scale,1);background:var(--bg);color:var(--text);zoom:var(--ui-eff);width:calc(100% / var(--ui-eff));height:calc(100dvh / var(--ui-eff))}
@@ -897,7 +898,7 @@ html.dark .back-btn{background:transparent}
 html.dark .back-btn:hover{background:var(--dark-chip)}
 
 /* ---------- 외부 계정 로그인 버튼 ---------- */
-.ext-login-btn{width:100%;height:48px;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border:1px solid #747775;border-radius:8px;color:#1f1e1e;font-family:system-ui,sans-serif;font-size:14px;font-weight:500;letter-spacing:.01em;transition:background .16s ease,box-shadow .16s ease,border-color .16s ease}
+.ext-login-btn{width:100%;height:48px;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border:1px solid #747775;border-radius:8px;color:#1f1e1e;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;font-size:14px;font-weight:500;letter-spacing:.01em;transition:background .16s ease,box-shadow .16s ease,border-color .16s ease}
 .ext-login-btn:hover{background:#F8FAFD;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15)}
 .ext-login-btn:active{background:#F1F3F4}
 .ext-login-mark{display:grid;place-items:center;width:19px;height:19px;flex:0 0 19px;border-radius:6px;background:var(--brand-soft);color:var(--brand-strong);font-size:11px;font-weight:800}
@@ -997,6 +998,9 @@ html.dark .landing-sheet-back{background:rgba(0,0,0,.6)}
 .landing-btn.solid:hover{filter:brightness(1.05)}
 .landing-btn.ghost{background:var(--chip);color:var(--text)}
 .landing-btn.ghost:hover{background:var(--hover)}
+.landing-breezecore-link{text-decoration:none;white-space:nowrap}
+.landing-partner-links{margin-top:8px;justify-content:flex-start}
+@media(max-width:760px){.landing-breezecore-link{display:none}}
 .landing-btn.xl{height:54px;padding:0 26px;font-size:16px;border-radius:15px}
 .landing-hero{padding:64px 22px 34px}
 .landing-hero-inner{width:min(1120px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:46px;align-items:center}

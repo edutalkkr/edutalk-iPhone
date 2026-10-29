@@ -11,7 +11,14 @@ import type {
 } from "../types";
 import { ME_ID } from "../mock/initialData";
 import { isTauriDesktop } from "./edition";
-import { call, type CommentItem, type Memo as RustMemo, type QuickItem } from "./tauri";
+import {
+  call,
+  type CommentItem,
+  type Memo as RustMemo,
+  type QuickItem,
+  type StorageStats,
+  type StorageVacuumResult,
+} from "./tauri";
 
 export function rustEnabled(): boolean {
   return isTauriDesktop();
@@ -287,6 +294,36 @@ export async function runPurge(): Promise<{ freedMB: number; totalMB: number } |
   try {
     const r = await call<{ freed_bytes: number; total_bytes: number }>("purge_run");
     return { freedMB: r.freed_bytes / 1048576, totalMB: r.total_bytes / 1048576 };
+  } catch {
+    return null;
+  }
+}
+
+// ---------- 저장소 실측값·수동 정리 (감사 탭 저장소 카드) ----------
+
+export async function storageStats(): Promise<StorageStats | null> {
+  if (!rustEnabled()) return null;
+  try {
+    return await call<StorageStats>("storage_stats");
+  } catch {
+    return null;
+  }
+}
+
+export async function storageClearTemp(): Promise<{ freedBytes: number; stats: StorageStats } | null> {
+  if (!rustEnabled()) return null;
+  try {
+    const r = await call<{ freed_bytes: number; stats: StorageStats }>("storage_clear_temp");
+    return { freedBytes: r.freed_bytes, stats: r.stats };
+  } catch {
+    return null;
+  }
+}
+
+export async function storageVacuum(): Promise<StorageVacuumResult | null> {
+  if (!rustEnabled()) return null;
+  try {
+    return await call<StorageVacuumResult>("db_vacuum");
   } catch {
     return null;
   }

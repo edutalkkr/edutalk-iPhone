@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#F7FAFE" />
+  <title>브리즈코어 사이트 관리</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("breezecore-theme");
+        var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin-body">
+  <header class="admin-header">
+    <a class="admin-brand" href="index.html">
+      <span class="brand-mark small" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><path d="M7 11.5h11.2c2.3 0 3.8-1.1 3.8-2.9 0-1.6-1.2-2.7-2.9-2.7-1.4 0-2.4.7-2.8 1.9"/><path d="M7 16h16.2c2.5 0 4.1 1.2 4.1 3.1 0 1.8-1.3 3-3.2 3-1.5 0-2.7-.8-3.1-2.1"/><path d="M7 20.5h8.4c1.9 0 3.1.9 3.1 2.4 0 1.4-1 2.3-2.4 2.3-1.1 0-1.9-.6-2.2-1.5"/></svg>
+      </span>
+      <span><strong>브리즈코어</strong><small>사이트 관리</small></span>
+    </a>
+    <div class="admin-header-actions">
+      <a class="admin-link" href="index.html">사이트 보기</a>
+      <a class="admin-link" href="/breeze">Breeze</a>
+      <button class="admin-logout" id="logoutBtn" type="button" hidden>로그아웃</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="admin-login" id="loginPanel">
+      <div class="admin-card admin-login-card">
+        <h1>사이트 설정을 관리해요</h1>
+        <p>브리즈 관리자 계정으로 로그인하면 소개 문구와 팝업 내용을 바꿀 수 있어요.</p>
+        <form id="loginForm" novalidate>
+          <label class="admin-field">
+            <span>이메일</span>
+            <input id="adminEmail" type="email" autocomplete="username" required placeholder="admin@school.kr" />
+          </label>
+          <label class="admin-field">
+            <span>비밀번호</span>
+            <input id="adminPassword" type="password" autocomplete="current-password" required placeholder="비밀번호" />
+          </label>
+          <p class="admin-error" id="loginError" role="alert" hidden></p>
+          <button class="admin-primary" id="loginBtn" type="submit">로그인</button>
+        </form>
+        <p class="admin-foot-note">브리즈 앱에서 관리자 역할을 가진 계정만 저장할 수 있어요.</p>
+      </div>
+    </section>
+
+    <section class="admin-editor" id="editorPanel" hidden>
+      <div class="admin-heading">
+        <div>
+          <h1>소개 사이트 설정</h1>
+          <p>저장하면 방문자 화면의 문구와 팝업에 바로 반영돼요.</p>
+        </div>
+        <span class="admin-save-state" id="saveState" role="status"></span>
+      </div>
+
+      <form id="siteForm" class="admin-form" novalidate>
+        <section class="admin-card">
+          <h2>기본 정보</h2>
+          <div class="admin-grid">
+            <label class="admin-field admin-span-2">
+              <span>브라우저 제목</span>
+              <input id="siteTitle" type="text" maxlength="100" />
+            </label>
+            <label class="admin-field admin-span-2">
+              <span>검색 설명</span>
+              <textarea id="siteDescription" rows="2" maxlength="220"></textarea>
+            </label>
+            <label class="admin-field admin-span-2">
+              <span>첫 화면 소개 문구</span>
+              <textarea id="heroDesc" rows="3" maxlength="320"></textarea>
+            </label>
+            <label class="admin-field">
+              <span>Breeze 버튼 이름</span>
+              <input id="breezeLabel" type="text" maxlength="40" />
+            </label>
+            <label class="admin-field">
+              <span>Breeze 주소</span>
+              <input id="breezeUrl" type="text" maxlength="300" placeholder="/breeze" />
+            </label>
+          </div>
+        </section>
+
+        <section class="admin-card">
+          <div class="admin-card-head">
+            <div>
+              <h2>팝업 안내</h2>
+              <p>방문자가 닫거나 &lsquo;오늘 하루 그만 보기&rsquo;를 누르면 잠시 숨겨져요.</p>
+            </div>
+            <label class="admin-switch">
+              <input id="popupEnabled" type="checkbox" />
+              <span>사용</span>
+            </label>
+          </div>
+          <div class="admin-grid">
+            <label class="admin-field admin-span-2">
+              <span>팝업 제목</span>
+              <input id="popupTitle" type="text" maxlength="80" />
+            </label>
+            <label class="admin-field admin-span-2">
+              <span>팝업 내용</span>
+              <textarea id="popupBody" rows="4" maxlength="600"></textarea>
+            </label>
+            <label class="admin-field">
+              <span>버튼 이름</span>
+              <input id="popupLinkLabel" type="text" maxlength="40" />
+            </label>
+            <label class="admin-field">
+              <span>버튼 주소</span>
+              <input id="popupLinkUrl" type="text" maxlength="300" placeholder="#adopt" />
+            </label>
+            <label class="admin-field">
+              <span>다시 보이지 않을 기간</span>
+              <select id="popupHideDays">
+                <option value="1">1일 (오늘 하루)</option>
+                <option value="7">7일</option>
+                <option value="30">30일</option>
+              </select>
+            </label>
+            <div class="admin-field admin-range">
+              <span>게시 기간 (선택)</span>
+              <div class="admin-range-row">
+                <input id="popupStart" type="date" aria-label="팝업 시작일" />
+                <span>~</span>
+                <input id="popupEnd" type="date" aria-label="팝업 종료일" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="admin-actions">
+          <button class="admin-primary" id="saveBtn" type="submit">저장하기</button>
+          <a class="admin-secondary" href="index.html" target="_blank" rel="noopener">새 창에서 미리보기</a>
+        </div>
+      </form>
+    </section>
+
+    <section class="admin-card admin-blocked" id="blockedPanel" hidden>
+      <h1>관리자 계정이 아니에요</h1>
+      <p>이 페이지는 브리즈 관리자 역할을 가진 계정만 사용할 수 있어요. 학교 관리자에게 역할을 요청해 주세요.</p>
+      <button class="admin-secondary" id="blockedLogout" type="button">다른 계정으로 로그인</button>
+    </section>
+
+    <section class="admin-card admin-blocked" id="configPanel" hidden>
+      <h1>Firebase 설정이 필요해요</h1>
+      <p>배포할 때 <code>scripts/sync-sites.mjs</code>가 <code>public/firebase-config.js</code>를 이 폴더로 자동 복사해요. 설정이 없으면 사이트는 기본 문구로 동작하고 관리자 저장은 꺼져요.</p>
+      <a class="admin-secondary" href="index.html">사이트로 돌아가기</a>
+    </section>
+  </main>
+
+  <div class="admin-toast" id="adminToast" role="status" aria-live="polite"></div>
+
+  <script src="site-config.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

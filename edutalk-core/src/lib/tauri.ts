@@ -179,6 +179,27 @@ export interface DlpHit {
   count: number;
 }
 
+export interface StorageStats {
+  data_dir: string;
+  db_path: string;
+  db_bytes: number;
+  wal_bytes: number;
+  db_total_bytes: number;
+  cache_dir: string;
+  cache_bytes: number;
+  cache_quota_bytes: number;
+  disk_total_bytes: number;
+  disk_free_bytes: number;
+  disk_used_bytes: number;
+}
+
+export interface StorageVacuumResult {
+  before_bytes: number;
+  after_bytes: number;
+  freed_bytes: number;
+  stats: StorageStats;
+}
+
 function isTauri(): boolean {
   return typeof window !== "undefined" && ("__TAURI__" in window || "__TAURI_INTERNALS__" in window);
 }
@@ -222,6 +243,22 @@ function nowIso(): string {
 
 function rnd(): string {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function mockStorageStats(): StorageStats {
+  return {
+    data_dir: "미리보기",
+    db_path: "breeze.db",
+    db_bytes: 0,
+    wal_bytes: 0,
+    db_total_bytes: 0,
+    cache_dir: "미리보기",
+    cache_bytes: 0,
+    cache_quota_bytes: 3 * 1024 * 1024 * 1024,
+    disk_total_bytes: 0,
+    disk_free_bytes: 0,
+    disk_used_bytes: 0,
+  };
 }
 
 async function mockCall<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -380,6 +417,14 @@ async function mockCall<T>(cmd: string, args?: Record<string, unknown>): Promise
       return (true as unknown) as T;
     case "purge_run":
       return ({ deleted_expired: 0, deleted_quota: 0, freed_bytes: 0, total_bytes: 0 } as unknown) as T;
+    case "storage_stats":
+      return (mockStorageStats() as unknown) as T;
+    case "storage_clear_temp":
+      return ({ freed_bytes: 0, stats: mockStorageStats() } as unknown) as T;
+    case "db_vacuum":
+      return ({ before_bytes: 0, after_bytes: 0, freed_bytes: 0, stats: mockStorageStats() } as unknown) as T;
+    case "export_write":
+      return undefined as unknown as T;
     case "remote_view_request":
       return ({ request_id: "r-" + rnd() } as unknown) as T;
     case "remote_snapshot":

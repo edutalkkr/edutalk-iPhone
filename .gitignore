@@ -55,3 +55,7 @@ onprem/.test-features-data/
 .tmp-visual/
 onprem/.test-*/
 public/firebase-config.js
+breezecore-site/firebase-config.js
+
+# 배포용으로 생성되는 사이트 묶음
+hosting-dist/

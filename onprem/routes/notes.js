@@ -148,9 +148,20 @@ module.exports = function createNotesRouter({ needAuth, getIo }) {
       const title = String(body.title || '').trim().slice(0, TITLE_MAX);
       const content = String(body.content || '').replace(/\r\n/g, '\n').slice(0, CONTENT_MAX);
       const clientNoteId = String(body.clientNoteId || body.client_note_id || '').trim().slice(0, 64) || null;
+      const fileId = Number(body.fileId || body.file_id || 0) || 0;
 
       if (!title) return res.status(400).json({ ok: false, error: '쪽지 제목을 입력해 주세요.' });
-      if (!content) return res.status(400).json({ ok: false, error: '쪽지 내용을 입력해 주세요.' });
+      if (!content && !fileId) return res.status(400).json({ ok: false, error: '쪽지 내용을 입력해 주세요.' });
+
+      /* 첨부는 내가 올린 파일 중 아직 쪽지에 붙지 않은 것만 허용한다. */
+      let attachment = null;
+      if (fileId) {
+        attachment = row('SELECT * FROM files WHERE id = ? AND owner_id = ? AND note_id IS NULL', fileId, sender.id);
+        if (!attachment) return res.status(400).json({ ok: false, error: '첨부할 수 없는 파일이에요.' });
+        if (attachment.expires_at && String(attachment.expires_at) <= nowLocal()) {
+          return res.status(410).json({ ok: false, error: '보관 기간이 지난 파일이에요. 다시 올려 주세요.' });
+        }
+      }
 
       /* 학생은 선생님 한 명(최대 3명)에게만 보낼 수 있다.
        * 전교/부서/학년 전체 발송과 참조·숨은참조는 금지해 학생 간 대량 쪽지를 막는다. */
@@ -179,7 +190,11 @@ module.exports = function createNotesRouter({ needAuth, getIo }) {
       /* 멱등: 같은 client_note_id가 이미 있으면 기존 결과 반환 */
       if (clientNoteId) {
         const ex = row('SELECT id, recipient_count FROM notes WHERE client_note_id = ?', clientNoteId);
-        if (ex) return res.json({ ok: true, noteId: Number(ex.id), recipientCount: Number(ex.recipient_count), duplicate: true });
+        if (ex) {
+          const ef = row('SELECT id, original_name, file_size, expires_at FROM files WHERE note_id = ? LIMIT 1', Number(ex.id));
+          return res.json({ ok: true, noteId: Number(ex.id), recipientCount: Number(ex.recipient_count), duplicate: true,
+            file: ef ? { id: Number(ef.id), name: ef.original_name, size: Number(ef.file_size || 0), expires_at: ef.expires_at || '' } : null });
+        }
       }
 
       const { map, audience, targetKey } = normalizeSendBody(body, sender.id);
@@ -196,6 +211,10 @@ module.exports = function createNotesRouter({ needAuth, getIo }) {
         noteId = Number(r.lastInsertRowid);
         const ins = db.prepare('INSERT OR IGNORE INTO note_recipients (note_id, recipient_id, recipient_type) VALUES (?, ?, ?)');
         for (const [uid, type] of map) ins.run(noteId, uid, type);
+        if (attachment) {
+          const up = run('UPDATE files SET note_id = ? WHERE id = ? AND owner_id = ? AND note_id IS NULL', noteId, attachment.id, sender.id);
+          if (!up.changes) throw new Error('attachment already used');
+        }
         db.exec('COMMIT');
       } catch (e) {
         try { db.exec('ROLLBACK'); } catch (e2) {}
@@ -207,16 +226,21 @@ module.exports = function createNotesRouter({ needAuth, getIo }) {
         throw e;
       }
 
-      writeAudit(req, sender, 'note_send', 'memo', noteId, { title, audience, targetKey, recipientCount: map.size });
+      writeAudit(req, sender, 'note_send', 'memo', noteId, { title, audience, targetKey, recipientCount: map.size, fileId: attachment ? Number(attachment.id) : null });
 
       /* 수신자 전원에게 소켓 알림 (클라이언트 SocketEvents: memo-arrived) */
       const io = typeof getIo === 'function' ? getIo() : null;
       if (io) {
-        const payload = { id: String(noteId), title, body: content, from: String(sender.id), from_name: sender.real_name || '', from_role: String(sender.role || '').toUpperCase() };
+        const payload = { id: String(noteId), title, body: content, from: String(sender.id), from_name: sender.real_name || '', from_role: String(sender.role || '').toUpperCase(),
+          file_id: attachment ? Number(attachment.id) : null,
+          file_name: attachment ? String(attachment.original_name || '파일') : '',
+          file_size: attachment ? Number(attachment.file_size || 0) : 0,
+          file_expires_at: attachment ? String(attachment.expires_at || '') : '' };
         for (const uid of map.keys()) io.to('user:' + uid).emit('memo-arrived', payload);
       }
 
-      res.json({ ok: true, noteId, recipientCount: map.size, duplicate: false });
+      res.json({ ok: true, noteId, recipientCount: map.size, duplicate: false,
+        file: attachment ? { id: Number(attachment.id), name: attachment.original_name || '파일', size: Number(attachment.file_size || 0), expires_at: attachment.expires_at || '' } : null });
     } catch (e) {
       console.error('[notes] send error:', e);
       res.status(500).json({ ok: false, error: '쪽지를 보내지 못했어요.' });
@@ -236,11 +260,13 @@ module.exports = function createNotesRouter({ needAuth, getIo }) {
       const notes = all(
         `SELECT n.id, n.title, n.content, n.audience, n.created_at,
                 n.sender_id, u.real_name AS sender_name, u.role AS sender_role, d.name AS sender_department,
-                nr.recipient_type, nr.is_read, nr.read_at
+                nr.recipient_type, nr.is_read, nr.read_at,
+                f.id AS file_id, f.original_name AS file_name, f.file_size, f.expires_at AS file_expires_at
          FROM note_recipients nr
          JOIN notes n ON n.id = nr.note_id
          JOIN users u ON u.id = n.sender_id
          LEFT JOIN departments d ON d.id = u.department_id
+         LEFT JOIN files f ON f.note_id = n.id
          WHERE ${where}
          ORDER BY n.id DESC LIMIT ? OFFSET ?`,
         me.id, limit, offset
@@ -273,8 +299,10 @@ module.exports = function createNotesRouter({ needAuth, getIo }) {
       const notes = all(
         `SELECT n.id, n.title, n.content, n.audience, n.target_key, n.status,
                 n.recipient_count, n.created_at,
-                (SELECT COUNT(*) FROM note_recipients r WHERE r.note_id = n.id AND r.is_read = 1) AS read_count
-         FROM notes n WHERE n.sender_id = ?
+                (SELECT COUNT(*) FROM note_recipients r WHERE r.note_id = n.id AND r.is_read = 1) AS read_count,
+                f.id AS file_id, f.original_name AS file_name, f.file_size, f.expires_at AS file_expires_at
+         FROM notes n LEFT JOIN files f ON f.note_id = n.id
+         WHERE n.sender_id = ?
          ORDER BY n.id DESC LIMIT ? OFFSET ?`,
         me.id, limit, offset
       );

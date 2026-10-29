@@ -1,24 +1,65 @@
 {
-  "firestore": {"rules": "firestore.rules"},
-  "functions": {"source": "functions"},
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "functions"
+  },
   "hosting": {
-    "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "public": "hosting-dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "cleanUrls": true,
-    "trailingSlash": false,
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/breeze/",
+        "type": 302
+      }
+    ],
     "headers": [
       {
         "source": "**/*.@(js|css)",
-        "headers": [{"key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate"}]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
       },
       {
         "source": "**/*.@(html)",
-        "headers": [{"key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate"}]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
       },
       {
-        "source": "/",
-        "headers": [{"key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate"}]
+        "source": "/breeze/",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/breezecore/",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
       }
+    ],
+    "predeploy": [
+      "node scripts/sync-sites.mjs"
     ]
   }
 }

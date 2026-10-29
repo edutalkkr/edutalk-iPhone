@@ -26,10 +26,10 @@
   --edu-ink: 15 23 42;
   --edu-sub: 71 85 105;
   --edu-muted: 100 116 139;
-  --edu-bg: 248 250 252;
+  --edu-bg: 247 250 254;
   --edu-surface: 255 255 255;
-  --edu-chip: 241 245 249;
-  --edu-hover: 241 245 249;
+  --edu-chip: 240 247 253;
+  --edu-hover: 241 247 252;
   --edu-green: 22 163 74;
   --edu-deepblue: 37 99 235;
   --edu-danger: 229 72 77;
@@ -89,7 +89,7 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   /* 상시 켜두는 업무 창: 알약이 아닌 6~10pt 미세 곡률 */
   border-radius: 10px;
   overflow: hidden;
-  background: #F8FAFC;
+  background: #F7FAFE;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.1);
 }
 
@@ -1221,7 +1221,7 @@ table th {
 
 .rp-row:hover {
   border-color: #9BD3EE;
-  background: #F8FAFC;
+  background: #F7FAFE;
 }
 
 .rp-file-ico {

@@ -3271,6 +3271,7 @@
         <button type="button" class="landing-brand" data-action="landing-scroll" data-target="top"><span class="brand-mark">${brandMarkHtml()}</span><strong>${esc(c.brandName)}</strong></button>
         ${nav?`<nav class="landing-menu">${nav}</nav>`:''}
         <div class="landing-nav-actions">
+          <a class="landing-btn ghost landing-breezecore-link" href="/breezecore">BreezeCore 바로 가기</a>
           <button type="button" class="landing-btn ghost" data-action="landing-signup">${esc(c.signupLabel)}</button>
           <button type="button" class="landing-btn solid" data-action="landing-login">${esc(c.loginLabel)}</button>
           <button type="button" class="landing-burger" data-action="landing-sheet-open" aria-label="메뉴 열기"><i></i><i></i><i></i></button>
@@ -3308,6 +3309,9 @@
             ${c.footerText?`<p>${esc(c.footerText)}</p>`:''}
             ${c.businessInfo?`<p class="biz-info">${esc(c.businessInfo)}</p>`:''}
             ${landingPageLinks()}
+            <div class="auth-links card-links landing-partner-links">
+              <a class="auth-link" href="/breezecore">BreezeCore 바로 가기</a>
+            </div>
           </div></footer>
         </section>
       </main>

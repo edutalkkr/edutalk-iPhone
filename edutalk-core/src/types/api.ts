@@ -331,6 +331,11 @@ export interface NoteInboxItem {
   recipient_type: NoteRecipientType;
   is_read: number;
   read_at: string | null;
+  /** 학생이 보낸 사진·파일 (30일 뒤 자동 삭제) */
+  file_id?: number | null;
+  file_name?: string | null;
+  file_size?: number | null;
+  file_expires_at?: string | null;
 }
 
 export interface NotesInboxData {
@@ -362,6 +367,10 @@ export interface NoteSentItem {
   read_count: number;
   created_at: string;
   recipients?: NoteSentRecipient[];
+  file_id?: number | null;
+  file_name?: string | null;
+  file_size?: number | null;
+  file_expires_at?: string | null;
 }
 
 export interface NotesSentData {

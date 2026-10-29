@@ -48,6 +48,16 @@ impl Db {
         self.inner.lock().map_err(|e| e.to_string())
     }
 
+    /// SQLite 파일을 실제로 다시 써서 빈 페이지를 돌려준다.
+    /// 종료 직전·시작 직후처럼 다른 화면이 DB를 쓰지 않는 시점에만 호출한다.
+    pub fn vacuum(&self) -> Result<(), String> {
+        let conn = self.inner.lock().map_err(|e| e.to_string())?;
+        // WAL에 남은 내용을 본 파일로 합친 뒤 VACUUM 한다.
+        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+        conn.execute_batch("VACUUM;").map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
     pub fn save_memo(
         &self,
         id: &str,

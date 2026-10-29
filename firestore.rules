@@ -941,6 +941,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 브리즈코어 소개 사이트 설정·팝업. 방문자는 읽고, 브리즈 관리자만 저장한다.
+    match /siteConfig/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // 푸시 토큰 (FCM) — 본인 토큰만 읽기/쓰기, 관리자는 전체 조회 가능
     match /pushTokens/{uid} {
       allow read: if self(uid) || isAdmin();

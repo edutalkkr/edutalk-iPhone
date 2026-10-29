@@ -63,7 +63,7 @@
   - ② 이중주차 차량 알림: 설정에서 내 차량 4자리 저장 → 조직도 검색창에 "1234"만 쳐도 차주 검색 + [차량 이동 요청] 한 번으로 긴급 쪽지 발송 (전화번호 비노출)
   - ③ 나이스 연동: `onprem/routes/neis.js` 프록시(키는 서버 `.env`에만) + `school_cache` TTL 캐시. 조직도 상단에 오늘의 급식·다가오는 학사일정 카드. 미설정 학교에서는 조용히 숨김
   - ④ 학년말 인수인계 마법사: 설정에서 전임→후임 선택 한 번으로 클라우드 자료(폴더·파일) 소유권 + 공지 작성자 일괄 이관, 관리자 감사로그 기록 (`cloudStore.reassignOwner`)
-  - ⑤ 관리자 도구(CoolManager 5대 스펙): 정책 제어(업로드 용량·회수 시간·보존 연수·강제 업데이트·나이스 코드 — 서버 즉시 반영), 데이터 유지보수(보존 연수 경과 정리), 감사 리포트 `.xlsx` 자동 추출(접속·쪽지·파일·권한·공지 7시트), 서버 모니터링 + 매일 새벽 3:30 자동 DB 백업(VACUUM INTO, 최근 14개 보관). `npm run test:cool` (22/22)
+  - ⑤ 관리자 도구(CoolManager 5대 스펙): 정책 제어(업로드 용량·회수 시간·보존 연수·강제 업데이트·나이스 코드 — 서버 즉시 반영), 데이터 유지보수(보존 연수 경과 정리), 감사 리포트 `.xlsx` 자동 추출(접속·쪽지·파일·권한·공지 7시트), 서버 모니터링 + 매일 새벽 3:30 자동 DB 백업(VACUUM INTO, 최근 14개 보관). `npm run test:cool` (21/21)
   - 설치 커스터마이징: NSIS `installMode:"both"`(설치 마법사에서 설치 위치 Browse — 기본 경로 선택 가능), `portable.txt`/`BREEZE_DATA_DIR`로 저장소를 설치 폴더 기준으로 동기화, CSP를 교내망(http/https) 서버 호출 허용으로 수정
 - [x] **5-7. 학생 웹 ↔ 교사 앱 실시간 연동 · 계정 보안 (2026-10-20)**
   - `onprem/student/`에 설치 없는 학생 웹 신규 구현: 학교 코드·학번·비밀번호 로그인, 선생님 목록/검색/상태, 이메일형 쪽지 작성·수신·읽음, Socket.IO 실시간 알림·알림음·브라우저 알림, 모바일 드로어
@@ -96,6 +96,15 @@
   - 학교 관리자 화면에 구매 CTA·내 주문·결제 확인서 인쇄, 총관리자 화면에 입금 확인 대기 목록 추가. `licenseOrders`는 Functions만 쓰고 구매자·총관리자만 읽음
   - 검증: `npm run test:billing` (7/7), Firestore 규칙·Functions 구문 검사, 결제 화면 900px/500px 시각 검증
   - 실카드 결제는 사업자등록·결제대행사 계약 전까지 라이브 검증 불가. 연동 절차는 `docs/BILLING.md` 참조
+- [x] **5-11. 학생 미디어 보관 정책 · 사이트 분리 · 대화 내보내기** (2026-10-28)
+  - 학생이 보낸 사진·동영상·파일은 `expires_at = 전송 시각 + 30일`로 서버 DB에 기록하고, 매일 00:00에 실제 파일과 DB 행을 함께 정리. 교사가 올린 자료와 쪽지·대화 텍스트는 지우지 않음
+  - 관리자 보관 기간 설정(30/90/180/365일, 기본 30일), 학생 첨부 전 `📌 파일 전송 안내` 1회 안내, 교사 앱 학생 문의함 첨부 미리보기·내려받기
+  - 데스크톱 저장소 화면에 실제 `breeze.db`·WAL·임시 파일·디스크 사용량 표시, `임시 파일 비우기`·`수동 VACUUM 실행`, 시작·종료 시 자동 VACUUM. 기존 `edutalk.db`는 `breeze.db`로 안전하게 이전
+  - 그룹 대화는 최근 50개부터 불러오고 위로 스크롤하면 이전 메시지를 50개씩 추가. 대화방을 TXT·PDF(인쇄 창)·AES-GCM 암호화 `.bzchat`로 내보내기
+  - 오프라인 보관함은 원래 순서를 지켜 전송하고, 일부 수신자에게만 성공한 쪽지는 성공 대상을 빼고 나머지만 재시도
+  - 공개 사이트를 `edutalk.cloud/breeze`와 `edutalk.cloud/breezecore`로 분리. 두 사이트 모두 Pretendard를 로컬에 포함하고, BreezeCore 소개 페이지는 실제 앱 화면·하늘색 팔레트·블루 틴트 흰 배경 사용
+  - 검증: `node onprem/test-cool.js` 21/21, `npx tsc --noEmit`, `npm run build`, Rust `cargo check` 통과
+
 - [ ] 관리자 감사 뷰 (서버 `audit_logs` 데이터 표시)
 - [ ] 숨김 상태 수신 알림: PC 알림(토스트) 연동 검토 (tray balloon/알림 플러그인)
 
@@ -107,7 +116,7 @@
 | --- | --- |
 | `onprem/` | 온프레미스 본서버 (Express + node:sqlite, `server.js`/`db.js`/`routes/notes.js`) |
 | `onprem/student/` | **현재 학생용 웹** — 서버가 `/student/`로 직접 서빙 (설치 불필요) |
-| `breezecore-site/` | **브리즈코어 소개 사이트** — 정적 HTML/CSS/JS, 외부 자산 없음 |
+| `breezecore-site/` | **브리즈코어 소개 사이트** — 정적 HTML/CSS/JS, 로컬 Pretendard·실제 앱 화면·사이트 관리자 포함 |
 | `edutalk-core/` | 교사용 클라이언트 (데스크톱 런타임 + React, 로컬 SQLite) |
 | `BreezeServer/` | 관리자 패널·배포(OTA) 도구 |
 | `onprem-electron/` | 온프레미스 데스크톱 관련 |
@@ -115,5 +124,19 @@
 | `public/` | 레거시 클라우드 학생 웹 (신규 온프레미스 학생 웹은 `onprem/student/`) |
 | `android/`, `ios/` | 모바일(Capacitor) |
 | `docs/` | 설계 문서 (NOTES_BACKEND_DESIGN, DESKTOP_ARCHITECTURE, SECURITY_AUDIT, BILLING, patterns) |
+
+## 5. 사이트 배포
+
+```bash
+npm run site:build   # hosting-dist/ 생성 (/breeze/ + /breezecore/)
+npm run site:deploy  # Hosting + Firestore 규칙 배포
+```
+
+- `https://edutalk.cloud/` → `/breeze/`로 이동
+- `https://edutalk.cloud/breeze/` → 브리즈 웹
+- `https://edutalk.cloud/breezecore/` → 브리즈코어 소개
+- `https://edutalk.cloud/breezecore/admin` → 사이트 문구·팝업 관리자
+
+생성 폴더 `hosting-dist/`와 Firebase 설정 파일은 저장소에 올리지 않습니다.
 
 > 레거시 공개 웹의 클라우드 웹 앱 설정은 `public/firebase-config.example.js`를 `public/firebase-config.js`로 복사해 채웁니다. 이 파일은 저장소에 올리지 않으며, 값이 없으면 공개 웹은 안내 화면을 보여 줍니다. 교사 앱은 같은 공개 식별자를 `edutalk-core/.env`의 `VITE_FIREBASE_PROJECT_ID`·`VITE_FIREBASE_API_KEY`로 주입합니다. 서비스 계정 키·토큰은 어느 클라이언트에도 두지 않습니다.

@@ -6,10 +6,13 @@
 
 - `index.html` — 메인 소개 페이지
 - `styles.css` — 자체 디자인 시스템, 반응형, 라이트/다크 테마
-- `app.js` — 스마트 배너, 하루 탭, FAQ, 정책 대화상자, 스크롤 모션
+- `admin.html` / `admin.js` / `admin.css` — 사이트 문구·팝업 관리자 (Firebase Auth 관리자 전용)
+- `site-config.js` — Firestore가 비어 있을 때 쓰는 기본 문구·팝업 설정
+- `breezecore-app.png` — 실제 브리즈코어 데스크톱 화면 (예시 이미지)
+- `fonts/PretendardVariable.woff2` — 로컬 Pretendard 폰트
 - `favicon.svg` — 직접 만든 브리즈코어 바람 마크
 
-외부 폰트·이미지·라이브러리를 쓰지 않아요. 인터넷이 없어도 파일만 열면 그대로 보여요.
+소개 페이지는 외부 폰트·이미지 CDN 없이 동작해요. 관리자 로그인만 Firebase Auth를 쓰므로 인터넷이 필요해요.
 
 ## 미리 보기
 
@@ -28,7 +31,9 @@ python3 -m http.server 5600
 - GitHub Pages / Netlify / Cloudflare Pages 같은 정적 호스팅
 - 교내 서버의 `/intro/` 같은 하위 경로
 
-하위 경로에 올릴 때는 `index.html`의 `styles.css`, `app.js`, `favicon.svg` 경로가 상대 경로라 그대로 동작해요.
+이 저장소에서는 Firebase Hosting의 `/breezecore/` 아래에 배포해요. 상위 폴더에서 `npm run site:build`를 실행하면 `hosting-dist/breezecore/`가 만들어지고, `npm run site:deploy`로 Hosting과 Firestore 규칙을 함께 올려요.
+
+하위 경로에 올릴 때는 `index.html`의 `styles.css`, `app.js`, `fonts/`, `favicon.svg` 경로가 상대 경로라 그대로 동작해요.
 
 ## 수정할 때
 

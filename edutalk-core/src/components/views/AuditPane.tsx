@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AuditLog } from "../../types";
+import { storageClearTemp, storageStats, storageVacuum } from "../../lib/repo";
+import type { StorageStats } from "../../lib/tauri";
 
 function loadFeedback(): { body: string; at: string }[] {
   try {
@@ -11,13 +13,20 @@ function loadFeedback(): { body: string; at: string }[] {
   }
 }
 
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let n = bytes;
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024;
+    i += 1;
+  }
+  return `${n >= 10 || i === 0 ? Math.round(n) : n.toFixed(1)} ${units[i]}`;
+}
+
 interface Props {
   logs: AuditLog[];
-  cacheUsed: number;
-  cacheTotal: number;
-  autoPurge: boolean;
-  onPurge: () => void;
-  onTogglePurge: () => void;
   onReport: () => void;
   onToast: (t: string) => void;
 }
@@ -27,7 +36,62 @@ export default function AuditPane(p: Props) {
   const [showFb, setShowFb] = useState(false);
   const feedbacks = useMemo(loadFeedback, [showFb]);
   const rows = p.logs.filter((l) => (filter === "all" ? true : l.kind === filter));
-  const pct = Math.round((p.cacheUsed / Math.max(1, p.cacheTotal)) * 100);
+
+  const [stats, setStats] = useState<StorageStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [busy, setBusy] = useState<"" | "clear" | "vacuum">("");
+
+  const refreshStats = useCallback(async () => {
+    setStatsLoading(true);
+    const next = await storageStats();
+    setStats(next);
+    setStatsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void refreshStats();
+  }, [refreshStats]);
+
+  const clearTemp = async () => {
+    if (busy) return;
+    setBusy("clear");
+    const r = await storageClearTemp();
+    setBusy("");
+    if (!r) {
+      p.onToast("설치판에서만 임시 파일을 비울 수 있어요.");
+      return;
+    }
+    setStats(r.stats);
+    p.onToast(
+      r.freedBytes > 0
+        ? `임시 파일을 비웠어요. ${formatBytes(r.freedBytes)}를 줄였어요.`
+        : "비울 임시 파일이 없어요."
+    );
+  };
+
+  const vacuumDb = async () => {
+    if (busy) return;
+    setBusy("vacuum");
+    const r = await storageVacuum();
+    setBusy("");
+    if (!r) {
+      p.onToast("설치판에서만 DB를 정리할 수 있어요.");
+      return;
+    }
+    setStats(r.stats);
+    p.onToast(
+      r.freed_bytes > 0
+        ? `DB 정리를 마쳤어요. ${formatBytes(r.freed_bytes)}를 줄였어요.`
+        : "DB 정리를 마쳤어요. 줄일 빈 공간이 없었어요."
+    );
+  };
+
+  const diskPct = stats && stats.disk_total_bytes > 0
+    ? Math.min(100, Math.round((stats.disk_used_bytes / stats.disk_total_bytes) * 100))
+    : 0;
+  const cachePct = stats && stats.cache_quota_bytes > 0
+    ? Math.min(100, Math.round((stats.cache_bytes / stats.cache_quota_bytes) * 100))
+    : 0;
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
       <div className="edu-card p-3.5 anim-card">
@@ -62,18 +126,58 @@ export default function AuditPane(p: Props) {
         </div>
       </div>
       <div className="edu-card p-3.5 anim-card h-fit">
-        <div className="font-extrabold text-[15px]">저장소 정리</div>
-        <div className="mt-2 text-[13px] font-bold">
-          디스크 캐시 {p.cacheUsed.toFixed(1)}GB / {p.cacheTotal.toFixed(1)}GB ({pct}%)
+        <div className="flex items-center gap-2">
+          <div className="font-extrabold text-[15px]">저장소 정리</div>
+          <button className="ml-auto text-[11.5px] font-bold text-edu-strong hover:underline" onClick={() => void refreshStats()} disabled={statsLoading}>
+            {statsLoading ? "확인 중…" : "새로고침"}
+          </button>
         </div>
-        <div className="mt-1.5 h-2.5 rounded-full bg-edu-chip overflow-hidden">
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "linear-gradient(90deg,#0082C8,#0069A8)" }} />
-        </div>
-        <label className="mt-2.5 flex items-center gap-2 text-[13px] font-bold cursor-pointer">
-          <input type="checkbox" checked={p.autoPurge} onChange={p.onTogglePurge} className="w-4 h-4" />
-          30일 경과 자동 삭제 데몬 켜기
-        </label>
-        <button className="edu-btn w-full mt-2" onClick={p.onPurge}>지금 정리하기</button>
+        <div className="mt-1 text-[12.5px] text-edu-sub">이 PC에 실제로 저장된 크기예요.</div>
+
+        {stats ? (
+          <>
+            <div className="mt-3 flex items-end justify-between gap-2">
+              <div>
+                <div className="text-[12.5px] font-bold">로컬 DB</div>
+                <div className="text-[11px] text-edu-muted">breeze.db · WAL {formatBytes(stats.wal_bytes)}</div>
+              </div>
+              <div className="text-[14px] font-extrabold text-edu-ink">{formatBytes(stats.db_total_bytes)}</div>
+            </div>
+
+            <div className="mt-3">
+              <div className="flex justify-between text-[11.5px] text-edu-sub">
+                <span className="font-bold">디스크 사용</span>
+                <span>{formatBytes(stats.disk_used_bytes)} / {formatBytes(stats.disk_total_bytes)}</span>
+              </div>
+              <div className="mt-1 h-2.5 rounded-full bg-edu-chip overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${diskPct}%`, background: "linear-gradient(90deg,#0082C8,#0069A8)" }} />
+              </div>
+            </div>
+
+            <div className="mt-2.5">
+              <div className="flex justify-between text-[11.5px] text-edu-sub">
+                <span className="font-bold">임시 파일</span>
+                <span>{formatBytes(stats.cache_bytes)} / {formatBytes(stats.cache_quota_bytes)}</span>
+              </div>
+              <div className="mt-1 h-2.5 rounded-full bg-edu-chip overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${cachePct}%`, background: "linear-gradient(90deg,#0EA5E9,#0082C8)" }} />
+              </div>
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <button className="edu-ghost flex-1 !py-2 !text-[12px]" onClick={() => void clearTemp()} disabled={busy !== ""}>
+                {busy === "clear" ? "비우는 중…" : "임시 파일 비우기"}
+              </button>
+              <button className="edu-btn flex-1 !py-2 !text-[12px]" onClick={() => void vacuumDb()} disabled={busy !== ""}>
+                {busy === "vacuum" ? "정리 중…" : "수동 VACUUM 실행"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="mt-3 rounded-xl border border-edu-line bg-edu-chip/60 px-3 py-3 text-[12px] leading-relaxed text-edu-sub">
+            {statsLoading ? "저장소 정보를 불러오는 중…" : "설치판에서 실제 저장소 크기를 확인할 수 있어요."}
+          </div>
+        )}
       </div>
       <div className="edu-card p-3.5 anim-card h-fit">
         <div className="font-extrabold text-[15px]">✋ 10월 베타 의견 ({feedbacks.length})</div>

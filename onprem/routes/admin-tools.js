@@ -5,7 +5,7 @@
  *   GET  /api/admin/health              서버 상태(메모리·동시접속·DB 크기·백업 목록)
  *   GET  /api/admin/policies            정책 읽기
  *   PUT  /api/admin/policies            정책 저장(검증 포함, 즉시 반영)
- *   POST /api/admin/maintenance/purge   { years } 보존 연수 지난 쪽지·대화 정리
+ *   POST /api/admin/maintenance/purge   만료된 학생 미디어만 즉시 정리 (텍스트·교사 미디어는 보존)
  *   GET  /api/admin/audit/export        감사 리포트 .xlsx (접속·쪽지·파일·권한·공지)
  *   POST /api/admin/backup/run          지금 바로 백업
  *   GET  /api/admin/backups             백업 목록
@@ -13,7 +13,7 @@
 const express = require('express');
 const fs = require('fs');
 const XLSX = require('xlsx');
-const { DB_PATH, all, run, counts, purgeExpiredFiles } = require('../db');
+const { db, DB_PATH, all, run, counts, purgeExpiredFiles } = require('../db');
 const { getPolicies, setPolicies } = require('../policies');
 const { backupNow, listBackups, backupDir, KEEP } = require('../backup');
 
@@ -72,23 +72,22 @@ module.exports = function createAdminToolsRouter({ needAdmin, adminLimiter, purg
     res.json({ ok: true, policies: r.policies });
   });
 
-  /* ── ③ 데이터 정리 (새학기 클린업) ───────────────────────────── */
+  /* ── ③ 데이터 정리 (학생 미디어만) ────────────────────────────
+   * 텍스트(쪽지·대화)와 교사·교직원 미디어는 영구 보관이므로 이 경로에서 지우지 않는다.
+   * 만료된 학생 미디어의 실제 파일·DB 행만 정리하고, 남은 공간을 VACUUM으로 돌려준다. */
   router.post('/maintenance/purge', (req, res) => {
     try {
-      const years = Math.round(Number((req.body || {}).years || 0));
-      if (!(years >= 1 && years <= 30)) return res.status(400).json({ ok: false, error: '보존 연수는 1~30 사이로 넣어 주세요.' });
-      const mod = `-${years} years`;
-      const notes = run(`DELETE FROM notes WHERE created_at < datetime('now','localtime', ?)`, mod).changes || 0;
-      const messages = run(`DELETE FROM messages WHERE created_at < datetime('now','localtime', ?)`, mod).changes || 0;
-      const files = purgeFiles ? purgeFiles() : 0; // 만료(30일) 파일 정리도 함께
+      const files = purgeFiles ? purgeFiles() : 0;
       try { run(`UPDATE print_jobs SET content = '' WHERE content <> '' AND created_at < datetime('now','localtime','-1 day')`); } catch (e) { /* 인쇄 원문 정리 */ }
+      let vacuumed = false;
+      try { db.exec('VACUUM'); vacuumed = true; } catch (e) { /* 사용 중이면 다음에 */ }
       run(
         `INSERT INTO audit_logs (actor_id, actor_name, action, target_type, target_id, detail, ip)
          VALUES ('system', '관리자', 'maintenance_purge', 'settings', '', ?, ?)`,
-        JSON.stringify({ years, notes, messages, files }),
+        JSON.stringify({ files, vacuumed }),
         String((req.socket && req.socket.remoteAddress) || 'admin').replace(/^::ffff:/, '')
       );
-      res.json({ ok: true, years, deleted: { notes, messages, files } });
+      res.json({ ok: true, deleted: { files }, vacuumed });
     } catch (e) {
       res.status(500).json({ ok: false, error: '데이터 정리에 실패했어요.' });
     }

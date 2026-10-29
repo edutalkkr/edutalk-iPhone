@@ -111,10 +111,21 @@
             <input id="noteTitle" class="input" type="text" maxlength="200" placeholder="제목 (예: 수업 자료 질문)" />
             <label class="sr-only" for="noteBody">쪽지 내용</label>
             <textarea id="noteBody" class="input textarea" maxlength="20000" rows="4" placeholder="선생님께 궁금한 점을 적어 주세요."></textarea>
+            <div id="attachChip" class="attach-chip" hidden>
+              <span class="attach-ico" aria-hidden="true">📎</span>
+              <span class="attach-info">
+                <b id="attachName"></b>
+                <small id="attachMeta"></small>
+              </span>
+              <button id="attachRemove" class="attach-remove" type="button" aria-label="첨부 삭제">✕</button>
+            </div>
             <div class="compose-actions">
+              <input id="mediaInput" class="sr-only" type="file" accept="image/*,video/*,.pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" />
+              <button id="attachBtn" class="attach-btn" type="button" title="사진·파일 첨부" aria-label="사진·파일 첨부">📎</button>
               <span id="composeHint" class="muted">받는 사람: <b id="composeTo">-</b></span>
               <button id="sendBtn" class="btn primary" type="submit">보내기</button>
             </div>
+            <p class="compose-note">사진·파일은 전송 후 <b id="composeMediaDays">30</b>일 뒤 자동으로 삭제돼요. 글은 그대로 남아요.</p>
           </form>
         </section>
       </main>
@@ -143,6 +154,27 @@
         <button id="pwSave" class="btn primary" type="submit">변경</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="mediaWarnDialog" class="media-dialog" aria-labelledby="mediaWarnTitle">
+    <div class="media-warn">
+      <div class="media-warn-ico" aria-hidden="true">📌</div>
+      <h2 id="mediaWarnTitle">파일 전송 안내</h2>
+      <p>학생이 보낸 사진·동영상·파일은 <b>전송 후 <span id="mediaWarnDays">30</span>일 뒤</b> 서버에서 자동으로 삭제돼요.</p>
+      <ul>
+        <li>쪽지 글과 선생님이 보내 주신 자료는 삭제되지 않아요.</li>
+        <li><span id="mediaWarnDaysAgain">30</span>일이 지나면 다시 내려받을 수 없어요.</li>
+        <li>필요한 파일은 미리 저장해 두세요.</li>
+      </ul>
+      <label class="warn-hide">
+        <input id="mediaHideToday" type="checkbox" />
+        <span>오늘 하루 이 창을 열지 않음</span>
+      </label>
+      <div class="media-warn-actions">
+        <button id="mediaCancel" class="btn ghost" type="button">취소</button>
+        <button id="mediaSend" class="btn primary" type="button">전송하기</button>
+      </div>
+    </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

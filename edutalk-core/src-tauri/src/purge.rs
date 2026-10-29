@@ -124,6 +124,34 @@ pub fn purge_dir(dir: &std::path::Path) -> Result<PurgeResult, String> {
     })
 }
 
+/// 사용자가 [임시 파일 비우기]를 눌렀을 때: 나이와 상관없이 임시 폴더를 완전히 비운다.
+pub fn clear_all(dir: &std::path::Path) -> Result<(usize, u64), String> {
+    fn walk(path: &std::path::Path, count: &mut usize, freed: &mut u64) {
+        let entries = match std::fs::read_dir(path) {
+            Ok(v) => v,
+            Err(_) => return,
+        };
+        for entry in entries.flatten() {
+            let p = entry.path();
+            let meta = match entry.metadata() {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            if meta.is_dir() {
+                walk(&p, count, freed);
+                let _ = std::fs::remove_dir(&p);
+            } else if std::fs::remove_file(&p).is_ok() {
+                *count += 1;
+                *freed = freed.saturating_add(meta.len());
+            }
+        }
+    }
+    let mut count = 0usize;
+    let mut freed = 0u64;
+    walk(dir, &mut count, &mut freed);
+    Ok((count, freed))
+}
+
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct PurgeResult {
     pub deleted_expired: usize,

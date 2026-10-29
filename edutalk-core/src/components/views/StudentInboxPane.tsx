@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../services/api";
 import { startNotesRealtime } from "../../services/notes";
+import { downloadBlob } from "../../lib/fileStore";
 import NoteComposer from "../NoteComposer";
 import type { NoteInboxItem, NoteSentItem } from "../../types/api";
 
@@ -127,6 +128,15 @@ export default function StudentInboxPane({ onToast, onUnreadChange, onNeedLogin 
     setReplyKey(Date.now());
     setReplyOpen(true);
   };
+
+  const downloadAttachment = useCallback(async (fileId: number, name: string) => {
+    try {
+      const blob = await api.downloadFile(fileId);
+      downloadBlob(name || "첨부파일", blob);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "파일을 내려받지 못했어요.", "error");
+    }
+  }, [toast]);
 
   return (
     <div className="space-y-3">
@@ -260,6 +270,24 @@ export default function StudentInboxPane({ onToast, onUnreadChange, onNeedLogin 
                       </div>
                       <h3 className="mb-1 text-[13px] font-bold text-[var(--bz-text)]">{n.title || "(제목 없음)"}</h3>
                       <pre className="whitespace-pre-wrap break-words font-[inherit] text-[12.5px] leading-relaxed text-[var(--bz-text)]">{n.content}</pre>
+                      {n.file_id ? (
+                        <div className="mt-2 flex items-center gap-2 rounded-[10px] border border-[#D7E8F4] bg-[#F8FCFF] px-2.5 py-2">
+                          <span aria-hidden="true">📎</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[11.5px] font-bold text-[var(--bz-text)]">{n.file_name || "첨부 파일"}</div>
+                            <div className="text-[10px] text-[var(--bz-muted)]">
+                              {n.file_expires_at ? `${String(n.file_expires_at).slice(0, 10)}까지 보관` : "영구 보관"}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="bz-btn-soft !py-1 !text-[10.5px]"
+                            onClick={() => void downloadAttachment(Number(n.file_id), n.file_name || "첨부파일")}
+                          >
+                            내려받기
+                          </button>
+                        </div>
+                      ) : null}
                       {incoming && (
                         <div className="mt-2 flex justify-end">
                           <button

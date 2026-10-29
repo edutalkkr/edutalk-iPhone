@@ -6,6 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "echo \"web build is static public/ folder\"",
+    "site:build": "node scripts/sync-sites.mjs",
+    "site:emulate": "node scripts/sync-sites.mjs && npx --yes firebase-tools@latest emulators:start --only hosting",
+    "site:deploy": "npx --yes firebase-tools@latest deploy --only hosting,firestore:rules",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap add ios && npx cap sync ios",
     "cap:android": "npx cap add android && npx cap sync android",

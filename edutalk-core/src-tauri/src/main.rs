@@ -63,6 +63,115 @@ struct Core {
     usb_last: Mutex<Vec<String>>,
 }
 
+/// 파일/폴더가 실제로 차지하는 바이트 (임시 저장소 화면용)
+fn path_bytes(path: &std::path::Path) -> u64 {
+    let meta = match std::fs::metadata(path) {
+        Ok(m) => m,
+        Err(_) => return 0,
+    };
+    if meta.is_file() {
+        return meta.len();
+    }
+    let mut total = 0u64;
+    if let Ok(entries) = std::fs::read_dir(path) {
+        for entry in entries.flatten() {
+            total = total.saturating_add(path_bytes(&entry.path()));
+        }
+    }
+    total
+}
+
+fn storage_snapshot(app: &AppHandle) -> Result<serde_json::Value, String> {
+    let data_dir = resolve_data_dir(app);
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| e.to_string())?
+        .join("recv-tmp");
+    let _ = std::fs::create_dir_all(&cache_dir);
+    let db_main = data_dir.join("breeze.db");
+    let db_wal = data_dir.join("breeze.db-wal");
+    let db_main_bytes = path_bytes(&db_main);
+    let db_wal_bytes = path_bytes(&db_wal);
+
+    // 데이터 폴더가 올라가 있는 디스크의 실제 여유 공간을 찾는다.
+    use sysinfo::Disks;
+    let disks = Disks::new_with_refreshed_list();
+    let root = data_dir.canonicalize().unwrap_or_else(|_| data_dir.clone());
+    let mut picked: Option<(&std::path::Path, u64, u64)> = None;
+    for disk in disks.list() {
+        let mount = disk.mount_point();
+        if root.starts_with(mount) {
+            let better = picked
+                .map(|(old, _, _)| mount.as_os_str().len() > old.as_os_str().len())
+                .unwrap_or(true);
+            if better {
+                picked = Some((mount, disk.total_space(), disk.available_space()));
+            }
+        }
+    }
+    let (disk_total, disk_free) = picked
+        .map(|(_, total, free)| (total, free))
+        .unwrap_or((0, 0));
+
+    Ok(serde_json::json!({
+        "data_dir": data_dir.to_string_lossy(),
+        "db_path": db_main.to_string_lossy(),
+        "db_bytes": db_main_bytes,
+        "wal_bytes": db_wal_bytes,
+        "db_total_bytes": db_main_bytes.saturating_add(db_wal_bytes),
+        "cache_dir": cache_dir.to_string_lossy(),
+        "cache_bytes": path_bytes(&cache_dir),
+        "cache_quota_bytes": purge::QUOTA_BYTES,
+        "disk_total_bytes": disk_total,
+        "disk_free_bytes": disk_free,
+        "disk_used_bytes": disk_total.saturating_sub(disk_free),
+    }))
+}
+
+#[tauri::command]
+fn storage_stats(app: AppHandle) -> Result<serde_json::Value, String> {
+    storage_snapshot(&app)
+}
+
+#[tauri::command]
+fn storage_clear_temp(app: AppHandle) -> Result<serde_json::Value, String> {
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| e.to_string())?
+        .join("recv-tmp");
+    std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
+    let (deleted, freed) = purge::clear_all(&cache_dir)?;
+    let stats = storage_snapshot(&app)?;
+    Ok(serde_json::json!({ "deleted_files": deleted, "freed_bytes": freed, "stats": stats }))
+}
+
+#[tauri::command]
+fn db_vacuum(core: State<'_, Core>, app: AppHandle) -> Result<serde_json::Value, String> {
+    let before = storage_snapshot(&app)?;
+    let before_bytes = before["db_total_bytes"].as_u64().unwrap_or(0);
+    core.db.vacuum()?;
+    let stats = storage_snapshot(&app)?;
+    let after_bytes = stats["db_total_bytes"].as_u64().unwrap_or(0);
+    Ok(serde_json::json!({
+        "before_bytes": before_bytes,
+        "after_bytes": after_bytes,
+        "freed_bytes": before_bytes.saturating_sub(after_bytes),
+        "stats": stats
+    }))
+}
+
+/// 사용자가 고른 경로에 내보내기 파일을 쓴다 (대화 TXT·암호화 파일).
+#[tauri::command]
+fn export_write(path: String, content: String) -> Result<(), String> {
+    let p = std::path::Path::new(&path);
+    if let Some(dir) = p.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(p, content).map_err(|e| e.to_string())
+}
+
 // ---------- 그물 모드 ----------
 
 #[tauri::command]
@@ -1096,12 +1205,31 @@ fn main() {
     // P2P 수신함: 받은 프레임은 DB에 넣고 화면에 알린다.
     let (inbox_tx, mut inbox_rx) = tokio::sync::mpsc::unbounded_channel::<DirectFrame>();
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
             // 저장 폴더: 기본은 사용자 데이터 폴더, portable.txt/BREEZE_DATA_DIR 이 있으면 설치 폴더 기준
             let dir = resolve_data_dir(app.handle());
-            let db = Db::open(&dir.join("edutalk.db")).expect("db open");
+            // 예전 이름(edutalk.db)을 쓰던 PC도 데이터를 잃지 않도록 breeze.db로 한 번 옮긴다.
+            // 옮기지 못하면 빈 DB를 새로 만들지 않고 예전 파일을 그대로 연다.
+            let mut db_path = dir.join("breeze.db");
+            let legacy_db = dir.join("edutalk.db");
+            if !db_path.exists() && legacy_db.exists() {
+                if std::fs::rename(&legacy_db, &db_path).is_ok() {
+                    for suffix in ["-wal", "-shm"] {
+                        let old = dir.join(format!("edutalk.db{suffix}"));
+                        let new = dir.join(format!("breeze.db{suffix}"));
+                        if old.exists() {
+                            let _ = std::fs::rename(old, new);
+                        }
+                    }
+                } else {
+                    db_path = legacy_db;
+                }
+            }
+            let db = Db::open(&db_path).expect("db open");
+            // 시작할 때 한 번 VACUUM — 지난 실행에서 남은 빈 페이지를 정리한다.
+            let _ = db.vacuum();
             // 내 PC 정보 (처음 실행 때 만든다)
             let node_id = {
                 let f = dir.join("node-id.txt");
@@ -1207,6 +1335,10 @@ fn main() {
             ram_get,
             ram_free,
             purge_run,
+            storage_stats,
+            storage_clear_temp,
+            db_vacuum,
+            export_write,
             p2p_send,
             firewall_register,
             srv_login,
@@ -1262,8 +1394,15 @@ fn main() {
             layout_apply,
             place_popup,
         ])
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("브리즈 실행 실패");
+    app.run(|app_handle, event| {
+        // 트레이에서 종료할 때도 DB 빈 페이지를 정리해 파일을 작게 유지한다.
+        if let tauri::RunEvent::Exit = event {
+            let core: State<'_, Core> = app_handle.state();
+            let _ = core.db.vacuum();
+        }
+    });
 }
 
 async fn handle_p2p_frame(app: &AppHandle, frame: DirectFrame) {

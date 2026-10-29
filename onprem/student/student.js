@@ -22,7 +22,14 @@
     toastTimer: null,
     refreshing: false,
     lastAutoRead: 0,
+    pendingFile: null,
+    uploadedFileId: 0,
+    pendingSend: null,
+    mediaDays: 30,
   };
+
+  const MEDIA_WARN_KEY = 'breeze.student.mediaWarnHidden';
+  const MEDIA_MAX_BYTES = 100 * 1024 * 1024;
 
   /* ---------- 공통 ---------- */
   const el = (tag, className, text) => {
@@ -95,10 +102,128 @@
 
   const setComposeBusy = (busy) => {
     const btn = $('sendBtn');
-    if (!btn) return;
-    btn.disabled = busy;
-    btn.textContent = busy ? '보내는 중…' : '보내기';
+    if (btn) {
+      btn.disabled = busy;
+      btn.textContent = busy ? '보내는 중…' : '보내기';
+    }
+    const attach = $('attachBtn');
+    if (attach) attach.disabled = busy;
   };
+
+  /* ---------- 사진·파일 첨부 ---------- */
+  const formatBytes = (n) => {
+    const v = Number(n) || 0;
+    if (v < 1024) return `${v}B`;
+    if (v < 1024 * 1024) return `${(v / 1024).toFixed(1)}KB`;
+    return `${(v / (1024 * 1024)).toFixed(1)}MB`;
+  };
+  const todayKey = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const mediaWarnHiddenToday = () => {
+    try { return localStorage.getItem(MEDIA_WARN_KEY) === todayKey(); } catch { return false; }
+  };
+  const hideMediaWarnToday = () => {
+    try { localStorage.setItem(MEDIA_WARN_KEY, todayKey()); } catch { /* 저장소 차단 */ }
+  };
+  const updateMediaDaysText = () => {
+    const days = Math.max(1, Number(state.mediaDays) || 30);
+    const a = $('composeMediaDays');
+    const b = $('mediaWarnDays');
+    const c = $('mediaWarnDaysAgain');
+    if (a) a.textContent = String(days);
+    if (b) b.textContent = String(days);
+    if (c) c.textContent = String(days);
+  };
+
+  function renderAttachmentChip() {
+    const chip = $('attachChip');
+    if (!chip) return;
+    const f = state.pendingFile;
+    if (!f) { chip.hidden = true; return; }
+    chip.hidden = false;
+    const name = $('attachName');
+    const meta = $('attachMeta');
+    if (name) name.textContent = f.name || '파일';
+    if (meta) meta.textContent = `${formatBytes(f.size)} · 전송 후 ${state.mediaDays}일 뒤 자동 삭제`;
+  }
+
+  function setPendingFile(file) {
+    if (!file) {
+      state.pendingFile = null;
+      state.uploadedFileId = 0;
+      renderAttachmentChip();
+      return;
+    }
+    if (file.size > MEDIA_MAX_BYTES) {
+      toast('파일은 100MB까지 올릴 수 있어요.', 'error');
+      return;
+    }
+    if (!file.size) {
+      toast('빈 파일은 보낼 수 없어요.', 'error');
+      return;
+    }
+    state.pendingFile = file;
+    state.uploadedFileId = 0;
+    renderAttachmentChip();
+  }
+
+  /* XHR을 쓰는 이유: 큰 사진·동영상도 전송 진행률을 보여 주기 위해서. */
+  function uploadStudentMedia(file, onProgress) {
+    return new Promise((resolve) => {
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/student/media', true);
+        xhr.setRequestHeader('Accept', 'application/json');
+        if (state.token) xhr.setRequestHeader('Authorization', `Bearer ${state.token}`);
+        xhr.upload.onprogress = (e) => {
+          if (!e.lengthComputable || typeof onProgress !== 'function') return;
+          onProgress(Math.max(1, Math.min(99, Math.round((e.loaded / e.total) * 100))));
+        };
+        xhr.onerror = () => resolve({ ok: false, status: 0, data: { ok: false, error: '파일을 올리지 못했어요. 네트워크를 확인해 주세요.' } });
+        xhr.onabort = () => resolve({ ok: false, status: 0, data: { ok: false, error: '파일 전송을 취소했어요.' } });
+        xhr.onload = () => {
+          let data = {};
+          try { data = JSON.parse(xhr.responseText || '{}'); } catch { /* JSON 아님 */ }
+          resolve({ ok: xhr.status >= 200 && xhr.status < 300 && data.ok !== false, status: xhr.status, data });
+        };
+        const form = new FormData();
+        form.append('file', file, file.name || '파일');
+        xhr.send(form);
+      } catch {
+        resolve({ ok: false, status: 0, data: { ok: false, error: '파일을 올리지 못했어요.' } });
+      }
+    });
+  }
+
+  function downloadFile(fileId, fileName, btn) {
+    if (!fileId) return;
+    if (btn) { btn.disabled = true; btn.textContent = '받는 중…'; }
+    fetch(`/api/files/${encodeURIComponent(fileId)}`, {
+      headers: state.token ? { Authorization: `Bearer ${state.token}` } : {},
+      credentials: 'same-origin',
+    }).then(async (res) => {
+      if (!res.ok) {
+        let msg = '파일을 내려받지 못했어요.';
+        try { const j = await res.json(); if (j && j.error) msg = j.error; } catch { /* 무시 */ }
+        toast(msg, 'error');
+        return null;
+      }
+      return res.blob();
+    }).then((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || '파일';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }).catch(() => toast('파일을 내려받지 못했어요.', 'error'))
+      .finally(() => { if (btn) { btn.disabled = false; btn.textContent = '내려받기'; } });
+  }
 
   /* ---------- API ---------- */
   async function request(path, opts = {}) {
@@ -136,11 +261,15 @@
     state.inbox = [];
     state.sent = [];
     state.selectedId = null;
+    state.pendingSend = null;
+    state.uploadedFileId = 0;
+    state.pendingFile = null;
     try { localStorage.removeItem(TOKEN_KEY); } catch { /* 저장소 차단 */ }
     document.title = '브리즈 학생 — 학교 안에서 안전하게';
     $('appView').hidden = true;
     $('loginView').hidden = false;
     $('password').value = '';
+    renderAttachmentChip();
     setLoginBusy(false);
     showLoginError(message || '');
   }
@@ -163,6 +292,8 @@
       code: String(res.data.schoolCode || '').trim(),
       name: String(res.data.schoolName || res.data.school || '').trim(),
     };
+    state.mediaDays = Math.max(1, Number(res.data.studentMediaDays) || 30);
+    updateMediaDaysText();
     const input = $('schoolCode');
     if (input && !input.value.trim() && state.school.code) input.value = state.school.code;
     const hint = $('schoolHint');
@@ -381,6 +512,20 @@
         card.appendChild(meta);
         card.appendChild(el('h3', 'msg-title', n.title || '(제목 없음)'));
         card.appendChild(el('pre', 'msg-body', n.content || ''));
+        if (n.file_id) {
+          const box = el('div', 'msg-file');
+          box.appendChild(el('span', 'file-ico', '📎'));
+          const info = el('span', 'file-info');
+          info.appendChild(el('b', '', n.file_name || '첨부 파일'));
+          const exp = n.file_expires_at ? ` · ${String(n.file_expires_at).slice(0, 10)}까지 보관` : '';
+          info.appendChild(el('small', '', `${formatBytes(n.file_size)}${exp}`));
+          box.appendChild(info);
+          const dl = el('button', '', '내려받기');
+          dl.type = 'button';
+          dl.addEventListener('click', () => downloadFile(n.file_id, n.file_name, dl));
+          box.appendChild(dl);
+          card.appendChild(box);
+        }
         row.appendChild(card);
         list.appendChild(row);
       }
@@ -415,6 +560,16 @@
   }
 
   /* ---------- 쪽지 보내기 ---------- */
+  function openMediaWarning(payload) {
+    state.pendingSend = payload;
+    updateMediaDaysText();
+    const hide = $('mediaHideToday');
+    if (hide) hide.checked = false;
+    const dlg = $('mediaWarnDialog');
+    if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+    else void sendPendingNote(true);
+  }
+
   async function onComposeSubmit(ev) {
     ev.preventDefault();
     const id = Number(state.selectedId || 0);
@@ -424,27 +579,68 @@
     const bodyInput = $('noteBody');
     const title = String(titleInput.value || '').trim() || '질문';
     const content = String(bodyInput.value || '').trim();
-    if (!content) {
-      toast('쪽지 내용을 입력해 주세요.', 'error');
+    if (!content && !state.pendingFile) {
+      toast('쪽지 내용을 입력하거나 사진·파일을 골라 주세요.', 'error');
       bodyInput.focus();
       return;
     }
     if (title.length > 200) return toast('제목이 너무 길어요.', 'error');
     if (content.length > 20000) return toast('내용이 너무 길어요.', 'error');
 
+    const payload = { teacherId: id, title, content };
+    /* 파일을 처음 보내는 학생에게만, 전송 직전 한 번 안내한다. */
+    if (state.pendingFile && !mediaWarnHiddenToday()) {
+      openMediaWarning(payload);
+      return;
+    }
+    await sendPendingNote(true, payload);
+  }
+
+  async function sendPendingNote(skipWarning, preset) {
+    const id = Number((preset && preset.teacherId) || state.selectedId || 0);
+    const teacher = state.teachers.find((t) => Number(t.id) === id);
+    if (!teacher) return toast('먼저 선생님을 선택해 주세요.', 'error');
+    const titleInput = $('noteTitle');
+    const bodyInput = $('noteBody');
+    const title = String((preset && preset.title) || titleInput.value || '').trim() || '질문';
+    const content = String((preset && preset.content) || bodyInput.value || '').trim();
+    if (!content && !state.pendingFile) return toast('쪽지 내용을 입력하거나 사진·파일을 골라 주세요.', 'error');
+    if (!skipWarning && state.pendingFile && !mediaWarnHiddenToday()) {
+      openMediaWarning({ teacherId: id, title, content });
+      return;
+    }
+
     setComposeBusy(true);
     try {
+      let fileId = Number(state.uploadedFileId) || 0;
+      if (state.pendingFile && !fileId) {
+        const progress = $('attachMeta');
+        if (progress) progress.textContent = '올리는 중… 0%';
+        const up = await uploadStudentMedia(state.pendingFile, (pct) => {
+          if (progress) progress.textContent = `올리는 중… ${pct}%`;
+        });
+        if (!state.token) return;
+        if (!up.ok || !up.data || !up.data.fileId) {
+          if (progress) progress.textContent = `${formatBytes(state.pendingFile.size)} · 전송 후 ${state.mediaDays}일 뒤 자동 삭제`;
+          toast((up.data && up.data.error) || '파일을 올리지 못했어요.', 'error');
+          return;
+        }
+        fileId = Number(up.data.fileId);
+        state.uploadedFileId = fileId;
+      }
+
       const clientNoteId = `stu-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      const res = await request('/api/notes/send', {
-        method: 'POST',
-        body: { title, content, recipientIds: [id], clientNoteId },
-      });
+      const body = { title, content, recipientIds: [id], clientNoteId };
+      if (fileId) body.fileId = fileId;
+      const res = await request('/api/notes/send', { method: 'POST', body });
       if (!res.ok) {
+        /* 업로드까지 끝난 파일은 다시 올리지 않고, 쪽지만 다시 보낼 수 있게 둔다. */
         toast(res.data.error || '쪽지를 보내지 못했어요.', 'error');
         return;
       }
       titleInput.value = '질문';
       bodyInput.value = '';
+      setPendingFile(null);
       toast(`${teacher.real_name || '선생님'} 선생님께 쪽지를 보냈어요.`, 'success');
       const [sRes, iRes] = await Promise.all([
         request('/api/notes/sent?limit=50'),
@@ -633,6 +829,43 @@
   function bind() {
     $('loginForm').addEventListener('submit', onLoginSubmit);
     $('composeForm').addEventListener('submit', onComposeSubmit);
+    $('attachBtn').addEventListener('click', () => $('mediaInput').click());
+    $('mediaInput').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (file) setPendingFile(file);
+    });
+    $('attachRemove').addEventListener('click', () => setPendingFile(null));
+    const dropzone = $('composeForm');
+    ['dragenter', 'dragover'].forEach((ev) => dropzone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dragover');
+    }));
+    ['dragleave', 'dragend'].forEach((ev) => dropzone.addEventListener(ev, (e) => {
+      if (e.target !== dropzone) return;
+      dropzone.classList.remove('dragover');
+    }));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dragover');
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) setPendingFile(file);
+    });
+    $('mediaCancel').addEventListener('click', () => {
+      state.pendingSend = null;
+      $('mediaWarnDialog').close();
+    });
+    $('mediaSend').addEventListener('click', () => {
+      const hide = $('mediaHideToday');
+      if (hide && hide.checked) hideMediaWarnToday();
+      const payload = state.pendingSend;
+      state.pendingSend = null;
+      $('mediaWarnDialog').close();
+      void sendPendingNote(true, payload);
+    });
+    $('mediaWarnDialog').addEventListener('cancel', () => { state.pendingSend = null; });
     $('logoutBtn').addEventListener('click', () => { void doLogout(); });
     $('notifyBtn').addEventListener('click', () => { void askNotify(); });
     $('refreshBtn').addEventListener('click', () => { void refreshData(false).then(() => renderThread(true)); });

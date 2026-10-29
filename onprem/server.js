@@ -106,6 +106,12 @@ function localTs(d) {
   return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
 }
 function uuid() { return crypto.randomUUID(); }
+/* 학생 미디어만 만료일을 준다. 교사·교직원 미디어는 ''(영구 보관). */
+function expiryForRole(role) {
+  if (String(role || '').toUpperCase() !== 'STUDENT') return '';
+  const days = Math.max(30, Math.round(getPolicyNumber('studentMediaDays') || 30));
+  return localTs(new Date(Date.now() + days * 86400000));
+}
 function memberIdsOf(roomRow) {
   try { const a = JSON.parse(roomRow.member_ids || '[]'); return Array.isArray(a) ? a.map(Number) : []; } catch (e) { return []; }
 }
@@ -429,6 +435,7 @@ app.get('/api/public-info', (req, res) => {
       schoolCode: school.code,
       schoolName: school.name || lic.school || '',
       schoolConfigured: !school.generated,
+      studentMediaDays: Math.max(1, Math.round(getPolicyNumber('studentMediaDays') || 30)),
       version: '1.0.0',
       now: localTs(new Date()),
     });
@@ -770,19 +777,70 @@ app.post('/api/upload', needAuth, needStaff, async (req, res) => {
     try { fs.renameSync(f.filepath, path.join(UPLOAD_DIR, stored)); } catch (e) {
       return res.status(500).json({ ok: false, error: '파일을 저장하지 못했어요.' });
     }
-    const expires = localTs(new Date(Date.now() + 30 * 86400000));
-    const r = run('INSERT INTO files (message_id, original_name, stored_filename, file_size, expires_at) VALUES (NULL, ?, ?, ?, ?)',
-      f.originalFilename || '파일', stored, f.size || 0, expires);
+    /* 교사·교직원 파일은 영구 보관한다. (학생 미디어만 아래 별도 API에서 만료일을 준다) */
+    const r = run('INSERT INTO files (message_id, original_name, stored_filename, file_size, expires_at, owner_id, owner_role) VALUES (NULL, ?, ?, ?, ?, ?, ?)',
+      f.originalFilename || '파일', stored, f.size || 0, '', req.user.id, String(req.user.role || '').toUpperCase());
+    res.json({ ok: true, fileId: Number(r.lastInsertRowid), stored_filename: stored, expires_at: '' });
+  } catch (e) { res.status(500).json({ ok: false, error: '파일을 올리지 못했어요.' }); }
+  finally { try { if (f && f.filepath && fs.existsSync(f.filepath)) fs.unlinkSync(f.filepath); } catch (e) {} }
+});
+
+/* 학생이 쪽지에 첨부할 사진·동영상·파일. 30일 뒤 물리 파일과 DB 행을 함께 지운다. */
+app.post('/api/student/media', needAuth, async (req, res) => {
+  let parsed = null;
+  try {
+    if (String(req.user.role || '').toUpperCase() !== 'STUDENT') {
+      return res.status(403).json({ ok: false, error: '학생 계정에서만 쓸 수 있는 첨부예요.' });
+    }
+    const capMB = Math.max(1, Math.round(getPolicyNumber('uploadMaxMB') || 100));
+    parsed = await parseMultipart(req, capMB * 1024 * 1024);
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: '파일을 읽지 못했어요. 용량을 확인해 주세요.' });
+  }
+  const f = parsed.file;
+  try {
+    if (!f || !f.filepath) return res.status(400).json({ ok: false, error: '파일을 골라 주세요.' });
+    const ext = path.extname(f.originalFilename || '').slice(0, 12).toLowerCase();
+    if (process.env.EDUTALK_ALLOW_EXECUTABLES !== '1') {
+      const BLOCKED = new Set(['.exe', '.msi', '.bat', '.cmd', '.ps1', '.js', '.jse', '.vbs', '.vbe', '.scr', '.com', '.pif', '.jar', '.dll']);
+      if (BLOCKED.has(ext)) return res.status(400).json({ ok: false, error: '보안상 실행 파일은 올릴 수 없어요.' });
+    }
+    const stored = uuid() + ext;
+    try { fs.renameSync(f.filepath, path.join(UPLOAD_DIR, stored)); } catch (e) {
+      return res.status(500).json({ ok: false, error: '파일을 저장하지 못했어요.' });
+    }
+    const expires = expiryForRole('STUDENT');
+    const r = run('INSERT INTO files (message_id, original_name, stored_filename, file_size, expires_at, owner_id, owner_role) VALUES (NULL, ?, ?, ?, ?, ?, ?)',
+      f.originalFilename || '파일', stored, f.size || 0, expires, req.user.id, 'STUDENT');
     res.json({ ok: true, fileId: Number(r.lastInsertRowid), stored_filename: stored, expires_at: expires });
   } catch (e) { res.status(500).json({ ok: false, error: '파일을 올리지 못했어요.' }); }
   finally { try { if (f && f.filepath && fs.existsSync(f.filepath)) fs.unlinkSync(f.filepath); } catch (e) {} }
 });
 
-app.get('/api/files/:id', needAuth, needStaff, (req, res) => {
+/* 파일 내려받기 — 올린 사람, 쪽지 발신자·수신자, 같은 방 참여자만.
+ * 만료일이 있는 파일(학생 미디어)만 기한을 검사한다. 교사 미디어('')는 영구 보관. */
+app.get('/api/files/:id', needAuth, (req, res) => {
   try {
     const f = row('SELECT * FROM files WHERE id = ?', Number(req.params.id));
     if (!f) return res.status(404).json({ ok: false, error: '파일을 찾지 못했어요.' });
-    if (String(f.expires_at) < localTs(new Date())) return res.status(410).json({ ok: false, error: '보관 기한이 지난 파일이에요.' });
+    const role = String(req.user.role || '').toUpperCase();
+    const uid = Number(req.user.id);
+    let allowed = role !== 'STUDENT' || Number(f.owner_id) === uid;
+    if (!allowed && f.note_id) {
+      const note = row('SELECT id, sender_id FROM notes WHERE id = ?', Number(f.note_id));
+      if (note) {
+        allowed = Number(note.sender_id) === uid || !!row('SELECT 1 FROM note_recipients WHERE note_id = ? AND recipient_id = ? LIMIT 1', Number(f.note_id), uid);
+      }
+    }
+    if (!allowed && f.message_id) {
+      const msg = row('SELECT room_id FROM messages WHERE id = ?', Number(f.message_id));
+      const room = msg ? row('SELECT * FROM rooms WHERE id = ?', Number(msg.room_id)) : null;
+      allowed = !!room && isMember(room, uid);
+    }
+    if (!allowed) return res.status(403).json({ ok: false, error: '이 파일을 볼 수 없어요.' });
+    if (f.expires_at && String(f.expires_at) <= localTs(new Date())) {
+      return res.status(410).json({ ok: false, error: '보관 기간이 지나 자동으로 삭제된 파일이에요.' });
+    }
     const p = path.join(UPLOAD_DIR, path.basename(f.stored_filename));
     if (!fs.existsSync(p)) return res.status(404).json({ ok: false, error: '파일이 없어요.' });
     res.download(p, f.original_name || '파일');
@@ -1300,24 +1358,18 @@ io.on('connection', (socket) => {
   });
 });
 
-/* ---------- 30일 만료 배치 ---------- */
+/* ---------- 매일 00:00 학생 미디어 만료 배치 ----------
+ *  · 텍스트(쪽지·대화)는 절대 삭제하지 않는다.
+ *  · 교사·교직원이 올린 사진·동영상·파일도 영구 보관한다.
+ *  · expires_at이 있는 학생 미디어만 실제 파일과 DB 행을 함께 지운다. */
 function runPurgeBatch() {
   try {
     const n = purgeExpiredFiles(UPLOAD_DIR);
     // 보안 인쇄: 하루 지난 대기열 원문 삭제 (개인정보 최소 보관 — 목록/메타는 남긴다)
     let p = 0;
     try { p = require('./routes/print').purgeOldPrintContent(); } catch (e) { /* 다음 날 */ }
-    // 관리자 정책: 보존 연수(retentionYears)가 설정된 경우 오래된 쪽지·대화 자동 정리
-    let m = 0, nt = 0;
-    try {
-      const years = Math.round(getPolicyNumber('retentionYears') || 0);
-      if (years >= 1) {
-        m = run(`DELETE FROM messages WHERE created_at < datetime('now','localtime', ?)`, `-${years} years`).changes || 0;
-        nt = run(`DELETE FROM notes WHERE created_at < datetime('now','localtime', ?)`, `-${years} years`).changes || 0;
-      }
-    } catch (e) { /* 다음 날 */ }
-    if (n || p || m || nt) {
-      console.log(`  ${CC.dim}🧹 정리 완료 — 만료 파일 ${n} · 인쇄 원문 ${p} · 대화 ${m} · 쪽지 ${nt} (${localTs(new Date())})${CC.x}`);
+    if (n || p) {
+      console.log(`  ${CC.dim}🧹 정리 완료 — 만료된 학생 미디어 ${n} · 인쇄 원문 ${p} (${localTs(new Date())})${CC.x}`);
     }
   } catch (e) { console.error('[purge] 실패:', e.message || e); }
 }

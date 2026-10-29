@@ -62,7 +62,6 @@ import {
   persistRead,
   persistSwapAccept,
   persistSwapRequest,
-  runPurge,
   rustEnabled,
   syncTimetable,
 } from "./lib/repo";
@@ -203,8 +202,6 @@ export default function App() {
   const [swaps, setSwaps] = useState<SwapRecord[]>([]);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [audits, setAudits] = useState<AuditLog[]>([]);
-  const [cacheUsed, setCacheUsed] = useState(0.2);
-  const [autoPurge, setAutoPurge] = useState(true);
 const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   // 로그인 상태: 팝업 창은 메인 창에서 열린 것이므로 바로 로그인된 상태로 시작한다.
   const [isLoggedIn, setIsLoggedIn] = useState(() => popupMode);
@@ -373,8 +370,6 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         storeGet<SwapRecord[]>("swaps"),
         storeGet<NoticeItem[]>("notices"),
         storeGet<AuditLog[]>("audits"),
-        storeGet<number>("cache"),
-        storeGet<boolean>("purge"),
         storeGet<boolean>("netauto"),
         // 관리자 데이터
         storeGet<AdminUser[]>("adminUsers"),
@@ -405,19 +400,17 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         setNotices(raw.map((n) => ({ ...n, scope: (n.scope ?? "all") as "all" | "dept", dept: n.dept ?? "" })));
       }
       if (got[14]) setAudits(got[14] as AuditLog[]);
-      if (got[15] != null) setCacheUsed(got[15] as number);
-      if (got[16] != null) setAutoPurge(got[16] as boolean);
-      if (got[17] != null) setNetAuto(got[17] as boolean);
+      if (got[15] != null) setNetAuto(got[15] as boolean);
       // 관리자 데이터
-      if (got[18]) setAdminUsers(got[18] as AdminUser[]);
-      if (got[19]) setAdminNotices(got[19] as AdminNotice[]);
-      if (got[20]) setAdminAudits(got[20] as AdminAuditLog[]);
-      if (got[21]) setTemplates(got[21] as TimetableTemplate[]);
-      if (got[22]) setGradeClasses(got[22] as GradeClass[]);
-      if (got[23]) setSchoolInfo(got[23] as School);
-      if (got[24]) setSchoolSettings(got[24] as SchoolSettings);
-      if (Array.isArray(got[25])) setHiddenTabs(got[25] as ActiveView[]);
-      if (Array.isArray(got[26])) setTabOrder(got[26] as ActiveView[]);
+      if (got[16]) setAdminUsers(got[16] as AdminUser[]);
+      if (got[17]) setAdminNotices(got[17] as AdminNotice[]);
+      if (got[18]) setAdminAudits(got[18] as AdminAuditLog[]);
+      if (got[19]) setTemplates(got[19] as TimetableTemplate[]);
+      if (got[20]) setGradeClasses(got[20] as GradeClass[]);
+      if (got[21]) setSchoolInfo(got[21] as School);
+      if (got[22]) setSchoolSettings(got[22] as SchoolSettings);
+      if (Array.isArray(got[23])) setHiddenTabs(got[23] as ActiveView[]);
+      if (Array.isArray(got[24])) setTabOrder(got[24] as ActiveView[]);
       const my = (got[6] as Teacher[] | null)?.find((t) => t.id === ME_ID);
       if (got[0] && my) syncMe(my.name);
       setBooted(true);
@@ -582,8 +575,6 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   useEffect(() => { if (booted) storeSet("swaps", swaps); }, [swaps, booted]);
   useEffect(() => { if (booted) storeSet("notices", notices); }, [notices, booted]);
   useEffect(() => { if (booted) storeSet("audits", audits); }, [audits, booted]);
-  useEffect(() => { if (booted) storeSet("cache", cacheUsed); }, [cacheUsed, booted]);
-  useEffect(() => { if (booted) storeSet("purge", autoPurge); }, [autoPurge, booted]);
   useEffect(() => { if (booted) storeSet("adminUsers", adminUsers); }, [adminUsers, booted]);
   useEffect(() => { if (booted) storeSet("adminNotices", adminNotices); }, [adminNotices, booted]);
   useEffect(() => { if (booted) storeSet("adminAudits", adminAudits); }, [adminAudits, booted]);
@@ -1583,49 +1574,70 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   // ── 오프라인 보관함 자동 전송 — 연결이 돌아오거나 교내 PC가 보이면 다시 보낸다 ──
   const flushingRef = useRef(false);
   useEffect(() => {
-    if (!netOnline || outboxItems.length === 0 || flushingRef.current) return;
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const items = outboxRef.current;
-        if (!items.length) return;
-        flushingRef.current = true;
-        const isPeerNow = (id: string) => peersRef.current.some((pc) => pc.node_id === id);
-        let sent = 0;
-        let kept = 0;
+    if (!netOnline || outboxItems.length === 0) return;
+    let stopped = false;
+
+    const flush = async () => {
+      if (stopped || flushingRef.current) return;
+      const items = outboxRef.current;
+      if (!items.length) return;
+      flushingRef.current = true;
+      const isPeerNow = (id: string) => peersRef.current.some((pc) => pc.node_id === id);
+      let sent = 0;
+      try {
+        // 보관함은 오래된 순서다. 보내지 못한 항목을 만나면 뒤 항목은 건드리지 않고 멈춘다.
+        // 이렇게 해야 연결이 돌아왔을 때 원래 순서대로 다시 전송된다.
         for (const it of items) {
-          if (!netOnlineRef.current) break; // 다시 끊기면 중단 — 다음 기회에
-          try {
-            if (it.kind === "memo" && it.memo) {
-              const alive = memosRef.current.find((m) => m.id === it.id && !m.recalledAt);
-              if (!alive) { await obDelete(it.id); continue; } // 회수·삭제된 쪽지는 보내지 않는다
-              const targets = it.memo.toIds.filter((uid2) => isPeerNow(uid2));
-              if (!targets.length) { kept++; continue; } // 상대 PC가 아직 안 보임 → 다음 기회에
-              let okAll = true;
-              for (const uid2 of targets) {
-                const ok = await transmit(uid2, "memo", it.memo.title, it.memo.body, it.id);
-                if (!ok) okAll = false;
-              }
-              if (okAll) { await obDelete(it.id); sent++; }
-              else { await obPut({ ...it, tries: it.tries + 1 }); kept++; }
-            } else if (it.kind === "chat" && it.chat) {
-              if (!isPeerNow(it.chat.peerId)) { kept++; continue; }
-              const ok = await transmit(it.chat.peerId, "quick", "", it.chat.body, it.id);
-              if (ok) { await obDelete(it.id); sent++; }
-              else { await obPut({ ...it, tries: it.tries + 1 }); kept++; }
-            } else {
-              await obDelete(it.id);
+          if (!netOnlineRef.current || stopped) break;
+          if (it.kind === "memo" && it.memo) {
+            const alive = memosRef.current.find((m) => m.id === it.id && !m.recalledAt);
+            if (!alive) { await obDelete(it.id); continue; } // 회수·삭제된 쪽지는 보내지 않는다
+            const targets = it.memo.toIds.filter((uid2) => isPeerNow(uid2));
+            if (!targets.length) break; // 상대 PC가 아직 안 보임 → 순서를 지켜 다음 기회에
+            const remaining: string[] = [];
+            for (const uid2 of targets) {
+              const ok = await transmit(uid2, "memo", it.memo.title, it.memo.body, it.id);
+              if (!ok) remaining.push(uid2);
             }
-          } catch {
-            kept++;
+            if (!remaining.length) {
+              await obDelete(it.id);
+              sent += 1;
+            } else {
+              // 일부에게 보냈으면 성공한 대상은 빼고 남은 대상만 다음에 재시도한다.
+              await obPut({ ...it, tries: it.tries + 1, memo: { ...it.memo, toIds: remaining } });
+              break;
+            }
+          } else if (it.kind === "chat" && it.chat) {
+            if (!isPeerNow(it.chat.peerId)) break;
+            const ok = await transmit(it.chat.peerId, "quick", "", it.chat.body, it.id);
+            if (!ok) {
+              await obPut({ ...it, tries: it.tries + 1 });
+              break;
+            }
+            await obDelete(it.id);
+            sent += 1;
+          } else {
+            await obDelete(it.id);
           }
         }
+      } catch {
+        // 예외가 나도 큐를 지우지 않는다. 20초 뒤 같은 순서로 다시 시도한다.
+      } finally {
         flushingRef.current = false;
-        refreshOutbox();
-        if (sent > 0) toastMain(`📤 오프라인 동안 보관한 ${sent}건을 자동으로 보냈어요.`);
-        else if (kept > 0 && netOnlineRef.current) toastMain(`오프라인 보관 ${kept}건은 상대 PC가 보이면 자동으로 다시 보내요.`);
-      })();
-    }, 2500);
-    return () => window.clearTimeout(timer);
+        if (!stopped) {
+          refreshOutbox();
+          if (sent > 0) toastMain(`📤 오프라인 동안 보관한 ${sent}건을 자동으로 보냈어요.`);
+        }
+      }
+    };
+
+    const first = window.setTimeout(() => void flush(), 2500);
+    const repeat = window.setInterval(() => void flush(), 20000);
+    return () => {
+      stopped = true;
+      window.clearTimeout(first);
+      window.clearInterval(repeat);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [netOnline, outboxItems.length, peers.length]);
 
@@ -2581,21 +2593,6 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
           {view === "audit" && (
             <AuditPane
               logs={audits}
-              cacheUsed={cacheUsed}
-              cacheTotal={3.0}
-              autoPurge={autoPurge}
-              onPurge={() => {
-                void runPurge().then((r) => {
-                  if (r) {
-                    setCacheUsed(0.05);
-                    toast(`정리했어요. ${r.freedMB.toFixed(1)}MB 비움 · 임시 ${r.totalMB.toFixed(1)}MB 남음`);
-                  } else {
-                    setCacheUsed(0.2);
-                    toast("캐시를 정리했어요.");
-                  }
-                });
-              }}
-              onTogglePurge={() => setAutoPurge((v) => !v)}
               onReport={() => void exportAuditReport(toast)}
               onToast={toast}
             />
