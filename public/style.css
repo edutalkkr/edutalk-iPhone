@@ -11,8 +11,13 @@
 }
 *{box-sizing:border-box;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 html,body,#app{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html{background:var(--bg)}
 /* 글자 크기 설정 — 화면 전체(모달·토스트 포함)를 같은 비율로 키운다. */
 body{--ui-eff:var(--ui-scale,1);background:var(--bg);color:var(--text);zoom:var(--ui-eff);width:calc(100% / var(--ui-eff));height:calc(100dvh / var(--ui-eff))}
+/* zoom을 지원하지 않는 브라우저에서는 100% 확대 그대로 두어 검은 여백·잘림이 생기지 않게 한다 */
+@supports not (zoom: 1){
+  body{width:100%;height:100dvh}
+}
 body>#app{width:100%;height:100%}
 /* 좁은 화면에서는 모달이 화면 밖으로 넘치지 않게 배율 상한을 둔다. */
 @media(max-width:820px){body{--ui-eff:min(var(--ui-scale,1),1.06)}}
@@ -1464,7 +1469,7 @@ html.dark .lock-screen.lock-warn .lock-card{border-color:#7A2E33}
 .settings-page{width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
 .settings-page .admin-body{flex:1;min-height:0;overflow:auto}
 .settings-page .admin-card{overflow:hidden}
-.settings-save-bar{position:sticky;bottom:0;flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px 12px;box-shadow:0 -8px 24px rgba(25,31,40,.06);z-index:6}
+.settings-save-bar{position:sticky;bottom:0;flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(25,31,40,.06);z-index:6}
 .settings-save-bar .admin-wrap{margin:0 auto}
 .settings-save-bar .primary{box-shadow:0 8px 20px rgba(0,130,200,.18)}
 html.dark .settings-save-bar{background:var(--surface);border-color:var(--line);box-shadow:0 -8px 24px rgba(0,0,0,.35)}
@@ -1555,6 +1560,16 @@ input, textarea, select{touch-action:manipulation}
 .cmd-empty{padding:24px;text-align:center;color:var(--sub);font-size:13px}
 html.dark .cmd-palette{background:rgba(0,0,0,.55)}
 html.dark .cmd-box{box-shadow:0 30px 80px rgba(0,0,0,.5)}
+@media(max-width:560px){
+  /* 모바일에서는 검색과 친구를 '갑자기 뜨는 팝업' 대신 아래에서 올라오는 시트로 보여 준다. */
+  .cmd-palette{align-items:flex-end;justify-content:stretch;padding:0}
+  .cmd-box{width:100%;border-radius:24px 24px 0 0;border-bottom:0;transform:translateY(34px);padding-bottom:env(safe-area-inset-bottom)}
+  .cmd-box::before{content:"";display:block;width:38px;height:4px;margin:9px auto 0;border-radius:999px;background:var(--line-strong);opacity:.65}
+  .cmd-palette.show .cmd-box{transform:none}
+  .cmd-list{max-height:min(58dvh,440px)}
+  .overlay.sheet-overlay{align-items:flex-end;padding:0}
+  .overlay.sheet-overlay .modal.friend-sheet{width:100%;max-width:100%;max-height:calc(100dvh - 28px);border-radius:24px 24px 0 0;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+}
 
 /* ---------- ?��? ?��? ?�약 ---------- */
 .unread-summary{margin:8px 12px 0;padding:10px 12px;border-radius:12px;background:var(--brand-soft);border:1px solid var(--brand-line);display:flex;align-items:center;gap:8px;font-size:13px;color:var(--brand-strong);cursor:pointer;transition:background .16s}
@@ -1581,7 +1596,7 @@ html.dark .unread-summary:hover{background:#1A2E4A}
 .breeze-tab .bt-ico{font-size:18px;line-height:1}
 .breeze-tab:active{transform:scale(.94)}
 .breeze-tab.on{color:var(--brand-strong);background:var(--brand-soft)}
-body.m-chat-open .breeze-tabbar{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(140%)}
+body.m-chat-open .breeze-tabbar,body.settings-open .breeze-tabbar,body.admin-open .breeze-tabbar{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(140%)}
 html.dark .breeze-tabbar{background:rgba(24,30,40,.72);border-color:rgba(255,255,255,.08);box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.06)}
 html.dark .breeze-tab.on{color:#fff;background:rgba(0,130,200,.28)}
 @media(prefers-reduced-motion:reduce){.breeze-tabbar{transition:none}.breeze-tab{transition:none}}

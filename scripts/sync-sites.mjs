@@ -21,6 +21,27 @@ fs.mkdirSync(out, { recursive: true });
 fs.cpSync(publicDir, path.join(out, "breeze"), { recursive: true });
 fs.cpSync(coreDir, path.join(out, "breezecore"), { recursive: true });
 
+// 사이트가 /breeze/·/breezecore/ 하위 경로에서 서빙되므로 상대 경로가 루트로 풀리지 않게
+// 생성본에만 <base>를 넣는다 (public/ 원본은 Capacitor 네이티브가 그대로 쓰므로 건드리지 않는다).
+function injectBase(dir, baseHref) {
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".html"));
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    let html = fs.readFileSync(filePath, "utf8");
+    const baseTag = `<base href="${baseHref}">`;
+    if (html.includes(baseTag)) continue;
+    // 이미 <base>가 있으면 그대로 둔다
+    if (/<base\b/i.test(html)) continue;
+    const headMatch = html.match(/<head[^>]*>/i);
+    if (!headMatch) continue;
+    const insertAt = headMatch.index + headMatch[0].length;
+    html = html.slice(0, insertAt) + "\n  " + baseTag + html.slice(insertAt);
+    fs.writeFileSync(filePath, html);
+  }
+}
+injectBase(path.join(out, "breeze"), "/breeze/");
+injectBase(path.join(out, "breezecore"), "/breezecore/");
+
 const firebaseConfig = path.join(publicDir, "firebase-config.js");
 const coreConfig = path.join(out, "breezecore", "firebase-config.js");
 if (fs.existsSync(firebaseConfig)) {

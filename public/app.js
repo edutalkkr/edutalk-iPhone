@@ -1656,7 +1656,9 @@
   }
 
   function applyFontSize() {
-    const scales={sm:0.92,md:1.06,lg:1.14,xl:1.22,xxl:1.32};
+    // 기본(md)은 화면을 확대하지 않는다. 예전에는 1.06배로 시작해서
+    // 모바일에서 화면이 6% 커져 잘리거나, 데스크탑 오른쪽에 빈 레터박스가 생겼다.
+    const scales={sm:0.94,md:1,lg:1.08,xl:1.16,xxl:1.24};
     const key=scales[state.settings.fontSize]?state.settings.fontSize:'md';
     document.body.classList.remove('font-sm','font-lg','font-xl','font-xxl');
     if(key!=='md') document.body.classList.add(`font-${key}`);
@@ -1899,10 +1901,13 @@
   }
   function openCmdPalette(){
     const wrap=ensureCmdPalette();
-    wrap.classList.add('show');
+    // 새로 만든 시트가 '튀어나오지' 않도록 한 프레임 뒤에 show를 붙인다.
+    wrap.classList.remove('show');
+    void wrap.offsetWidth;
+    requestAnimationFrame(()=>wrap.classList.add('show'));
     cmdPaletteOpen=true;
     const inp=document.getElementById('cmdInput');
-    if(inp){ inp.value=''; renderCmdList(''); setTimeout(()=>inp.focus(), 30); }
+    if(inp){ inp.value=''; renderCmdList(''); setTimeout(()=>{ try{ inp.focus({preventScroll:true}); }catch(_){ inp.focus(); } }, prefersReducedMotion()?30:150); }
     document.body.style.overflow='hidden';
   }
   function closeCmdPalette(){
@@ -2093,11 +2098,12 @@
     const cur=new Set(state.settings.mutedRooms||[]);
     const on=!cur.has(roomId);
     if(on) cur.add(roomId); else cur.delete(roomId);
-    state.settings.mutedRooms=[...cur];
+    state.settings.mutedRooms=Array.from(cur).filter(Boolean);
     const s={...(state.profile?.settings||{}),mutedRooms:state.settings.mutedRooms};
     if(state.profile) state.profile.settings=s;
-    try{ await db.collection('users').doc(uid()).update({settings:s,updatedAt:ts()}); }
-    catch(e){ console.error(e); return toast(errText(e)); }
+    try{
+      await db.collection('users').doc(uid()).update({settings:s,updatedAt:ts()});
+    }catch(e){ console.error(e); return toast(errText(e)); }
     toast(on?'이 채팅방 알림을 껐어요.':'이 채팅방 알림을 켰어요.');
     if($('#chatManagerRooms')) renderChatManagerRooms();
     else closeModal();
@@ -2660,6 +2666,10 @@
   function attachRoomDocListener(id){
     clearRoomDocListener();
     try{
+      // 첫 스냅샷은 "지금 서버에 있는 명단"을 기준으로 삼는다.
+      // 목록 캐시가 오래돼 내가 이미 빠진 방을 다시 눌렀을 때도
+      // 채팅방을 연 순간 "나왔어요" 토스트가 튀지 않게 하기 위해서다.
+      let membershipBaseline=false;
       roomDocUnsub=db.collection('channels').doc(id).onSnapshot(s=>{
         if(!s.exists || state.room?.id!==id) return;
         const data={id,...s.data()};
@@ -2667,6 +2677,8 @@
         const membersChanged=[...prevIds,...nextIds].some(x=>!prevIds.has(x)||!nextIds.has(x));
         const iWasIn=prevIds.has(uid()), iAmIn=nextIds.has(uid());
         const myChanged=iWasIn!==iAmIn;
+        const hadBaseline=membershipBaseline;
+        membershipBaseline=true;
         // 내가 방에서 빠지면 visibility와 무관하게 진짜 나가기로 처리한다
         // (대화 불가 상태로 남아있지 않고 목록에서 제거 + 화면·설정 닫기)
         if(!iAmIn && myChanged){
@@ -2679,7 +2691,9 @@
           closeRoomSettingsIfOpen(id);
           closeAllModals();
           renderRooms();
-          toast('채팅방에서 나왔어요.');
+          // 첫 스냅샷으로 알게 된 '이미 나간 방'은 조용히 정리하고,
+          // 방을 열어 둔 뒤 실제로 내보내진 경우에만 알려 준다.
+          if(hadBaseline) toast('채팅방에서 나왔어요.');
           return;
         }
         state.rooms=(state.rooms||[]).map(r=>r.id===id?{...r,...data}:r);
@@ -3256,7 +3270,8 @@
           const __priceHtml = x.orig
             ? `<s class="anchor-orig">${esc(x.orig)}</s> <b>${esc(x.price||'금액 미정')}</b>${__dc?` <span class="discount-badge">${esc(__dc)}</span>`:''}`
             : `<b>${esc(x.price||'금액 미정')}</b>${__dc?` <span class="discount-badge">${esc(__dc)}</span>`:''}`;
-          return `<article class="landing-card"><div class="ico">🎫</div><h3>${esc(x.name||'이용권')}</h3><p>${__priceHtml} · ${esc(x.period||'1년')}</p>${x.desc?`<p>${esc(x.desc)}</p>`:''}<button type="button" class="landing-price-buy" data-action="landing-pricing-buy">구매하기</button></article>`;
+          const canBuy = !!(state.user && (isAdmin()||isSchoolAdmin()));
+          return `<article class="landing-card"><div class="ico">🎫</div><h3>${esc(x.name||'이용권')}</h3><p>${__priceHtml} · ${esc(x.period||'1년')}</p>${x.desc?`<p>${esc(x.desc)}</p>`:''}<button type="button" class="landing-price-buy" data-action="landing-pricing-buy" data-plan="${esc(x.name||'이용권')}">${canBuy?'구매하기':'도입 문의'}</button></article>`;
         }).join('')}</div>
       </section>` : '';
     // 오른쪽 인디케이터 (지금 보고 있는 곳 표시)
@@ -3543,6 +3558,10 @@
   }
   function paintAuth(){
     document.body.classList.remove('m-chat-open');
+    // 로그인/회원가입 화면에서는 플로팅 탭바를 숨기고, 돌아올 때 상태를 다시 맞춘다
+    document.body.classList.remove('settings-open','admin-open');
+    const authTab=document.getElementById('breezeTabbar');
+    if(authTab) authTab.remove();
     // 소개 페이지에서 쓰던 document/window 리스너가 남아 키 입력을 가로채지 않게 정리한다
     stopLandingNav();
     stopLandingMock();
@@ -4198,6 +4217,13 @@
     }
     renderSiteBanner();
     setupGlobalHandlers();
+    // 화면 상태에 맞춰 모바일 하단바와 채팅방 상태 클래스를 한 곳에서 맞춘다.
+    // (설정·관리 화면에서는 하단바를 숨기고, 채팅방을 나오면 다시 보이게 한다)
+    try{
+      document.body.classList.toggle('settings-open', state.view==='settings');
+      document.body.classList.toggle('admin-open', state.view==='admin');
+      if(state.view==='chat') document.body.classList.toggle('m-chat-open', window.innerWidth<=820 && !!state.room);
+    }catch(e){}
     // 모바일은 채팅 목록을 기준으로 시작한다 (방이 없으면 목록을 바로 연다)
     if(window.innerWidth<=820 && state.view==='chat' && !state.room) openDrawer();
     // 초대 링크로 들어왔으면 로그인 뒤 코드 참가 흐름으로 잇는다 (1회성)
@@ -4210,6 +4236,8 @@
   // 채팅방을 열면 body.m-chat-open 이 붙어 CSS가 스스로 숨긴다 (입력창을 가리지 않음).
   function mountFloatingTabBar(){
     if(window.innerWidth>560) return;
+    // 설정·관리 화면은 저장 버튼과 하단바가 겹치지 않도록 탭바를 만들지 않는다.
+    if(state.view==='settings' || state.view==='admin') return;
     if(document.getElementById('breezeTabbar')) return;
     const host=document.getElementById('app'); if(!host) return;
     const bar=document.createElement('nav');
@@ -4416,13 +4444,12 @@
     const listSecs=keys.map(k=>secs[k]).join('');
     const paletteHint=`<button class="icon-btn" data-action="open-palette" aria-label="빠른 실행" title="빠른 실행 (Ctrl+K)" style="margin-right:4px">⌕</button>`;
     const cBottom=isSideCollapsed('bottom')?' collapsed':'';
-    return `<div class="side-top"><div class="brand"><div class="brand-mark">${brandMarkHtml()}</div><span class="brand-name" data-brand-roll>${esc(brandNames()[0]||'브리즈')}</span></div>${paletteHint}</div>
+    return `<div class="side-top"><div class="brand"><div class="brand-mark">${brandMarkHtml()}</div><span class="brand-name" data-brand-roll>${esc(brandNames()[0]||'브리즈')}</span></div>${paletteHint}<button class="icon-btn" data-action="settings" aria-label="설정" title="설정"><span aria-hidden="true">⚙</span></button></div>
       <div class="profile-card"><div class="profile-row"><button type="button" class="avatar-dot profile-open" data-action="profile" aria-label="내 프로필 보기">${avatarHtml(state.profile)}</button><div class="grow"><button type="button" class="profile-name profile-open" data-action="profile">${esc(state.profile?.displayName||'사용자')}</button><div class="profile-meta-line"><span class="profile-meta">${gradeClassPrefix(state.profile)}${roleLabel(state.profile?.role)}</span><span class="class-now-badge hidden" data-class-now></span><span class="presence-dot inline ${myPresenceState()||'hidden'}" data-my-presence-dot aria-hidden="true"></span><button type="button" class="presence-menu-btn" data-action="presence-menu" aria-haspopup="menu" aria-label="접속 상태 변경"><span class="presence-text" data-my-presence-label>${esc(myPresenceLabel())}</span><span class="presence-caret" aria-hidden="true">⌄</span></button></div></div><button type="button" class="side-collapse-btn" data-action="side-collapse" aria-label="사이드바 접기" aria-expanded="true" title="사이드바 접기"><span aria-hidden="true">‹</span></button></div></div>
       <div id="licenseBanner" class="license-banner hidden"></div>
       <div id="bannerPager"></div>
       <div id="unreadSummary" class="unread-summary hidden" role="button" tabindex="0" data-action="unread-summary-go" aria-label="안읽은 방으로 이동" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); this.click(); }"></div>
-      <div class="side-body">${listSecs}</div>
-      <div class="side-bottom side-section${cBottom}" data-sidekey="bottom"><div class="side-title" data-sidetitle="bottom" style="margin-bottom:8px"><span class="side-title-left"><button class="side-caret-btn" data-action="side-toggle" data-side="bottom" aria-label="접기/펼치기"><span class="side-caret">▾</span></button><span>바로가기</span></span></div><div class="side-section-body"><div class="side-section-inner" style="display:grid;gap:8px"><button class="soft-btn manage-btn" data-action="chat-manage"><span>💬</span> 채팅 관리</button><div class="row"><button class="soft-btn" data-action="settings">전체 설정</button><button class="soft-btn" data-action="logout">로그아웃</button></div></div></div></div>`;
+      <div class="side-body">${listSecs}</div>`;
   }
   // 큰 탭(채팅·친구·일정 등) 순서 — 꾹 눌러 바꾸고 저장한다 (채팅방 순서 바꾸기와 동일한 모션)
   const SIDE_DEFAULT_ORDER=['chat','friends','sched','org','meal','suggest','admin','invite'];
@@ -4654,6 +4681,19 @@
     document.addEventListener('visibilitychange',onReadVisibility);
     wireMessagePress();
     window.addEventListener('resize',()=>closeDropdown());
+    // 창 크기·글자 크기·폰트 로딩이 끝난 뒤 설정 탭 인디케이터를 다시 맞춘다.
+    let tabsResizeTimer=0;
+    const syncSettingsTabs=()=>{
+      clearTimeout(tabsResizeTimer);
+      tabsResizeTimer=setTimeout(()=>{
+        try{
+          const t=document.querySelector('.settings-page .admin-tabs');
+          if(t) updateTabsIndicator(t);
+        }catch(e){}
+      },80);
+    };
+    window.addEventListener('resize',syncSettingsTabs);
+    try{ document.fonts?.ready?.then(syncSettingsTabs); }catch(e){}
     // 전송 버튼을 누르는 순간 입력창 포커스가 빠지면 키보드가 흔들리므로 미리 막는다 (클릭은 정상 동작)
     document.addEventListener('pointerdown',e=>{ try{ if(e.target && e.target.closest && e.target.closest('.composer .send')) e.preventDefault(); }catch(err){} },true);
     // 사진이 늦게 불러와져도 맨 아래에 고정되게 (이미지 로드 시점에 아래로 맞춤)
@@ -5078,7 +5118,13 @@
       if(a==='group-add')return groupAdd(); if(a==='group-del')return groupDelete(Number(el.dataset.i)); if(a==='group-up')return groupMove(Number(el.dataset.i),-1); if(a==='group-down')return groupMove(Number(el.dataset.i),1);
       if(a==='resolve-report')return resolveReport(el.dataset.id); if(a==='read-notice')return readNotice(el.dataset.id);
       if(a==='license-issue')return openLicenseIssueModal();
-      if(a==='license-buy'||a==='billing-open'||a==='landing-pricing-buy')return openBillingCenter();
+      if(a==='license-buy'||a==='billing-open')return openBillingCenter();
+      if(a==='landing-pricing-buy'){
+        // 학교 관리자만 바로 결제할 수 있다. 로그인하지 않았거나 일반 구성원이면
+        // 막다른 로그인 안내 대신 도입·구매 문의로 이어 준다.
+        if(state.user && (isAdmin()||isSchoolAdmin())) return openBillingCenter();
+        return openPurchaseInquiry(el.dataset.plan||'');
+      }
       if(a==='billing-order-detail')return openBillingOrderDetail(el.dataset.order||'');
       if(a==='billing-receipt')return openBillingReceipt(el.dataset.order||'');
       if(a==='billing-admin-confirm')return openBillingAdminConfirm(el.dataset.order||'');
@@ -6001,6 +6047,13 @@
         <span class="admin-chip">상태: ${conn?('연결됨 ('+esc((iu||{}).real_name||'')+')'):(internalToken()?'토큰 있음':'끊김')}</span>
         ${dual==null?'':(dual?'<span class="admin-chip">유료 듀얼 가능</span>':'<span class="admin-chip">유료 듀얼 불가</span>')}
       </div>
+    </div>
+    <div class="admin-card"><h3>BreezeCore 연동</h3>
+      <p class="desc" style="margin:0 0 12px;font-size:12.5px">학교 서버의 BreezeCore가 교내 계정·이용권·보관 정책을 맡아요. 서버 주소를 바꾸거나 연결 상태를 확인할 때 이 화면을 사용해요.</p>
+      <div class="row" style="flex-wrap:wrap">
+        <a class="soft-btn" href="/breezecore" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;text-decoration:none">소개·설치 안내</a>
+        ${(isAdmin()||isSchoolAdmin())?`<a class="soft-btn" href="/breezecore/admin" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;text-decoration:none">BreezeCore 관리자</a>`:''}
+      </div>
     </div>`;
   }
   async function refreshInternalPublic(){
@@ -6877,11 +6930,13 @@
   }
   function openFriends(){
     const reqs=state.friendRequests||[], friends=state.friends||[];
-    openModal(`<h2>친구</h2><p class="desc">친구 코드를 서로 알려 주고 친구가 되어 보세요. 친구는 채팅방에 바로 초대할 수 있어요.</p>
+    const panel=openModal(`<h2>친구</h2><p class="desc">친구 코드를 서로 알려 주고 친구가 되어 보세요. 친구는 채팅방에 바로 초대할 수 있어요.</p>
       <div class="field"><label>친구 코드로 추가</label><div class="row" style="align-items:center"><input id="friendCodeInput" class="input code-input" maxlength="12" autocomplete="off" spellcheck="false" placeholder="예: K7M3QP"><button type="button" class="soft-btn" style="flex:0 0 76px" data-action="friend-add">추가</button></div><p id="friendCodeMsg" class="reset-msg"></p></div>
       ${reqs.length?`<div class="field"><label>받은 친구 요청 (${reqs.length})</label><div class="list">${reqs.map(r=>`<div class="list-item"><div>${avatarHtml(state.profileCache.get(r.from)||{displayName:r.fromName})}</div><div class="grow"><div class="title">${esc(r.fromName||'사용자')}</div><div class="meta">친구가 되고 싶어 해요</div></div><div class="pair-btns"><button class="soft-btn" style="flex:0 0 52px" data-action="friend-accept" data-id="${esc(r.id)}">수락</button><button class="soft-btn" style="flex:0 0 52px" data-action="friend-decline" data-id="${esc(r.id)}">거절</button></div></div>`).join('')}</div></div>`:''}
       <div class="field"><label>내 친구 (${friends.length})</label><div class="list">${friends.map(f=>{const p=f.profile||{};const nm=p.displayName||'친구';const st=presenceStateOf(p);const pres=st?presenceLabel(st):'오프라인';const dot=presenceDot(p);return `<div class="list-item" data-uid="${esc(f.uid)}"><div>${avatarHtml(p,'',true)}</div><div class="grow"><div class="title">${esc(nm)} ${dot}</div><div class="meta">${gradeClassPrefix(p)}${esc(p.bio||'')} · ${esc(pres)}</div></div><button class="soft-btn" style="flex:0 0 60px" data-action="user-profile" data-uid="${esc(f.uid)}" data-name="${esc(nm)}">프로필</button><button class="soft-btn" style="flex:0 0 48px" data-action="friend-remove" data-uid="${esc(f.uid)}">끊기</button></div>`;}).join('')||'<div class="empty-side">아직 친구가 없어요.</div>'}</div></div>
       <div class="modal-actions"><button class="cancel" data-close-modal>닫기</button></div>`);
+    panel.classList.add('friend-sheet');
+    try{ panel.parentElement?.classList.add('sheet-overlay'); }catch(e){}
   }
   function showNoticePopup(n){openModal(`<h2>안내가 왔어요</h2><p class="desc">${esc(n.text)}</p><div class="modal-actions"><button class="confirm" data-action="read-notice" data-id="${esc(n.id)}">확인</button></div>`,{small:true});}
   async function readNotice(id){if(!id)return;try{await db.collection('directNotices').doc(id).update({read:true,readAt:ts()});}catch(e){console.error(e);}closeModal();}
@@ -7140,7 +7195,7 @@
           }catch(e){}
           if(freshMember){ try{ unmarkRoomLeft(id); }catch(e){} isMember=true; }
           else {
-            openModal(`<h2>���� ä�ù��̿���</h2><p class="desc">�̹� ���� ä�ù��� �ٽ� �� �� �����. �ٽ� �ʴ������ �� �� �־��.</p><div class="modal-actions"><button class="confirm" data-close-modal>Ȯ��</button></div>`,{small:true});
+            openModal(`<h2>나온 채팅방이에요</h2><p class="desc">이미 나온 채팅방은 다시 볼 수 없어요. 다시 초대받으면 들어갈 수 있어요.</p><div class="modal-actions"><button class="confirm" data-close-modal>확인</button></div>`,{small:true});
             if(!fromHistory) try{ history.replaceState({},'', location.pathname); }catch(_){}
             return;
           }
@@ -10648,6 +10703,10 @@
         <div class="setting-row"><div class="setting-label"><strong>읽음 표시</strong></div><label class="choice ${state.settings.readReceipts!==false?'active':''}"><input type="checkbox" name="readReceipts" ${state.settings.readReceipts!==false?'checked':''} data-read-toggle> 사용</label></div>
       </div>
       ${DESKTOP?`<div class="admin-card" id="desktopUnreadCard"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5Z"/><path d="M7 8h10"/><path d="M7 12h6"/></svg></span> 데스크탑 요약 알림</h3><div class="setting-row"><div class="setting-label"><strong>요약 알림 사용</strong></div><label class="choice "+(getDesktopUnread().enabled?'active':'')+""><input type="checkbox" id="desktopUnreadToggle" "+(getDesktopUnread().enabled?'checked':'')+" > "+(getDesktopUnread().enabled?'켜짐':'꺼짐')+"</label></div><div id="desktopUnreadOpts" style=""+(getDesktopUnread().enabled?'':'display:none')+";display:"+(getDesktopUnread().enabled?'block':'none')+""><div class="setting-row"><div class="setting-label"><strong>알림 주기</strong></div><div class="choice-row"><button type="button" class="choice "+(getDesktopUnread().interval===5?'active':'')+"" data-desktop-interval="5">5분</button><button type="button" class="choice "+(getDesktopUnread().interval===10?'active':'')+"" data-desktop-interval="10">10분</button></div></div><div class="setting-row"><div class="setting-label"><strong>소리</strong></div><label class="choice "+(getDesktopUnread().sound?'active':'')+""><input type="checkbox" id="desktopUnreadSound" "+(getDesktopUnread().sound?'checked':'')+" > 소리와 함께</label></div></div></div>`:''}
+      <div class="admin-card"><h3><span class="s-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 3V5Z"/><path d="M8 9h8M8 12h5"/></svg></span> 채팅 관리</h3>
+        <p class="desc" style="margin:0 0 12px;font-size:12.5px">채팅방 목록·초대·할 일을 한 화면에서 관리해요.</p>
+        <button type="button" class="soft-btn" data-action="chat-manage" style="width:100%">채팅 관리 열기</button>
+      </div>
       `;
     } else if(state.settingsTab==='invite'){
       html=`
@@ -10667,6 +10726,10 @@
         <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px"><div class="setting-label"><strong>키워드 알림</strong></div><textarea name="keywords" class="input word-box" maxlength="200" rows="3" placeholder="예: 시험&#10;급식" style="width:100%;font-size:16px">${esc((state.settings.keywords||[]).join('\n'))}</textarea></div>
         <div class="setting-row"><div class="setting-label"><strong>학교 변경 (전학·이직)</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="self-school-change">변경하기</button></div>
         ${state.profile?.role==='student'?'<div class="setting-row"><div class="setting-label"><strong>교사 인증 신청</strong></div><button type="button" class="soft-btn" style="flex:0 0 110px" data-action="teacher-request">신청하기</button></div>':''}
+      </div>
+      <div class="admin-card"><h3>계정</h3>
+        <p class="desc" style="margin:0 0 12px;font-size:12.5px">이 기기에서 로그아웃해요. 대화와 설정은 계정에 그대로 남아 있어요.</p>
+        <button type="button" class="soft-btn" data-action="logout" style="width:100%;color:var(--danger)">로그아웃</button>
       </div>
       `;
     } else if(state.settingsTab==='network'){
@@ -10803,23 +10866,13 @@
     }
     // wire sideLayout
     const sl=p.querySelector('[data-select-open="sideLayout"]');if(sl)wireDropdown(sl,[{value:'split',label:'나눠서 보기'},{value:'friends-top',label:'친구 먼저'},{value:'rooms-only',label:'대화방만'},{value:'friends-only',label:'친구만'}],(v,l)=>{sl.querySelector('[data-selected]').textContent=l;sl.querySelector('[data-selected]').dataset.value=v; markSettingsDirty();});
-    // 탭 슬라이딩 인디케이터 업데이트
+    // 탭 슬라이딩 인디케이터 업데이트 (헤더의 탭은 #settingsPanel 바깥에 있다)
     try{
-      const tabsEl = p.querySelector('.admin-tabs') || p.querySelector('.tabs');
+      const tabsEl = document.querySelector('.settings-page .admin-tabs');
       if(tabsEl){
-        let ind = tabsEl.querySelector('.tabs-indicator');
-        if(!ind){
-          ind=document.createElement('div');
-          ind.className='tabs-indicator';
-          tabsEl.prepend(ind);
-        }
-        const active = tabsEl.querySelector('.tab.active');
-        if(active){
-          const r = active.getBoundingClientRect();
-          const pr = tabsEl.getBoundingClientRect();
-          ind.style.width = r.width + 'px';
-          ind.style.transform = 'translateX(' + (r.left - pr.left - 4) + 'px)';
-        }
+        updateTabsIndicator(tabsEl);
+        // 폰트/레이아웃이 늦게 확정되는 경우에도 한 번 더 맞춘다.
+        requestAnimationFrame(()=>updateTabsIndicator(tabsEl));
       }
     }catch(e){}
 
@@ -10847,10 +10900,23 @@
       tabsEl.classList.add('has-indicator');
       const active = tabsEl.querySelector('.tab.active');
       if(active){
-        const r = active.getBoundingClientRect();
-        const pr = tabsEl.getBoundingClientRect();
-        ind.style.width = r.width + 'px';
-        ind.style.transform = 'translateX(' + (r.left - pr.left - 4) + 'px)';
+        // offsetLeft/offsetWidth는 스크롤·브라우저 줌과 무관하게
+        // 탭 컨테이너 안에서의 실제 위치를 알려 준다.
+        // getBoundingClientRect 차이로 계산하면 가로 스크롤이 생긴 순간부터
+        // 뒤쪽 탭일수록 인디케이터가 점점 어긋난다.
+        const cs = getComputedStyle(tabsEl);
+        const padLeft = parseFloat(cs.paddingLeft)||0;
+        ind.style.left = padLeft + 'px';
+        ind.style.width = active.offsetWidth + 'px';
+        ind.style.transform = 'translateX(' + Math.max(0, active.offsetLeft - padLeft) + 'px)';
+        // 활성 탭이 잘려 있으면 보이도록 부드럽게 스크롤한다.
+        try{
+          const left = active.offsetLeft - padLeft;
+          const right = left + active.offsetWidth;
+          if(left < tabsEl.scrollLeft || right > tabsEl.scrollLeft + tabsEl.clientWidth){
+            tabsEl.scrollTo({ left: Math.max(0, left - 8), behavior: prefersReducedMotion()?'auto':'smooth' });
+          }
+        }catch(e){}
       }
     }catch(e){}
   }
@@ -11312,7 +11378,7 @@
     try{ renderSidebar(); }catch(e){}
     toast(`이번 달 ${monthRows.length}건 중 새로 ${fresh.length}개를 가져왔어요.`);
   }
-  // ---------- 채팅 관리 (사이드바 아래 버튼) — 재구성: 탭 + 아이콘 + 일정/할 일 연계 ----------
+  // ---------- 채팅 관리 (설정 → 채팅 탭에서 열기) — 탭 + 아이콘 + 일정/할 일 연계 ----------
   function openChatManager(){
     state.cmSel=new Set();
     if(!state.cmTab) state.cmTab='rooms';
@@ -11562,6 +11628,41 @@
   }
   function billingErrorBox(msg){
     return `<div class="billing-error" role="alert"><b>잠시 확인해 주세요</b><span>${esc(msg||'결제를 진행하지 못했어요. 잠시 후 다시 시도해 주세요.')}</span></div>`;
+  }
+  // 공개 랜딩의 '도입 문의' — 아직 학교 계정이 없어도 구매 상담을 시작할 수 있게 한다.
+  // 실제 카드 결제는 학교 관리자용 BreezeCore 결제 흐름에서 처리하고,
+  // 여기서는 학교명·연락처·희망 요금제를 메일로 정리해 보낸다.
+  function openPurchaseInquiry(planName){
+    const plan=String(planName||'이용권');
+    const panel=openModal(`<h2>도입 · 구매 문의</h2>
+      <p class="desc">학교 계정이 없어도 문의할 수 있어요. 아래 내용을 적어 메일로 보내 주시면 담당자가 확인 후 안내해 드려요.</p>
+      <form id="purchaseInquiryForm">
+        <div class="field"><label>학교명</label><input class="input" name="schoolName" maxlength="80" required placeholder="예: 브리즈고등학교"></div>
+        <div class="field"><label>담당 선생님 성함</label><input class="input" name="contactName" maxlength="40" required placeholder="예: 김브리즈"></div>
+        <div class="field"><label>연락받을 이메일 또는 전화번호</label><input class="input" name="contact" maxlength="120" required placeholder="예: teacher@school.kr 또는 010-0000-0000"></div>
+        <div class="field"><label>희망 이용권</label><input class="input" name="plan" maxlength="80" value="${esc(plan)}"></div>
+        <div class="field"><label>문의 내용 (선택)</label><textarea class="input" name="message" maxlength="800" style="min-height:92px" placeholder="학교 규모, 도입 시기, 궁금한 점을 적어 주세요."></textarea></div>
+        <p class="desc" style="margin:10px 0 0;font-size:12px">문의 메일: <b>edutalkkr@gmail.com</b></p>
+        <div class="modal-actions"><button type="button" class="cancel" data-close-modal>닫기</button><button type="submit" class="confirm">메일로 문의하기</button></div>
+      </form>`,{dismissible:true});
+    const form=panel.querySelector('#purchaseInquiryForm');
+    if(!form) return;
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const fd=new FormData(form);
+      const school=String(fd.get('schoolName')||'').trim();
+      const name=String(fd.get('contactName')||'').trim();
+      const contact=String(fd.get('contact')||'').trim();
+      const want=String(fd.get('plan')||plan).trim();
+      const msg=String(fd.get('message')||'').trim();
+      if(!school||!name||!contact){ toast('학교명·성함·연락처를 모두 적어 주세요.'); return; }
+      const subject=`[Breeze 도입 문의] ${school}`;
+      const body=['안녕하세요, Breeze 도입을 문의드려요.','',`학교명: ${school}`,`담당자: ${name}`,`연락처: ${contact}`,`희망 이용권: ${want}`,msg?`문의 내용: ${msg}`:''].filter(Boolean).join('\n');
+      const href=`mailto:edutalkkr@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      try{ closeAllModals(); }catch(_){}
+      try{ window.location.href=href; }catch(_){}
+      toast('메일 앱을 열었어요. 메일이 열리지 않으면 edutalkkr@gmail.com으로 보내 주세요.');
+    });
   }
   function billingGoLogin(){
     try{ closeAllModals(); }catch(e){}
