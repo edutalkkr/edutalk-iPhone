@@ -1215,6 +1215,61 @@ fn update_install(app: AppHandle, installer: String) -> Result<(), String> {
     updater::install(&app, &installer)
 }
 
+#[tauri::command]
+async fn form_download(
+    srv: State<'_, srv::SrvState>,
+    id: i64,
+    name: Option<String>,
+) -> Result<String, String> {
+    let (base, token) = srv::parts(srv.inner())?;
+    if token.is_empty() {
+        return Err("학교 서버에 먼저 로그인해 주세요.".into());
+    }
+    let res = srv::http_client(120)?
+        .get(format!("{base}/api/forms/{id}/download"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .map_err(|_| "양식을 내려받지 못했어요.".to_string())?;
+    if !res.status().is_success() {
+        return Err("양식을 찾지 못했어요.".into());
+    }
+    let raw = name.unwrap_or_default();
+    let safe: String = raw
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or("")
+        .trim()
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '.' || c == '_' || c == '-' || c == ' ' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let safe = if safe.is_empty() {
+        format!("form-{}.bin", id)
+    } else {
+        safe
+    };
+    let dir = std::env::temp_dir().join("breeze-forms");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let full = dir.join(&safe);
+    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
+    std::fs::write(&full, &bytes).map_err(|e| e.to_string())?;
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let _ = std::process::Command::new("cmd")
+            .args(["/c", "start", "", &full.to_string_lossy()])
+            .creation_flags(0x08000000)
+            .spawn();
+    }
+    Ok(full.to_string_lossy().to_string())
+}
+
 fn main() {
     // P2P 수신함: 받은 프레임은 DB에 넣고 화면에 알린다.
     let (inbox_tx, mut inbox_rx) = tokio::sync::mpsc::unbounded_channel::<DirectFrame>();
@@ -1365,6 +1420,7 @@ fn main() {
             update_relay,
             update_download,
             update_install,
+            form_download,
             remote_view_request,
             remote_view_respond,
             remote_snapshot,

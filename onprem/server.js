@@ -101,6 +101,9 @@ try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
 // 교내 업데이트 보관함 — exe로 실행해도 exe 옆 폴더를 쓴다 (pkg 가상 경로에 쓰지 않게)
 const UPDATES_DIR = process.env.BREEZE_UPDATES_DIR || path.join(APP_ROOT(), 'updates');
 try { fs.mkdirSync(UPDATES_DIR, { recursive: true }); } catch (e) {}
+// 학교 공식 양식함
+const FORMS_DIR = process.env.BREEZE_FORMS_DIR || path.join(APP_ROOT(), 'forms');
+try { fs.mkdirSync(FORMS_DIR, { recursive: true }); } catch (e) {}
 // 인터넷이 되는 PC가 확인하는 공개 업데이트 피드 (정적 JSON)
 const UPDATE_FEED_URL = process.env.BREEZE_UPDATE_FEED || 'https://edutalk.cloud/breeze/latest.json';
 const UPDATE_MAX_BYTES = 220 * 1024 * 1024;
@@ -1270,6 +1273,73 @@ app.post('/api/admin/updates/pull', relayLimiter, needAdmin, async (req, res) =>
   } catch (e) {
     res.status(502).json({ ok: false, error: e.message || '업데이트를 내려받지 못했어요.' });
   }
+});
+
+/* ---------- 학교 공식 양식함 (Feature 3) ----------
+ * 만료 없이 영구 보관. 관리자(ADMIN)만 등록·삭제, 모든 교직원이 조회·다운로드한다. */
+app.get('/api/forms', needAuth, (req, res) => {
+  try {
+    const rows = all(`SELECT id, title, category, file_name, size, mime_type, uploaded_by_name, created_at
+      FROM forms ORDER BY category, created_at DESC`);
+    res.json({ ok: true, forms: rows });
+  } catch (e) { res.status(500).json({ ok: false, error: '양식 목록을 불러오지 못했어요.' }); }
+});
+app.post('/api/forms', needAuth, async (req, res) => {
+  const role = String((req.user && req.user.role) || '').toUpperCase();
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    return res.status(403).json({ ok: false, error: '관리자만 양식을 등록할 수 있어요.' });
+  }
+  let parsed = null;
+  try { parsed = await parseMultipart(req, 25 * 1024 * 1024); }
+  catch (e) { return res.status(400).json({ ok: false, error: '파일을 읽지 못했어요.' }); }
+  const tmp = parsed.file && parsed.file.filepath;
+  const finish = (code, body) => { try { if (tmp && fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch (e) {} res.status(code).json(body); };
+  try {
+    if (!tmp) return finish(400, { ok: false, error: '파일을 골라 주세요.' });
+    const title = String((parsed.fields && parsed.fields.title) || '').trim().slice(0, 120);
+    const category = String((parsed.fields && parsed.fields.category) || '일반').trim().slice(0, 40) || '일반';
+    if (!title) return finish(400, { ok: false, error: '양식 이름을 입력해 주세요.' });
+    const orig = String((parsed.file && parsed.file.originalFilename) || 'form.bin');
+    const safe = path.basename(orig).replace(/[^A-Za-z0-9._ -]/g, '_');
+    const id = crypto.randomBytes(6).toString('hex');
+    const stored = id + '_' + safe;
+    const full = path.join(FORMS_DIR, stored);
+    fs.renameSync(tmp, full);
+    const st = fs.statSync(full);
+    const mime = String((parsed.file && parsed.file.mimetype) || 'application/octet-stream');
+    run(`INSERT INTO forms (title, category, file_name, file_path, size, mime_type, uploaded_by, uploaded_by_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      title, category, safe, stored, st.size, mime, req.user.id, req.user.real_name || req.user.username);
+    const row = all('SELECT * FROM forms WHERE file_path = ?', stored)[0];
+    writeServerAudit(req, req.user.id, req.user.real_name || req.user.username, 'form_upload', 'form', row.id, { title, category, size: st.size });
+    finish(200, { ok: true, form: row });
+  } catch (e) { finish(500, { ok: false, error: '양식을 저장하지 못했어요.' }); }
+});
+app.get('/api/forms/:id/download', needAuth, (req, res) => {
+  try {
+    const row = all('SELECT * FROM forms WHERE id = ?', Number(req.params.id))[0];
+    if (!row) return res.status(404).json({ ok: false, error: '양식을 찾지 못했어요.' });
+    const full = path.join(FORMS_DIR, path.basename(row.file_path));
+    if (!fs.existsSync(full)) return res.status(404).json({ ok: false, error: '파일이 없어요.' });
+    res.setHeader('Content-Disposition', 'attachment; filename="' + encodeURIComponent(row.file_name) + '"');
+    res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
+    res.sendFile(full);
+  } catch (e) { res.status(500).json({ ok: false, error: '다운로드에 실패했어요.' }); }
+});
+app.delete('/api/forms/:id', needAuth, (req, res) => {
+  const role = String((req.user && req.user.role) || '').toUpperCase();
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    return res.status(403).json({ ok: false, error: '관리자만 삭제할 수 있어요.' });
+  }
+  try {
+    const row = all('SELECT * FROM forms WHERE id = ?', Number(req.params.id))[0];
+    if (!row) return res.status(404).json({ ok: false, error: '양식을 찾지 못했어요.' });
+    const full = path.join(FORMS_DIR, path.basename(row.file_path));
+    try { if (fs.existsSync(full)) fs.unlinkSync(full); } catch (e) {}
+    run('DELETE FROM forms WHERE id = ?', Number(req.params.id));
+    writeServerAudit(req, req.user.id, req.user.real_name || req.user.username, 'form_delete', 'form', row.id, { title: row.title });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: '삭제에 실패했어요.' }); }
 });
 
 app.use('/api/updates', require('./routes/updates')({

@@ -3,6 +3,7 @@
 //! - 계정·방·메시지는 학교 서버(SQLite)에만 있고, 이 PC는 받아서 표시만 한다.
 //! - 경로는 `/api/...` 만 허용해 임의 요청을 막는다.
 use std::sync::Mutex;
+use std::time::Duration;
 
 #[derive(Default)]
 pub struct SrvState {
@@ -19,6 +20,13 @@ fn client() -> Result<reqwest::Client, String> {
 }
 
 /// 주소 정규화: 스킴이 없으면 http:// 를 붙이고 끝 슬래시를 뗀다.
+pub(crate) fn http_client(timeout_secs: u64) -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(timeout_secs))
+        .build()
+        .map_err(|e| e.to_string())
+}
+
 pub(crate) fn norm_base(base: &str) -> String {
     let b = base.trim().trim_end_matches('/').to_string();
     if b.is_empty() {

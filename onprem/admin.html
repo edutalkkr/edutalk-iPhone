@@ -223,7 +223,17 @@
     <div id="bakList" class="muted" style="margin-top:6px">-</div>
   </div>
   <div class="card">
-    <h2>🔄 교사 앱 업데이트</h2>
+    <h2>📂 학교 공식 양식함</h2>
+    <p class="muted">학기 내내 쓰는 서식을 등록하면 모든 교사 PC에 영구 보관돼요. (관리자만 등록·삭제)</p>
+    <div class="row" style="margin-top:8px">
+      <input id="formTitle" type="text" placeholder="양식 이름 (예: 체험학습 신청서)" style="flex:1;min-width:160px">
+      <input id="formCategory" type="text" placeholder="분류" style="width:120px">
+      <input id="formFile" type="file">
+      <button id="formUpload">등록</button>
+    </div>
+    <div id="formMsg" class="muted" style="margin-top:6px"></div>
+    <div id="formList" class="muted" style="margin-top:8px"></div>
+  </div>
     <p class="muted">인터넷이 되는 서버 PC에서 새 버전을 확인하고 교내에 배포해요. 인터넷이 없는 교실 PC는 교내망으로만 받아 설치할 수 있어요.</p>
     <div class="row" style="margin-top:8px">
       <button id="updCheck" class="ghost">새 버전 확인</button>
@@ -476,6 +486,51 @@ document.getElementById('updPull').onclick = function () {
     log('업데이트 배포 완료: v' + (u.version || ''));
   }).catch(function () { btn.disabled = false; msg.textContent = '연결 실패'; });
 };
+document.getElementById('formUpload').onclick = function () {
+  var title = document.getElementById('formTitle').value.trim();
+  var cat = document.getElementById('formCategory').value.trim() || '일반';
+  var file = document.getElementById('formFile').files[0];
+  var msg = document.getElementById('formMsg');
+  if (!title || !file) { msg.textContent = '이름과 파일을 모두 골라 주세요.'; return; }
+  var fd = new FormData();
+  fd.append('title', title);
+  fd.append('category', cat);
+  fd.append('file', file);
+  msg.textContent = '등록 중…';
+  fetch('/api/forms', {
+    method: 'POST',
+    headers: { 'x-admin-token': localStorage.getItem('edutalk_admin_token') || '' },
+    body: fd,
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (!j.ok) { msg.textContent = '실패: ' + (j.error || ''); return; }
+    msg.textContent = '등록됨: ' + (j.form && j.form.title);
+    document.getElementById('formTitle').value = '';
+    document.getElementById('formFile').value = '';
+    loadForms();
+  }).catch(function () { msg.textContent = '연결 실패'; });
+};
+function loadForms() {
+  api('/api/forms').then(function (j) {
+    if (!j.ok) return;
+    var list = document.getElementById('formList');
+    var rows = j.forms || [];
+    if (!rows.length) { list.textContent = '등록된 양식이 없어요.'; return; }
+    list.innerHTML = rows.map(function (f) {
+      return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)">' +
+        '<span><b>' + esc(f.title) + '</b> <span class="muted">[' + esc(f.category) + '] ' + esc(f.file_name) + '</span></span>' +
+        '<button class="ghost" data-del="' + f.id + '">삭제</button></div>';
+    }).join('');
+    Array.prototype.forEach.call(list.querySelectorAll('[data-del]'), function (b) {
+      b.onclick = function () {
+        if (!confirm('이 양식을 삭제할까요?')) return;
+        api('/api/forms/' + b.getAttribute('data-del'), { method: 'DELETE' }).then(function (j) {
+          if (j.ok) loadForms(); else alert('실패: ' + (j.error || ''));
+        });
+      };
+    });
+  }).catch(function () {});
+}
+loadForms();
 document.getElementById('purgeGo').onclick = function () {
     if (!confirm('보관 기간이 지난 학생 미디어를 지금 정리할까요?\n텍스트와 교사 미디어는 그대로 남아요.')) return;
     api('/api/admin/maintenance/purge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })

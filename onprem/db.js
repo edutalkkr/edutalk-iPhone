@@ -289,6 +289,22 @@ CREATE TABLE IF NOT EXISTS whiteboards (
 CREATE INDEX IF NOT EXISTS idx_whiteboards_updated ON whiteboards(updated_at DESC);
 `);
 
+/* 학교 공식 양식함 — 만료 없이 영구 보관 (Feature 3) */
+try { db.exec(`CREATE TABLE IF NOT EXISTS forms (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  title           TEXT NOT NULL,
+  category        TEXT NOT NULL DEFAULT '일반',
+  file_name       TEXT NOT NULL,
+  file_path       TEXT NOT NULL,
+  size            INTEGER NOT NULL DEFAULT 0,
+  mime_type       TEXT NOT NULL DEFAULT 'application/octet-stream',
+  uploaded_by     INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+  uploaded_by_name TEXT NOT NULL DEFAULT '',
+  created_at      TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);`); } catch (e) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_forms_category ON forms(category)'); } catch (e) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_forms_created ON forms(created_at DESC)'); } catch (e) {}
+
 /* 기존 DB 마이그레이션 — CREATE TABLE IF NOT EXISTS는 새 컬럼을 추가하지 않는다. */
 try { db.exec("ALTER TABLE approvals ADD COLUMN decision_note TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 이미 있음 */ }
 try { db.exec("ALTER TABLE files ADD COLUMN owner_id INTEGER NULL"); } catch (e) { /* 이미 있음 */ }

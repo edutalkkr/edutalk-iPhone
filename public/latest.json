@@ -1,10 +1,10 @@
 {
-  "version": "0.2.2",
-  "file": "Breeze-setup-0.2.2.exe",
-  "url": "updates/Breeze-setup-0.2.2.exe",
-  "size": 6979983,
-  "sha256": "67dfa7064b590667c270a7f03f026a5c7a72018e7254816d474b25ab615aac8f",
-  "notes": "교내 업데이트 중계·긴급 보안 업데이트 안내·관리자 설치 가이드 개선",
+  "version": "0.2.3",
+  "file": "Breeze-setup-0.2.3.exe",
+  "url": "updates/Breeze-setup-0.2.3.exe",
+  "size": 6986609,
+  "sha256": "d9f3650013bf5f6198952db730d7cce8465baf7027eaa513d77674ddaa11fdc1",
+  "notes": "학교 공식 양식함·관리자 설치 가이드·롤백 안내 추가",
   "mandatory": false,
   "security": false,
   "pub_date": "2026-11-01"

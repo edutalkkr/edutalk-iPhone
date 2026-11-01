@@ -25,6 +25,7 @@ import type {
 } from "./types";
 import UpdateToast from "./components/UpdateToast";
 import UpdateRelay from "./components/UpdateRelay";
+import FormLibrary from "./components/FormLibrary";
 import { ME_ID, nowIso, type SchoolSetup } from "./mock/initialData";
 import { storeGet, storeSet } from "./lib/localStore";
 import { call, emitEvent, listenEvent } from "./lib/tauri";
@@ -2781,6 +2782,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       )}
       <UpdateToast enabled={isLoggedIn && !popupMode} base={serverBase} />
       <UpdateRelay enabled={isLoggedIn && !popupMode} base={serverBase} />
+      <FormLibrary enabled={isLoggedIn && !popupMode} />
       <div className="edu-toast-wrap">
         {toasts.map((t) => (
           <div key={t.id} className={`edu-toast${t.leaving ? " leaving" : ""}`}>
