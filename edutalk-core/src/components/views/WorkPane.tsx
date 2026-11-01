@@ -122,6 +122,10 @@ export default function WorkPane(p: Props) {
   };
 
   const runSummary = async (id: string, text: string) => {
+    if (String(text || "").trim().length < 150) {
+      p.onToast("150자 이상 메시지에서만 AI 3줄 요약을 사용하실 수 있어요.");
+      return;
+    }
     setSumming(id);
     const r = await summarize3(text);
     setSummaries((s) => ({ ...s, [id]: r }));
@@ -175,8 +179,13 @@ export default function WorkPane(p: Props) {
                     className="edu-ghost !px-2.5 !py-1.5 !text-[12px] inline-flex items-center gap-1"
                     disabled={!body.trim() || summing === "preview"}
                     onClick={async () => {
+                      const full = `${title}\n${body}`.trim();
+                      if (full.length < 150) {
+                        p.onToast("150자 이상 메시지에서만 AI 3줄 요약을 사용하실 수 있어요.");
+                        return;
+                      }
                       setSumming("preview");
-                      setPreview(await summarize3(`${title}\n${body}`));
+                      setPreview(await summarize3(full));
                       setSumming(null);
                     }}
                   >

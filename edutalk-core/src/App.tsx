@@ -1052,9 +1052,14 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
     if (typeof document !== "undefined" && document.hidden) {
       void call("show_alert_window", { title: emergency.title, body: emergency.body }).catch(() => undefined);
     }
-    void summarize3(`${emergency.title}\n${emergency.body}`).then((r) => {
-      if (alive) setEmgSummary(r.lines);
-    });
+    const emgText = `${emergency.title}\n${emergency.body}`;
+    if (emgText.trim().length >= 150) {
+      void summarize3(emgText).then((r) => {
+        if (alive) setEmgSummary(r.lines);
+      });
+    } else {
+      setEmgSummary(null);
+    }
     return () => {
       alive = false;
       stopSiren();
