@@ -552,19 +552,6 @@ export default function LeftSidebar(p: Props) {
 
       {/* ---------- 하단 유틸리티 ---------- */}
       <div className="w-full flex flex-col gap-0.5">
-        <BzTooltip content="퀵 메모" position="right" disabled={!collapsed} className="w-full">
-          <button className="edu-rail-tab" onClick={p.onQuickMemo} aria-label="퀵 메모">
-            <span className="edu-rail-ico" aria-hidden><IconStickyNote size={18} /></span>
-            <span className="rail-label edu-rail-txt truncate">퀵 메모</span>
-            {p.quickMemoOpen ? <span className="edu-rail-badge soft">{p.quickMemoOpen}</span> : null}
-          </button>
-        </BzTooltip>
-        <BzTooltip content="로그아웃" position="right" disabled={!collapsed} className="w-full">
-          <button className="edu-rail-tab edu-rail-danger" onClick={askLogout} aria-label="로그아웃">
-            <span className="edu-rail-ico" aria-hidden><IconLogout size={18} /></span>
-            <span className="rail-label edu-rail-txt truncate">로그아웃</span>
-          </button>
-        </BzTooltip>
       </div>
 
       <div className="mt-2 px-1 flex items-center justify-between gap-1">
@@ -573,7 +560,11 @@ export default function LeftSidebar(p: Props) {
           <button
             type="button"
             className="px-1.5 py-0.5 rounded hover:bg-edu-chip"
-            onClick={() => setLang(getLang() === "ko" ? "en" : "ko")}
+            onClick={() => {
+              const next = getLang() === "ko" ? "en" : "ko";
+              setLang(next);
+              window.alert(next === "en" ? "Language changed. Please restart BreezeCore for full effect." : "언어가 바뀌었어요. 완전히 적용하려면 브리즈코어를 다시 시작해 주세요.");
+            }}
             title="Language"
           >
             {useLang() === "ko" ? "🇰🇷" : "🇺🇸"}

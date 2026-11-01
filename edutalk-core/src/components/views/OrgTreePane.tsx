@@ -267,7 +267,7 @@ export default function OrgTreePane(p: Props) {
                 <span className="font-bold text-[13px] shrink-0 max-w-[88px] truncate">{m.name}</span>
                 <span className="min-w-0 flex-1 text-[11.5px] text-edu-sub truncate">{m.subject}</span>
                 <StatusBadge status={m.status} compact />
-                <button className="w-6 h-6 grid place-items-center rounded-lg hover:bg-edu-chip text-[12px]" onClick={() => toggleFav(m.id)} aria-label="즐겨찾기 해제">★</button>
+                <button className="w-6 h-6 grid place-items-center rounded-lg hover:bg-edu-chip text-[13px] text-[#F59E0B]" onClick={() => toggleFav(m.id)} aria-label="즐겨찾기 해제">★</button>
               </div>
             ))}
           </div>
@@ -335,7 +335,7 @@ export default function OrgTreePane(p: Props) {
                         </span>
                         <button
                           type="button"
-                          className="w-5 h-5 grid place-items-center rounded text-[11px] hover:bg-edu-chip shrink-0"
+                          className={"w-5 h-5 grid place-items-center rounded text-[13px] hover:bg-edu-chip shrink-0 transition-colors " + (fav.has(m.id) ? "text-[#F59E0B]" : "text-edu-muted")}
                           onClick={() => toggleFav(m.id)}
                           aria-label={fav.has(m.id) ? "즐겨찾기 해제" : "즐겨찾기"}
                           title={fav.has(m.id) ? "즐겨찾기 해제" : "즐겨찾기"}

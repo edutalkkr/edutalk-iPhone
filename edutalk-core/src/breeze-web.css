@@ -267,7 +267,7 @@
 .bz-update-bar { height: 4px; border-radius: 999px; background: var(--bz-chip); overflow: hidden; margin: 2px 0; }
 .bz-update-bar > i { display: block; height: 100%; background: var(--brand); border-radius: 999px; transition: width 0.25s ease; }
 .bz-form-fab {
-  position: fixed; left: 14px; bottom: 14px; z-index: 900;
+  position: fixed; right: 14px; bottom: 14px; z-index: 900;
   width: 46px; height: 46px; border-radius: 50%;
   background: var(--bz-surface); border: 1px solid var(--bz-line);
   box-shadow: var(--bz-shadow-float);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { isTauriDesktop } from "../../lib/edition";
 import { APP_VERSION } from "../../lib/version";
 import BzTooltip from "../ui/BzTooltip";
@@ -17,6 +17,25 @@ interface Props {
 // 브리즈 전용 창 버튼 — 항상 그린다.
 // - 설치판(Tauri): 진짜 최소화·최대화·닫기.
 // - 브라우저 미리보기: 겉모양은 같고, 누르면 설치판 안내를 띄운다 (X 위치는 고정).
+function NetworkPill({ connectionStatus, getStatusColor, getStatusText }: { connectionStatus: ConnectionStatus; getStatusColor: () => string; getStatusText: () => string }) {
+  const [expanded, setExpanded] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setExpanded(false), 5000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div
+      className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-full bg-edu-chip border border-edu-line cursor-default transition-all duration-300 ease-out overflow-hidden"
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+      style={{ maxWidth: expanded ? 260 : 22, paddingLeft: expanded ? 8 : 4, paddingRight: expanded ? 8 : 4 }}
+    >
+      <span className={`w-2 h-2 rounded-full shrink-0 ${getStatusColor()}`} />
+      {expanded && <span className="text-[11px] font-medium text-edu-ink whitespace-nowrap">{getStatusText()}</span>}
+    </div>
+  );
+}
+
 export default function TitleBar({ onPreviewAction, connectionStatus }: Props) {
   const [max, setMax] = useState(false);
   const desktop = isTauriDesktop();
@@ -65,14 +84,10 @@ export default function TitleBar({ onPreviewAction, connectionStatus }: Props) {
       <span className="w-6 h-6 rounded-lg grid place-items-center text-white text-[13px] font-black" style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}>
         B
       </span>
-      <span className="font-extrabold text-[13px]">브리즈</span>
-      <span className="text-[10.5px] font-bold text-edu-muted mt-0.5">v{APP_VERSION}</span>
+      <span className="font-extrabold text-[13px]">브리즈코어</span>
       
       {connectionStatus && (
-        <div className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-full bg-edu-chip border border-edu-line">
-          <span className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
-          <span className="text-[11px] font-medium text-edu-ink">{getStatusText()}</span>
-        </div>
+        <NetworkPill connectionStatus={connectionStatus} getStatusColor={getStatusColor} getStatusText={getStatusText} />
       )}
       
       <span className="flex-1" />
