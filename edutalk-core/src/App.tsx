@@ -832,7 +832,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   // (SQLite·스크래치 저장소가 진실이고, 이벤트는 "다시 읽어라" 신호일 뿐이다)
   useEffect(() => {
     const off = listenEvent("breeze-sync", (pl) => {
-      const ev = pl as { scope?: string; peer?: string; memo?: string; swap?: string; status?: string; urgent?: NoticeItem } | null;
+      const ev = pl as { scope?: string; peer?: string; memo?: string; swap?: string; status?: string; urgent?: NoticeItem; title?: string } | null;
       const scope = ev?.scope ?? "";
       if (!scope) return;
       if (scope === "memos") {
@@ -880,6 +880,8 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
           }
         });
         if (ev?.urgent) setEmergency(ev.urgent);
+      } else if (scope === "notice-ping") {
+        if (!focusActiveRef.current) toastMain(`📢 ${ev?.title || "공지"} — 아직 안 읽으셨다면 확인해 주세요.`);
       } else if (scope === "admin") {
         void storeGet<AdminUser[]>("adminUsers").then((v) => { if (v) setAdminUsers(v); });
         void storeGet<AdminNotice[]>("adminNotices").then((v) => { if (v) setAdminNotices(v); });
@@ -2673,6 +2675,13 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
               onUpdate={updateAdminNotice}
               onDelete={deleteAdminNotice}
               onPublish={publishAdminNotice}
+              onPing={(id) => {
+                const n = adminNotices.find((x) => x.id === id);
+                if (!n) return;
+                emitEvent("breeze-sync", { scope: "notice-ping", title: n.title });
+                toast(`📢 "${n.title}" 알림을 보냈어요.`);
+                addAdminAudit({ adminId: "admin_001", adminName: "관리자", action: "notice_ping", targetType: "notice", targetId: n.id, targetName: n.title, detail: `미확인자에게 알림: ${n.title}`, blocked: false });
+              }}
               onToast={toast}
             />
           )}

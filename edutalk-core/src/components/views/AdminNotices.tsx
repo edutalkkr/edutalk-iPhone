@@ -10,6 +10,7 @@ interface Props {
   onUpdate: (id: string, patch: Partial<AdminNotice>) => void;
   onDelete: (id: string) => void;
   onPublish: (id: string) => void;
+  onPing: (id: string) => void;
   onToast: (t: string) => void;
 }
 
@@ -111,7 +112,20 @@ export default function AdminNotices(p: Props) {
                   </td>
                   <td className="p-3 text-edu-sub">{n.fromAdminName}</td>
                   <td className="p-3 text-edu-sub text-xs">{new Date(n.createdAt).toLocaleDateString()}</td>
-                  <td className="p-3 text-edu-sub font-bold">{n.readCount} / {n.totalCount}</td>
+                  <td className="p-3 text-edu-sub font-bold">
+                    <div className="flex flex-col items-start gap-1">
+                      <span>{n.readCount} / {n.totalCount}</span>
+                      {n.publishedAt && n.readCount < n.totalCount && (
+                        <button
+                          className="edu-btn !py-0.5 !px-1.5 !text-[10px] bg-[#E8F4FB] text-[#0069A8] hover:bg-[#D6EFFF]"
+                          onClick={() => p.onPing(n.id)}
+                          title="아직 안 읽은 선생님에게 알림을 보냅니다"
+                        >
+                          미확인자 알림
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1">
                       <button className="edu-btn !py-1 !px-2 !text-xs" onClick={() => setShowForm({ edit: n })}>수정</button>

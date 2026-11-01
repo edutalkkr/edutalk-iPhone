@@ -65,9 +65,9 @@ const TEACHER_TABS: TabDef[] = [
   { id: "settings", icon: <IconSettingsGear size={19} />, label: "설정" },
 ];
 
-const RAIL_MIN = 176;
+const RAIL_MIN = 160;
 const RAIL_MAX = 360;
-const RAIL_COLLAPSE_AT = 128;
+const RAIL_COLLAPSE_AT = 112;
 
 function clampRail(v: number) {
   return Math.max(RAIL_MIN, Math.min(RAIL_MAX, Math.round(v)));
@@ -344,7 +344,7 @@ export default function LeftSidebar(p: Props) {
       data-reorder={reorderMode ? "true" : "false"}
       style={{ width: effectiveWidth }}
       className={`edu-rail relative z-20 shrink-0 h-full bg-edu-surface border-r border-edu-line flex flex-col py-2.5 px-1.5 ${
-        dragging ? "rail-dragging" : "transition-[width] duration-200"
+        dragging ? "rail-dragging" : "transition-all duration-300 ease-out"
       }`}
     >
       {/* ---------- 프로필 + 작은 접기 버튼 ---------- */}
@@ -503,7 +503,13 @@ export default function LeftSidebar(p: Props) {
               title={reorderMode ? `${t.label} — 끌어서 순서를 바꿔 보세요` : undefined}
             >
               <span className="edu-rail-ico" aria-hidden>{t.icon}</span>
-              <span className="rail-label edu-rail-txt truncate">{t.label}</span>
+              <span
+                className={`rail-label edu-rail-txt truncate transition-[opacity,max-width,margin] duration-250 ease-out ${
+                  collapsed ? "opacity-0 max-w-0 ml-0 overflow-hidden" : "opacity-100 max-w-[14rem]"
+                }`}
+              >
+                {t.label}
+              </span>
               {reorderMode && !collapsed && <span className="edu-rail-grip" aria-hidden>⋮⋮</span>}
               {!reorderMode && badge > 0 && <span className="edu-rail-badge">{badge > 99 ? "99+" : badge}</span>}
             </button>
