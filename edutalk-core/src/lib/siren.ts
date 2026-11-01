@@ -87,5 +87,3 @@ export function stopSiren(): void {
 export function previewSiren(): void {
   playSiren(2.2);
 }
-EOF
-echo written
