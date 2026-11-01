@@ -33,6 +33,7 @@ import {
   IconStickyNote,
 } from "../ui/BzIcons";
 import { APP_VERSION } from "../../lib/version";
+import { t as tr, useLang, setLang, getLang } from "../../lib/i18n";
 
 // 레거시 호환 재수출 — 다른 화면들이 이 경로에서 상태 메타를 가져온다.
 export { STATUS_META };
@@ -45,24 +46,24 @@ export function PresenceDot({ status, className = "" }: { status: TeacherStatus;
 export interface TabDef {
   id: ActiveView;
   icon: ReactNode;
-  label: string;
+  labelKey: string;
 }
 
 const TEACHER_TABS: TabDef[] = [
-  { id: "org", icon: <IconSchool size={19} />, label: "조직도" },
-  { id: "memo", icon: <IconNote size={19} />, label: "쪽지함" },
-  { id: "student-inbox", icon: <IconReply size={19} />, label: "학생 문의" },
-  { id: "chat", icon: <IconChat size={19} />, label: "빠른 대화" },
-  { id: "timetable", icon: <IconCalendar size={19} />, label: "시간표·대강" },
-  { id: "work", icon: <IconMegaphone size={19} />, label: "업무/공지" },
-  { id: "consult", icon: <IconStickyNote size={19} />, label: "AI 상담 일지" },
-  { id: "approval", icon: <IconCheckCircle size={19} />, label: "전자결재" },
-  { id: "whiteboard", icon: <IconGrid size={19} />, label: "협업 보드" },
-  { id: "cloud", icon: <IconCloudIcon size={19} />, label: "브리즈 클라우드" },
-  { id: "print", icon: <IconPrinter size={19} />, label: "보안 인쇄" },
-  { id: "survey", icon: <IconBarChart size={19} />, label: "설문조사" },
-  { id: "audit", icon: <IconShield size={19} />, label: "보안·감사" },
-  { id: "settings", icon: <IconSettingsGear size={19} />, label: "설정" },
+  { id: "org", icon: <IconSchool size={19} />, labelKey: "tab.org" },
+  { id: "memo", icon: <IconNote size={19} />, labelKey: "tab.memo" },
+  { id: "student-inbox", icon: <IconReply size={19} />, labelKey: "tab.student-inbox" },
+  { id: "chat", icon: <IconChat size={19} />, labelKey: "tab.chat" },
+  { id: "timetable", icon: <IconCalendar size={19} />, labelKey: "tab.timetable" },
+  { id: "work", icon: <IconMegaphone size={19} />, labelKey: "tab.work" },
+  { id: "consult", icon: <IconStickyNote size={19} />, labelKey: "tab.consult" },
+  { id: "approval", icon: <IconCheckCircle size={19} />, labelKey: "tab.approval" },
+  { id: "whiteboard", icon: <IconGrid size={19} />, labelKey: "tab.whiteboard" },
+  { id: "cloud", icon: <IconCloudIcon size={19} />, labelKey: "tab.cloud" },
+  { id: "print", icon: <IconPrinter size={19} />, labelKey: "tab.print" },
+  { id: "survey", icon: <IconBarChart size={19} />, labelKey: "tab.survey" },
+  { id: "audit", icon: <IconShield size={19} />, labelKey: "tab.audit" },
+  { id: "settings", icon: <IconSettingsGear size={19} />, labelKey: "tab.settings" },
 ];
 
 const RAIL_MIN = 160;
@@ -74,23 +75,23 @@ function clampRail(v: number) {
 }
 
 const ADMIN_TABS: TabDef[] = [
-  { id: "admin-dashboard", icon: <IconGrid size={19} />, label: "대시보드" },
-  { id: "admin-users", icon: <IconSchool size={19} />, label: "사용자 관리" },
-  { id: "admin-notices", icon: <IconMegaphone size={19} />, label: "공지 관리" },
-  { id: "admin-timetable", icon: <IconCalendar size={19} />, label: "시간표 관리" },
-  { id: "admin-audit", icon: <IconShield size={19} />, label: "감사 로그" },
-  { id: "admin-settings", icon: <IconSettingsGear size={19} />, label: "학교 설정" },
-  { id: "admin-school", icon: <IconSchool size={19} />, label: "학교 정보" },
-  { id: "work", icon: <IconMegaphone size={19} />, label: "업무/공지" },
-  { id: "memo", icon: <IconNote size={19} />, label: "쪽지함" },
-  { id: "student-inbox", icon: <IconReply size={19} />, label: "학생 문의" },
-  { id: "consult", icon: <IconStickyNote size={19} />, label: "AI 상담 일지" },
-  { id: "approval", icon: <IconCheckCircle size={19} />, label: "전자결재" },
-  { id: "whiteboard", icon: <IconGrid size={19} />, label: "협업 보드" },
-  { id: "cloud", icon: <IconCloudIcon size={19} />, label: "브리즈 클라우드" },
-  { id: "survey", icon: <IconBarChart size={19} />, label: "설문조사" },
-  { id: "org", icon: <IconSchool size={19} />, label: "조직도" },
-  { id: "settings", icon: <IconSettingsGear size={19} />, label: "설정" },
+  { id: "admin-dashboard", icon: <IconGrid size={19} />, labelKey: "tab.admin-dashboard" },
+  { id: "admin-users", icon: <IconSchool size={19} />, labelKey: "tab.admin-users" },
+  { id: "admin-notices", icon: <IconMegaphone size={19} />, labelKey: "tab.admin-notices" },
+  { id: "admin-timetable", icon: <IconCalendar size={19} />, labelKey: "tab.admin-timetable" },
+  { id: "admin-audit", icon: <IconShield size={19} />, labelKey: "tab.admin-audit" },
+  { id: "admin-settings", icon: <IconSettingsGear size={19} />, labelKey: "tab.admin-settings" },
+  { id: "admin-school", icon: <IconSchool size={19} />, labelKey: "tab.admin-school" },
+  { id: "work", icon: <IconMegaphone size={19} />, labelKey: "tab.work" },
+  { id: "memo", icon: <IconNote size={19} />, labelKey: "tab.memo" },
+  { id: "student-inbox", icon: <IconReply size={19} />, labelKey: "tab.student-inbox" },
+  { id: "consult", icon: <IconStickyNote size={19} />, labelKey: "tab.consult" },
+  { id: "approval", icon: <IconCheckCircle size={19} />, labelKey: "tab.approval" },
+  { id: "whiteboard", icon: <IconGrid size={19} />, labelKey: "tab.whiteboard" },
+  { id: "cloud", icon: <IconCloudIcon size={19} />, labelKey: "tab.cloud" },
+  { id: "survey", icon: <IconBarChart size={19} />, labelKey: "tab.survey" },
+  { id: "org", icon: <IconSchool size={19} />, labelKey: "tab.org" },
+  { id: "settings", icon: <IconSettingsGear size={19} />, labelKey: "tab.settings" },
 ];
 
 /** 로그인 역할과 네트워크에 따라 실제로 보여 줄 수 있는 메뉴 목록. */
@@ -158,6 +159,7 @@ interface Props {
 
 export default function LeftSidebar(p: Props) {
   const isAdmin = p.userRole === "admin" || p.userRole === "superadmin";
+  useLang(); // 언어 변경 시 재렌더
   const compact = !!p.narrow && !p.expand;
   // 외부망에서는 무거운 클라우드 메뉴를 아예 숨기고, 교사가 숨긴 메뉴는 설정에서 되살린다.
   const baseTabs = navItemsForRole(p.userRole, p.net);
@@ -323,7 +325,7 @@ export default function LeftSidebar(p: Props) {
         },
       },
     ];
-    contextMenu(e, items, tab.label);
+    contextMenu(e, items, tr(tab.labelKey));
   };
 
   const moveTab = (id: ActiveView, delta: number) => {
@@ -509,12 +511,12 @@ export default function LeftSidebar(p: Props) {
               className={`edu-rail-tab ${active ? "active" : ""} ${reorderMode ? "is-reordering" : ""} ${dragTabId === t.id ? "is-dragging" : ""}`}
               data-active={active ? "true" : undefined}
               aria-current={active ? "page" : undefined}
-              aria-label={badge > 0 ? `${t.label}, 안 읽음 ${badge}` : t.label}
-              title={reorderMode ? `${t.label} — 끌어서 순서를 바꿔 보세요` : undefined}
+              aria-label={badge > 0 ? `${tr(t.labelKey)}, unread ${badge}` : tr(t.labelKey)}
+              title={reorderMode ? `${tr(t.labelKey)} — drag to reorder` : undefined}
             >
               <span className="edu-rail-ico" aria-hidden>{t.icon}</span>
               <span className={"rail-label edu-rail-txt truncate transition-[opacity,max-width,margin] duration-250 ease-out " + (collapsed ? "opacity-0 max-w-0 ml-0 overflow-hidden" : "opacity-100 max-w-[14rem]")}>
-                {t.label}
+                {tr(t.labelKey)}
               </span>
               {reorderMode && !collapsed && (
                 <span className="flex shrink-0 gap-0.5 ml-auto">
@@ -537,7 +539,7 @@ export default function LeftSidebar(p: Props) {
           );
           // 접힌 상태에서는 아이콘만 보이므로 마우스를 올리면 이름(과 안읽음 수)을 툴팁으로 보여준다.
           return collapsed ? (
-            <BzTooltip key={t.id} content={badge > 0 ? `${t.label} · 안읽음 ${badge}` : t.label} position="right" className="w-full">
+            <BzTooltip key={t.id} content={badge > 0 ? `${tr(t.labelKey)} · unread ${badge}` : tr(t.labelKey)} position="right" className="w-full">
               {btn}
             </BzTooltip>
           ) : (
@@ -568,6 +570,14 @@ export default function LeftSidebar(p: Props) {
       <div className="mt-2 px-1 flex items-center justify-between gap-1">
         <span className="rail-tiny text-edu-muted truncate">브리즈 v{APP_VERSION}</span>
         <span className="rail-tiny font-bold shrink-0 inline-flex items-center gap-1">
+          <button
+            type="button"
+            className="px-1.5 py-0.5 rounded hover:bg-edu-chip"
+            onClick={() => setLang(getLang() === "ko" ? "en" : "ko")}
+            title="Language"
+          >
+            {useLang() === "ko" ? "🇰🇷" : "🇺🇸"}
+          </button>
           <PresenceDot status="online" />
           <span className="text-edu-sub">{presentCount}</span>
         </span>

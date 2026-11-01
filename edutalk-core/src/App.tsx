@@ -31,6 +31,7 @@ import { storeGet, storeSet } from "./lib/localStore";
 import { call, emitEvent, listenEvent } from "./lib/tauri";
 import { FONT_OPTIONS, normalizeFontKind, type FontKind } from "./lib/fonts";
 import { isTauriDesktop } from "./lib/edition";
+import { t as tr } from "./lib/i18n";
 import type { Peer } from "./lib/tauri";
 import { isFirebaseCloudSchool, intranetVisible, isExternalOnlySchool, isIntranetScoped, remoteBlockedReason } from "./lib/remotePolicy";
 import { syncUiFromStorage, useEdu, applyLayoutAttr, applyMotionAttr, applyUiScale } from "./store";
@@ -2636,7 +2637,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
               currentTeacherId={ME_ID}
               canHandoverAll={serverRole === "admin"}
               onHandover={runHandover}
-              navItems={navItemsForRole(serverRole, net).map((t) => ({ id: t.id, label: t.label }))}
+              navItems={navItemsForRole(serverRole, net).map((t) => ({ id: t.id, label: tr(t.labelKey) }))}
               hiddenTabs={hiddenTabs}
               onHideTab={hideNavTab}
               onRestoreTab={restoreNavTab}
