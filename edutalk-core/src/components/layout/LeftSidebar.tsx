@@ -33,7 +33,7 @@ import {
   IconStickyNote,
 } from "../ui/BzIcons";
 import { APP_VERSION } from "../../lib/version";
-import { t as tr, useLang, setLang, getLang } from "../../lib/i18n";
+import { t as tr } from "../../lib/i18n";
 
 // 레거시 호환 재수출 — 다른 화면들이 이 경로에서 상태 메타를 가져온다.
 export { STATUS_META };
@@ -161,7 +161,6 @@ interface Props {
 
 export default function LeftSidebar(p: Props) {
   const isAdmin = p.userRole === "admin" || p.userRole === "superadmin";
-  useLang(); // 언어 변경 시 재렌더
   const compact = !!p.narrow && !p.expand;
   // 외부망에서는 무거운 클라우드 메뉴를 아예 숨기고, 교사가 숨긴 메뉴는 설정에서 되살린다.
   const baseTabs = navItemsForRole(p.userRole, p.net);
@@ -554,18 +553,6 @@ export default function LeftSidebar(p: Props) {
       <div className="mt-2 px-1 flex items-center justify-between gap-1">
         <span className="rail-tiny text-edu-muted truncate">브리즈 v{APP_VERSION}</span>
         <span className="rail-tiny font-bold shrink-0 inline-flex items-center gap-1">
-          <button
-            type="button"
-            className="px-1.5 py-0.5 rounded hover:bg-edu-chip"
-            onClick={() => {
-              const next = getLang() === "ko" ? "en" : "ko";
-              setLang(next);
-              window.alert(next === "en" ? "Language changed. Please restart BreezeCore for full effect." : "언어가 바뀌었어요. 완전히 적용하려면 브리즈코어를 다시 시작해 주세요.");
-            }}
-            title="Language"
-          >
-            {useLang() === "ko" ? "🇰🇷" : "🇺🇸"}
-          </button>
           <PresenceDot status="online" />
           <span className="text-edu-sub">{presentCount}</span>
         </span>
