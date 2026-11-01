@@ -4,6 +4,31 @@
 
 > 왜 `better-sqlite3`이 아닌가요: 네이티브 모듈은 `pkg`로 exe를 만들 때 바인딩이 깨지기 쉽습니다. Node 22 내장 `node:sqlite`는 exe 안에 그대로 들어가 관리가 쉽고 보안 업데이트도 Node만 올리면 됩니다.
 
+## 학교에 바로 배포하기 (원클릭 키트)
+
+`deploy-kit/` 폴더에 학교 배포용 설치 키트가 들어 있어요.
+
+```bat
+:: 1) 실행 파일 빌드 (Windows에서 실행해야 해요 — Linux 크로스 빌드는 V8 바이트코드 오류가 납니다)
+cd onprem
+npm run pkg:win
+
+:: 2) 키트 묶기 (저장소 루트에서)
+cd ..
+npm run kit:server
+```
+
+`onprem/dist/BreezeServer-win-x64/` 폴더와 `BreezeServer-win-x64.zip`이 만들어져요. 키트에는 실행 파일, 설치·제거·확인 스크립트, 한글 설치 가이드, 계정 명단 엑셀 양식이 들어 있고 **license.key·license.secret·data·logs는 절대 포함되지 않아요.**
+
+학교 서버 PC에서는 이렇게 해요.
+
+1. 키트 폴더를 `C:\Breeze`에 복사
+2. `install-server.bat`을 **우클릭 → 관리자 권한으로 실행** (부팅 시 자동 시작 + 방화벽 + 즉시 시작)
+3. 브라우저가 열리는 `http://localhost:3000/admin`에서 관리자 계정 + 30일 체험 시작
+4. `check-server.bat`으로 교사 앱 서버 주소·학생 웹 주소 확인
+
+> 관리자 토큰은 서버 PC에서 관리 페이지를 열면 자동으로 채워져요. 콘솔이 안 보이는 자동 시작(서비스) 모드에서도 첫 설정이 막히지 않게 하기 위한 장치예요.
+
 ## 실행
 
 ```bat

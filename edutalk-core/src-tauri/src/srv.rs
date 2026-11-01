@@ -98,7 +98,7 @@ pub async fn logout(state: &SrvState) -> Result<(), String> {
     Ok(())
 }
 
-fn parts(state: &SrvState) -> Result<(String, String), String> {
+pub(crate) fn parts(state: &SrvState) -> Result<(String, String), String> {
     let base = state.base.lock().map(|b| b.clone()).unwrap_or_default();
     let token = state.token.lock().map(|t| t.clone()).unwrap_or_default();
     if base.is_empty() {

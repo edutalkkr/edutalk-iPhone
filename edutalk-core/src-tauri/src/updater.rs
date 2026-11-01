@@ -6,6 +6,18 @@ use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
 
+/// 공개 업데이트 피드 — 인터넷이 되는 PC가 여기서 새 버전을 확인한다.
+const DEFAULT_FEED_URL: &str = "https://edutalk.cloud/breeze/latest.json";
+const MAX_UPDATE_BYTES: u64 = 220 * 1024 * 1024;
+
+fn feed_url() -> String {
+    std::env::var("BREEZE_UPDATE_FEED")
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| DEFAULT_FEED_URL.to_string())
+}
+
 fn client(timeout_secs: u64) -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(timeout_secs))
@@ -38,6 +50,190 @@ pub async fn check(base: &str) -> Result<serde_json::Value, String> {
         return Err(msg.to_string());
     }
     Ok(body)
+}
+
+fn safe_update_name(name: &str) -> Result<String, String> {
+    let n = name.rsplit(['/', '\\']).next().unwrap_or("").trim().to_string();
+    if n.is_empty() || n.contains("..") || !n.to_lowercase().ends_with(".exe") {
+        return Err("업데이트 파일 이름이 올바르지 않아요.".into());
+    }
+    Ok(n)
+}
+
+fn valid_sha256(s: &str) -> bool {
+    s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// 공개 피드 확인 (인터넷 필요): https://edutalk.cloud/breeze/latest.json
+/// 새 버전이 없거나 피드가 비어 있으면 update: null 로 정상 반환한다.
+pub async fn feed_check() -> Result<serde_json::Value, String> {
+    let url = feed_url();
+    let base = reqwest::Url::parse(&url).map_err(|_| "업데이트 피드 주소가 올바르지 않아요.".to_string())?;
+    let res = client(10)?
+        .get(base.clone())
+        .header("cache-control", "no-cache")
+        .send()
+        .await
+        .map_err(|_| "인터넷에 연결하지 못했어요.".to_string())?;
+    let status = res.status();
+    if status.as_u16() == 404 {
+        return Ok(serde_json::json!({ "ok": true, "update": null }));
+    }
+    let mut feed: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
+    if !status.is_success() {
+        return Err("업데이트 정보를 받지 못했어요.".into());
+    }
+    let version = feed.get("version").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+    if version.is_empty() || !version.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+        return Err("업데이트 버전 정보가 올바르지 않아요.".into());
+    }
+    let file = feed.get("file").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let file = safe_update_name(&file)?;
+    let sha = feed.get("sha256").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    if !valid_sha256(&sha) {
+        return Err("업데이트 검사값이 올바르지 않아요.".into());
+    }
+    let raw_url = feed
+        .get("url")
+        .and_then(|v| v.as_str())
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or(&file)
+        .to_string();
+    let abs = base
+        .join(raw_url.trim())
+        .map_err(|_| "업데이트 파일 주소가 올바르지 않아요.".to_string())?;
+    if abs.scheme() != "https" {
+        return Err("업데이트 파일은 https 주소에서만 받을 수 있어요.".into());
+    }
+    feed["url"] = serde_json::Value::String(abs.to_string());
+    feed["file"] = serde_json::Value::String(file);
+    Ok(serde_json::json!({ "ok": true, "update": feed }))
+}
+
+/// 인터넷에서 설치본을 받아 학교 서버로 중계한다 (Bearer 토큰은 Rust 안에서만 쓴다).
+/// 진행 상황은 "relay-progress" 이벤트({phase,received,total,done})로 알린다.
+pub async fn relay(
+    app: &AppHandle,
+    state: &super::srv::SrvState,
+    feed: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let (base, token) = super::srv::parts(state)?;
+    if token.is_empty() {
+        return Err("학교 서버에 먼저 로그인해 주세요.".into());
+    }
+    let url = feed.get("url").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+    let file = safe_update_name(feed.get("file").and_then(|v| v.as_str()).unwrap_or(""))?;
+    let version = feed.get("version").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+    let sha_expected = feed.get("sha256").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    if url.is_empty() || version.is_empty() || !valid_sha256(&sha_expected) {
+        return Err("업데이트 정보가 올바르지 않아요.".into());
+    }
+    if !url.starts_with("https://") {
+        return Err("업데이트 파일은 https 주소에서만 받을 수 있어요.".into());
+    }
+
+    let dir: PathBuf = std::env::temp_dir().join("breeze-update");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let full = dir.join(&file);
+
+    let _ = app.emit(
+        "relay-progress",
+        serde_json::json!({ "phase": "download", "received": 0, "total": 0, "done": false }),
+    );
+    let mut res = client(600)?
+        .get(&url)
+        .send()
+        .await
+        .map_err(|_| "인터넷에서 업데이트를 내려받지 못했어요.".to_string())?;
+    if !res.status().is_success() {
+        return Err("인터넷에서 업데이트 파일을 찾지 못했어요.".into());
+    }
+    let total = res.content_length().unwrap_or(0);
+    if total > MAX_UPDATE_BYTES {
+        return Err("업데이트 파일이 너무 커요.".into());
+    }
+
+    use tokio::io::AsyncWriteExt;
+    let mut out = tokio::fs::File::create(&full).await.map_err(|e| e.to_string())?;
+    let mut hasher = Sha256::new();
+    let mut got: u64 = 0;
+    let mut last_emit: u64 = 0;
+    let step = (total / 100).max(256 * 1024);
+    while let Some(chunk) = res.chunk().await.map_err(|e| e.to_string())? {
+        got += chunk.len() as u64;
+        if got > MAX_UPDATE_BYTES {
+            drop(out);
+            let _ = std::fs::remove_file(&full);
+            return Err("업데이트 파일이 너무 커요.".into());
+        }
+        hasher.update(&chunk);
+        out.write_all(&chunk).await.map_err(|e| e.to_string())?;
+        if got - last_emit >= step {
+            last_emit = got;
+            let _ = app.emit(
+                "relay-progress",
+                serde_json::json!({ "phase": "download", "received": got, "total": total, "done": false }),
+            );
+        }
+    }
+    out.flush().await.map_err(|e| e.to_string())?;
+    drop(out);
+
+    let digest = hex::encode(hasher.finalize());
+    if !digest.eq_ignore_ascii_case(&sha_expected) {
+        let _ = std::fs::remove_file(&full);
+        return Err("내려받은 파일이 손상됐어요 (검사값 불일치).".into());
+    }
+    let _ = app.emit(
+        "relay-progress",
+        serde_json::json!({ "phase": "download", "received": got, "total": got, "done": true }),
+    );
+
+    let bytes = tokio::fs::read(&full).await.map_err(|e| e.to_string())?;
+    let manifest = serde_json::json!({
+        "version": version,
+        "file": file,
+        "size": bytes.len(),
+        "sha256": digest,
+        "notes": feed.get("notes").and_then(|v| v.as_str()).unwrap_or(""),
+        "mandatory": feed.get("mandatory").and_then(|v| v.as_bool()).unwrap_or(false),
+        "security": feed.get("security").and_then(|v| v.as_bool()).unwrap_or(false),
+        "pub_date": feed.get("pub_date").and_then(|v| v.as_str()).unwrap_or(""),
+    });
+    use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
+    let header = B64.encode(serde_json::to_vec(&manifest).map_err(|e| e.to_string())?);
+
+    let _ = app.emit(
+        "relay-progress",
+        serde_json::json!({ "phase": "upload", "received": 0, "total": bytes.len(), "done": false }),
+    );
+    let res = client(300)?
+        .post(format!("{base}/api/updates/relay"))
+        .bearer_auth(&token)
+        .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
+        .header("x-breeze-manifest", header)
+        .body(bytes)
+        .send()
+        .await
+        .map_err(|_| "학교 서버로 업데이트를 보내지 못했어요.".to_string())?;
+    let status = res.status();
+    let body: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
+    if !status.is_success() || body.get("ok").and_then(|v| v.as_bool()) != Some(true) {
+        let msg = body
+            .get("error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("학교 서버가 업데이트를 받지 못했어요.");
+        return Err(msg.to_string());
+    }
+    let _ = app.emit(
+        "relay-progress",
+        serde_json::json!({ "phase": "done", "received": got, "total": got, "done": true }),
+    );
+    Ok(serde_json::json!({
+        "ok": true,
+        "installer": full.to_string_lossy().to_string(),
+        "update": body.get("update").cloned().unwrap_or(serde_json::Value::Null),
+    }))
 }
 
 /// 설치본 내려받기: {base}/api/updates/download/{file} → 임시 폴더 저장 + 검사값(SHA-256) 확인.

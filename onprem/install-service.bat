@@ -8,10 +8,10 @@ if %errorlevel% neq 0 (
   exit /b 1
 )
 cd /d "%~dp0"
-if exist "%~dp0edutalk-server.exe" (
-  node install-service.js "%~dp0edutalk-server.exe"
+if exist "%~dp0breeze-server.exe" (
+  node install-service.js "%~dp0breeze-server.exe"
   if %errorlevel% neq 0 (
-    echo Node가 없으면 NSSM 방식으로 직접 등록하세요.
+    echo Node가 없으면 deploy-kit 의 install-server.bat 을 사용해 주세요.
   )
 ) else (
   call npm install

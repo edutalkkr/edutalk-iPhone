@@ -98,6 +98,12 @@ try {
 const PORT = Number(process.env.EDUTALK_PORT || 3000);
 const UPLOAD_DIR = process.env.EDUTALK_UPLOAD_DIR || path.join(APP_ROOT(), 'uploads');
 try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
+// 교내 업데이트 보관함 — exe로 실행해도 exe 옆 폴더를 쓴다 (pkg 가상 경로에 쓰지 않게)
+const UPDATES_DIR = process.env.BREEZE_UPDATES_DIR || path.join(APP_ROOT(), 'updates');
+try { fs.mkdirSync(UPDATES_DIR, { recursive: true }); } catch (e) {}
+// 인터넷이 되는 PC가 확인하는 공개 업데이트 피드 (정적 JSON)
+const UPDATE_FEED_URL = process.env.BREEZE_UPDATE_FEED || 'https://edutalk.cloud/breeze/latest.json';
+const UPDATE_MAX_BYTES = 220 * 1024 * 1024;
 
 /* ---------- 작은 유틸 ---------- */
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -167,7 +173,9 @@ function markSetupDone(){
 function isLoopback(req){
   try{
     const ip=String(req.ip || (req.socket && req.socket.remoteAddress) || '').toLowerCase().replace(/^::ffff:/, '');
-    return ip === '127.0.0.1' || ip === '::1' || ip === 'localhost';
+    if(ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
+    // 서버 PC에서 자기 교내 IP로 접속해도 본체로 인정한다 (설정 마법사가 막히지 않게)
+    return localIPv4s().some(x => String(x.address || '').toLowerCase() === ip);
   }catch(e){ return false; }
 }
 function maybeFinishSetup(){
@@ -227,6 +235,7 @@ function rateLimit({ windowMs, max, message }) {
 }
 const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: '로그인을 너무 자주 시도했어요. 1분 뒤 다시 해 주세요.' });
 const adminLimiter = rateLimit({ windowMs: 60 * 1000, max: 200, message: '요청이 너무 많아요. 잠시 뒤 다시 해 주세요.' });
+const relayLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 6, message: '업데이트 배포 요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.' });
 const setupLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: '너무 자주 시도했어요. 잠시 뒤 다시 해 주세요.' });
 const activityLimiter = rateLimit({ windowMs: 60 * 1000, max: 300, message: '요청이 너무 많아요. 잠시 뒤 다시 해 주세요.' });
 const aiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: 'AI 요청이 너무 많아요. 1분 뒤 다시 시도해 주세요.' });
@@ -263,7 +272,7 @@ app.use(licenseGate);
 
 function needAuth(req, res, next) {
   const h = String(req.headers.authorization || '');
-  const token = h.startsWith('Bearer ') ? h.slice(7) : String(req.query.token || req.body.token || '');
+  const token = h.startsWith('Bearer ') ? h.slice(7) : String(req.query.token || (req.body && req.body.token) || '');
   const u = auth.userByToken(token);
   if (!u) return res.status(401).json({ ok: false, error: '로그인이 필요해요.' });
   req.user = u;
@@ -883,6 +892,12 @@ app.post('/api/admin/setup/license', setupLimiter, needSetupLocal, (req, res) =>
     res.json({ ok:true, license:license.verify() });
   }catch(e){ res.status(500).json({ ok:false, error:'저장하지 못했어요.' }); }
 });
+/* 서버 PC 본체에서 관리 페이지를 열면 토큰을 자동으로 채울 수 있게 로컬에만 내려준다.
+ * 원격(교내 다른 PC)에서는 403 — 콘솔이 안 보이는 서비스 모드에서도 첫 설정이 막히지 않게 한다. */
+app.get('/api/admin/token-local', adminLimiter, (req, res) => {
+  if(!isLoopback(req)) return res.status(403).json({ ok:false, error:'학교 PC 본체에서만 확인할 수 있어요.' });
+  res.json({ ok:true, token: ADMIN_TOKEN });
+});
 
 /* ---------- 관리자 ---------- */
 app.get('/api/admin/status', adminLimiter, needAdmin, (req, res) => {
@@ -1090,7 +1105,177 @@ app.use('/api/admin', require('./routes/admin-tools')({
 /* ---------- 서버 주도 OTA (5단계-3) ----------
  * 전산실이 updates/ 폴더에 설치본+latest.json 을 올리면 교사 PC가 받아 간다.
  * 읽기 전용·로그인 불필요 (설정/이용권 상태와 무관하게 갱신 가능해야 함) */
-app.use('/api/updates', require('./routes/updates')({ forcedUpdate: () => getPolicyBool('forceUpdate') }));
+/* ---------- 교내 업데이트 중계 ----------
+ * 인터넷이 되는 교사 PC(또는 서버 PC)가 공개 피드에서 새 설치본을 받아
+ * POST /api/updates/relay 로 올리면, 서버가 검사값을 확인하고 교내에 보관·방송한다.
+ * 인터넷이 없는 PC는 /api/updates/latest → /api/updates/download 로 교내망에서만 받는다. */
+function normalizeUpdateManifest(raw, size, sha) {
+  const version = String((raw && raw.version) || '').trim();
+  const file = path.basename(String((raw && raw.file) || ''));
+  if (!/^\d+(\.\d+){1,3}([-.][A-Za-z0-9]+)?$/.test(version)) throw new Error('버전 형식이 올바르지 않아요.');
+  if (!file || file !== String((raw && raw.file) || '').trim() || !/^[A-Za-z0-9._ -]+\.exe$/i.test(file)) {
+    throw new Error('업데이트 파일 이름이 올바르지 않아요.');
+  }
+  const digest = String(sha || '').toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error('검사값(SHA-256)이 올바르지 않아요.');
+  return {
+    version,
+    file,
+    size: Number(size) || 0,
+    sha256: digest,
+    notes: String((raw && raw.notes) || '').slice(0, 800),
+    mandatory: !!(raw && raw.mandatory === true),
+    security: !!(raw && raw.security === true),
+    pub_date: String((raw && raw.pub_date) || new Date().toISOString().slice(0, 10)),
+  };
+}
+function compareUpdateVersion(a, b) {
+  const pa = String(a || '').split(/[^\d]+/).filter(Boolean).map(Number);
+  const pb = String(b || '').split(/[^\d]+/).filter(Boolean).map(Number);
+  const n = Math.max(pa.length, pb.length);
+  for (let i = 0; i < n; i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+function readLatestUpdate() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(UPDATES_DIR, 'latest.json'), 'utf8'));
+  } catch (e) { return null; }
+}
+function storeUpdateRelease(man, buf) {
+  if (!Buffer.isBuffer(buf) || !buf.length) throw new Error('설치 파일이 비어 있어요.');
+  if (buf.length > UPDATE_MAX_BYTES) throw new Error('업데이트 파일이 너무 커요.');
+  if (man.size && man.size !== buf.length) throw new Error('파일 크기가 업데이트 정보와 달라요.');
+  const digest = crypto.createHash('sha256').update(buf).digest('hex');
+  if (digest !== man.sha256) throw new Error('내려받은 파일이 손상됐어요 (검사값 불일치).');
+  const full = path.join(UPDATES_DIR, man.file);
+  const tmp = full + '.part';
+  fs.writeFileSync(tmp, buf);
+  fs.renameSync(tmp, full);
+  const saved = {
+    version: man.version,
+    file: man.file,
+    size: buf.length,
+    sha256: man.sha256,
+    notes: man.notes,
+    mandatory: man.mandatory,
+    security: man.security,
+    pub_date: man.pub_date,
+  };
+  fs.writeFileSync(path.join(UPDATES_DIR, 'latest.json'), JSON.stringify(saved, null, 2));
+  try { io.emit('update:available', saved); } catch (e) {}
+  return saved;
+}
+async function fetchUpdateFeed() {
+  const res = await fetch(UPDATE_FEED_URL, {
+    signal: AbortSignal.timeout(15000),
+    headers: { 'cache-control': 'no-cache' },
+  });
+  if (!res.ok) throw new Error('업데이트 서버에 연결하지 못했어요.');
+  const feed = await res.json();
+  if (!feed || !feed.version || !feed.file || !feed.sha256) throw new Error('업데이트 정보가 올바르지 않아요.');
+  return feed;
+}
+async function downloadFeedInstaller(feed) {
+  const rawUrl = String(feed.url || feed.file || '');
+  let target;
+  try { target = new URL(rawUrl, UPDATE_FEED_URL); } catch (e) { throw new Error('업데이트 파일 주소가 올바르지 않아요.'); }
+  if (target.protocol !== 'https:') throw new Error('업데이트 파일은 https 주소여야 해요.');
+  const res = await fetch(target.toString(), { signal: AbortSignal.timeout(180000) });
+  if (!res.ok) throw new Error('설치 파일을 내려받지 못했어요.');
+  const len = Number(res.headers.get('content-length') || 0);
+  if (len > UPDATE_MAX_BYTES) throw new Error('업데이트 파일이 너무 커요.');
+  const buf = Buffer.from(await res.arrayBuffer());
+  return { buf, feed: { ...feed, url: target.toString() } };
+}
+
+/* 교사 PC(인터넷 O) → 학교 서버(교내망): 설치본 업로드 + 전체 방송 */
+const relayClaims = new Map(); // version → { userId, name, expires }
+app.post('/api/updates/relay', relayLimiter, needAuth, express.raw({ type: 'application/octet-stream', limit: UPDATE_MAX_BYTES }), (req, res) => {
+  try {
+    const raw = String(req.headers['x-breeze-manifest'] || '');
+    if (!raw) return res.status(400).json({ ok: false, error: '업데이트 정보가 없어요.' });
+    let man;
+    try { man = JSON.parse(Buffer.from(raw, 'base64').toString('utf8')); }
+    catch (e) { return res.status(400).json({ ok: false, error: '업데이트 정보를 읽지 못했어요.' }); }
+    const norm = normalizeUpdateManifest(man, req.body && req.body.length, man.sha256);
+    const saved = storeUpdateRelease(norm, req.body);
+    relayClaims.clear();
+    writeServerAudit(req, req.user.id, req.user.real_name || req.user.username, 'update_relay', 'update', saved.version, { file: saved.file, size: saved.size });
+    res.json({ ok: true, update: saved });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message || '업데이트를 저장하지 못했어요.' });
+  }
+});
+
+/* 한 학교에서 동시에 여러 PC가 업데이트 중계를 시작하지 않도록 10분짜리 임차권을 준다.
+ * 인터넷이 되는 PC가 처음 한 대만 동의 팝업을 띄우고, 나머지는 조용히 기다린다. */
+const RELAY_CLAIM_MS = 10 * 60 * 1000;
+function cleanRelayClaims() {
+  const now = Date.now();
+  for (const [k, v] of relayClaims) if (!v || v.expires <= now) relayClaims.delete(k);
+}
+app.post('/api/updates/claim', needAuth, (req, res) => {
+  try {
+    cleanRelayClaims();
+    const version = String((req.body && req.body.version) || '').trim();
+    if (!/^\d+(\.\d+){1,3}([-.][A-Za-z0-9]+)?$/.test(version)) {
+      return res.status(400).json({ ok: false, error: '업데이트 버전이 올바르지 않아요.' });
+    }
+    const latest = readLatestUpdate();
+    if (latest && compareUpdateVersion(latest.version, version) >= 0) {
+      return res.json({ ok: true, claim: false, reason: 'already', current: latest.version });
+    }
+    const held = relayClaims.get(version);
+    if (held && held.expires > Date.now() && held.userId !== req.user.id) {
+      return res.json({ ok: true, claim: false, reason: 'taken' });
+    }
+    const expires = Date.now() + RELAY_CLAIM_MS;
+    relayClaims.set(version, { userId: req.user.id, name: req.user.real_name || req.user.username, expires });
+    res.json({ ok: true, claim: true, expiresIn: Math.round(RELAY_CLAIM_MS / 1000) });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message || '업데이트 준비에 실패했어요.' });
+  }
+});
+app.post('/api/updates/release', needAuth, (req, res) => {
+  try {
+    const version = String((req.body && req.body.version) || '').trim();
+    const held = relayClaims.get(version);
+    if (held && held.userId === req.user.id) relayClaims.delete(version);
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: true });
+  }
+});
+
+/* 서버 PC(인터넷 O) → 학교 서버: 관리자가 직접 확인·배포 */
+app.get('/api/admin/updates/feed', adminLimiter, needAdmin, async (req, res) => {
+  try {
+    const feed = await fetchUpdateFeed();
+    res.json({ ok: true, feed });
+  } catch (e) {
+    res.status(502).json({ ok: false, error: e.message || '인터넷에서 업데이트 정보를 확인하지 못했어요.' });
+  }
+});
+app.post('/api/admin/updates/pull', relayLimiter, needAdmin, async (req, res) => {
+  try {
+    const feed = await fetchUpdateFeed();
+    const got = await downloadFeedInstaller(feed);
+    const man = normalizeUpdateManifest(got.feed, got.buf.length, got.feed.sha256);
+    const saved = storeUpdateRelease(man, got.buf);
+    writeServerAudit(req, 'admin', '관리자', 'update_pull', 'update', saved.version, { file: saved.file, size: saved.size });
+    res.json({ ok: true, update: saved });
+  } catch (e) {
+    res.status(502).json({ ok: false, error: e.message || '업데이트를 내려받지 못했어요.' });
+  }
+});
+
+app.use('/api/updates', require('./routes/updates')({
+  dir: UPDATES_DIR,
+  forcedUpdate: () => getPolicyBool('forceUpdate'),
+}));
 
 app.use('/fonts', express.static(path.join(__dirname, 'fonts'), { maxAge: '7d' }));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));

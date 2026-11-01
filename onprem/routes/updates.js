@@ -59,6 +59,7 @@ module.exports = function updatesRouter(opts = {}) {
         sha256,
         notes: String(man.notes || ''),
         mandatory: man.mandatory === true || forcedByPolicy(),
+        security: man.security === true,
         pub_date: String(man.pub_date || ''),
         url: '/api/updates/download/' + encodeURIComponent(name),
       });

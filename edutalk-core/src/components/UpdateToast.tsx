@@ -1,8 +1,9 @@
 // 서버 주도 자동 업데이트 안내 — 새 설치본이 올라오면 화면 아래에서 조용히 알린다.
 // [지금 업데이트] → 내려받기(진행률) → 조용히 설치 → 앱이 스스로 다시 열린다.
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { APP_VERSION } from "../lib/version";
 import { storeGet, storeSet } from "../lib/localStore";
+import socket from "../services/socket";
 import { checkUpdate, compareVersions, downloadUpdate, installUpdate } from "../services/update";
 import type { UpdateInfo } from "../services/update";
 
@@ -17,22 +18,28 @@ export default function UpdateToast({ enabled, base }: { enabled: boolean; base:
   const [message, setMessage] = useState("");
   const busy = useRef(false);
 
+  // 여러 곳(첫 확인·주기 확인·교내 배포 알림)에서 같은 확인 로직을 쓴다.
+  const checkNow = useCallback(async () => {
+    if (!base || busy.current) return;
+    try {
+      const found = await checkUpdate(base);
+      if (!found) return;
+      if (compareVersions(found.version, APP_VERSION) <= 0) return;
+      const dismissed = await storeGet<string>("update-dismissed");
+      if (!found.mandatory && dismissed === found.version) return;
+      setInfo(found);
+      setPhase((p) => (p === "idle" ? "available" : p));
+    } catch {
+      /* 서버 미지원/오프라인 — 조용히 지나간다 */
+    }
+  }, [base]);
+
   useEffect(() => {
     if (!enabled || !base) return;
     let stop = false;
     const run = async () => {
-      if (busy.current || stop) return;
-      try {
-        const found = await checkUpdate(base);
-        if (stop || !found) return;
-        if (compareVersions(found.version, APP_VERSION) <= 0) return;
-        const dismissed = await storeGet<string>("update-dismissed");
-        if (!found.mandatory && dismissed === found.version) return;
-        setInfo(found);
-        setPhase((p) => (p === "idle" ? "available" : p));
-      } catch {
-        /* 서버 미지원/오프라인 — 조용히 지나간다 */
-      }
+      if (stop) return;
+      await checkNow();
     };
     const first = setTimeout(run, 5000);
     const timer = setInterval(run, CHECK_INTERVAL_MS);
@@ -41,7 +48,15 @@ export default function UpdateToast({ enabled, base }: { enabled: boolean; base:
       clearTimeout(first);
       clearInterval(timer);
     };
-  }, [enabled, base]);
+  }, [enabled, base, checkNow]);
+
+  // 인터넷이 되는 PC가 방금 교내 서버에 올린 새 버전은 소켓으로 즉시 알려 준다.
+  useEffect(() => {
+    if (!enabled || !base) return;
+    return socket.on("update:available", () => {
+      void checkNow();
+    });
+  }, [enabled, base, checkNow]);
 
   const startUpdate = async () => {
     if (!info || !base || busy.current) return;
@@ -79,7 +94,9 @@ export default function UpdateToast({ enabled, base }: { enabled: boolean; base:
     <div className="bz-update" role="status">
       <div className="bz-update-head">
         <span>새 버전 v{info.version}</span>
-        {info.mandatory ? (
+        {info.security ? (
+          <span className="bz-update-badge sec">긴급 보안</span>
+        ) : info.mandatory ? (
           <span className="bz-update-badge must">필수 업데이트</span>
         ) : (
           <span className="bz-update-badge">업데이트 있음</span>
@@ -87,6 +104,11 @@ export default function UpdateToast({ enabled, base }: { enabled: boolean; base:
         <span className="bz-grow" />
         {phase === "downloading" && pct >= 0 && <span className="bz-update-pct">{pct}%</span>}
       </div>
+      {info.security && (
+        <div className="bz-update-alert">
+          이 업데이트는 긴급 보안 업데이트예요. 최대한 빠르게 업데이트해 주세요.
+        </div>
+      )}
       {info.notes && <div className="bz-update-notes">{info.notes}</div>}
       {phase === "downloading" && (
         <>

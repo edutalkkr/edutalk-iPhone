@@ -610,6 +610,9 @@ export interface SocketEvents {
   'whiteboard:updated': (payload: WhiteboardUpdatedEvent) => void;
   'whiteboard:presence': (payload: WhiteboardPresenceEvent) => void;
   'whiteboard:deleted': (payload: { boardId: string }) => void;
+
+  // 서버 주도 OTA — 인터넷이 되는 PC가 새 설치본을 교내 서버에 올렸을 때
+  'update:available': (payload: { version: string; file: string; size: number; sha256: string; notes?: string; mandatory?: boolean; security?: boolean; pub_date?: string }) => void;
 }
 
 export type SocketEventName = keyof SocketEvents;

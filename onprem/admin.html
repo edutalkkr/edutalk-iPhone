@@ -124,7 +124,7 @@
       <button id="saveToken" class="ghost">저장</button>
       <button id="load">상태 불러오기</button>
     </div>
-    <p class="muted">서버를 처음 켤 때 콘솔에 나온 토큰을 입력하세요. 브라우저에만 저장돼요.</p>
+    <p class="muted">서버 PC에서 열면 자동으로 채워져요. 다른 PC에서는 서버 폴더의 <code>data\.admin_token</code> 값을 입력하세요.</p>
   </div>
   <div class="card">
     <h2>서버 상태</h2>
@@ -223,6 +223,16 @@
     <div id="bakList" class="muted" style="margin-top:6px">-</div>
   </div>
   <div class="card">
+    <h2>🔄 교사 앱 업데이트</h2>
+    <p class="muted">인터넷이 되는 서버 PC에서 새 버전을 확인하고 교내에 배포해요. 인터넷이 없는 교실 PC는 교내망으로만 받아 설치할 수 있어요.</p>
+    <div class="row" style="margin-top:8px">
+      <button id="updCheck" class="ghost">새 버전 확인</button>
+      <button id="updPull">지금 배포</button>
+      <span class="muted" id="updMsg"></span>
+    </div>
+    <div id="updInfo" class="muted" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
     <h2>사용자 (최근 1000명)</h2>
     <div id="users" class="muted">-</div>
   </div>
@@ -239,6 +249,15 @@
   'use strict';
   var tokenInput = document.getElementById('token');
   tokenInput.value = localStorage.getItem('edutalk_admin_token') || '';
+  // 학교 PC 본체에서 열면 관리자 토큰을 자동으로 채운다 (원격에서는 서버가 403으로 거절)
+  if (!tokenInput.value) {
+    fetch('/api/admin/token-local').then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.ok && j.token) {
+        tokenInput.value = j.token;
+        localStorage.setItem('edutalk_admin_token', j.token);
+      }
+    }).catch(function () {});
+  }
   function log(m) {
     var el = document.getElementById('log');
     el.textContent = new Date().toLocaleTimeString() + ' ' + m + '\n' + el.textContent;
@@ -430,7 +449,34 @@
         });
       }).catch(function () { document.getElementById('audMsg').textContent = '연결 실패'; });
   };
-  document.getElementById('purgeGo').onclick = function () {
+  document.getElementById('updCheck').onclick = function () {
+  var msg = document.getElementById('updMsg');
+  var info = document.getElementById('updInfo');
+  msg.textContent = '확인 중…';
+  api('/api/admin/updates/feed').then(function (j) {
+    if (!j.ok) { msg.textContent = '실패: ' + (j.error || ''); return; }
+    var f = j.feed || {};
+    msg.textContent = '새 버전이 있어요.';
+    info.innerHTML = '<b>v' + esc(f.version || '-') + '</b> · ' + esc(f.notes || '') +
+      (f.security ? ' <span class="pill danger">긴급 보안</span>' : '');
+  }).catch(function () { msg.textContent = '연결 실패'; });
+};
+document.getElementById('updPull').onclick = function () {
+  var btn = document.getElementById('updPull');
+  var msg = document.getElementById('updMsg');
+  var info = document.getElementById('updInfo');
+  btn.disabled = true;
+  msg.textContent = '내려받는 중…';
+  api('/api/admin/updates/pull', { method: 'POST' }).then(function (j) {
+    btn.disabled = false;
+    if (!j.ok) { msg.textContent = '실패: ' + (j.error || ''); return; }
+    var u = j.update || {};
+    msg.textContent = '교내 배포 완료';
+    info.innerHTML = 'v' + esc(u.version || '-') + ' · ' + esc(u.file || '') + ' · ' + Math.round((u.size || 0) / 1024 / 1024) + 'MB';
+    log('업데이트 배포 완료: v' + (u.version || ''));
+  }).catch(function () { btn.disabled = false; msg.textContent = '연결 실패'; });
+};
+document.getElementById('purgeGo').onclick = function () {
     if (!confirm('보관 기간이 지난 학생 미디어를 지금 정리할까요?\n텍스트와 교사 미디어는 그대로 남아요.')) return;
     api('/api/admin/maintenance/purge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       .then(function (j) {

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>브리즈 서버 설치 가이드 · Breeze</title>
+<style>
+  :root{
+    --brand:#0082c8; --brand-deep:#0069a8; --brand-soft:#e8f4fb; --brand-line:#9bd3ee;
+    --ink:#0f172a; --ink-2:#1e293b; --muted:#52657a; --muted-2:#7a8ca0;
+    --bg:#f6f9fd; --surface:#fff; --line:#dbe7f2; --line-strong:#c2d6e7;
+    --green:#15803d; --green-soft:#e9f8ef; --amber:#b7791f; --amber-soft:#fdf4e3; --red:#b91c1c; --red-soft:#fdecec;
+    --shadow:0 18px 50px rgba(15,35,60,.08);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Pretendard Variable",-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",system-ui,sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--brand-deep);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:960px;margin:0 auto;padding:0 22px 90px}
+  header.hero{background:linear-gradient(160deg,#eaf6fd 0%,#f6f9fd 55%,#eef4fb 100%);border-bottom:1px solid var(--line);padding:56px 0 46px;margin-bottom:38px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:19px;letter-spacing:-.02em;margin-bottom:26px}
+  .brand-mark{width:38px;height:38px;border-radius:13px;background:linear-gradient(145deg,#29a9e8,#0077bb);box-shadow:0 8px 18px rgba(0,130,200,.28);display:grid;place-items:center;color:#fff;font-size:19px}
+  .kicker{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--brand-line);color:var(--brand-deep);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;margin-bottom:16px}
+  h1{font-size:clamp(28px,4.6vw,42px);line-height:1.22;letter-spacing:-.035em;margin:0 0 14px}
+  .lead{font-size:17px;color:var(--muted);max-width:640px;margin:0}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+  .meta span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:13px;color:var(--muted);font-weight:600}
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:28px 0 0}
+  .flow div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 12px;font-size:12.5px;font-weight:700;color:var(--ink-2);box-shadow:0 4px 14px rgba(15,35,60,.04)}
+  .flow b{display:block;color:var(--brand);font-size:11px;letter-spacing:.06em;margin-bottom:4px}
+  @media(max-width:720px){.flow{grid-template-columns:repeat(2,1fr)}}
+  .toc{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:34px}
+  .toc h2{font-size:14px;letter-spacing:.04em;color:var(--muted);margin:0 0 10px;text-transform:uppercase}
+  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:32px}
+  .toc li{margin:4px 0;font-weight:600;font-size:14.5px}
+  @media(max-width:620px){.toc ol{columns:1}}
+  section{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px 28px;margin-bottom:22px;box-shadow:var(--shadow)}
+  @media(max-width:620px){section{padding:20px 18px}}
+  section>h2{display:flex;align-items:center;gap:12px;font-size:21px;letter-spacing:-.02em;margin:0 0 6px}
+  .num{flex:none;width:34px;height:34px;border-radius:11px;background:var(--brand-soft);color:var(--brand-deep);display:grid;place-items:center;font-size:15px;font-weight:800;border:1px solid var(--brand-line)}
+  .sub{color:var(--muted);font-size:14.5px;margin:0 0 18px}
+  h3{font-size:15.5px;margin:22px 0 8px;letter-spacing:-.01em}
+  p{margin:8px 0}
+  ol.steps{margin:6px 0 6px;padding-left:0;list-style:none;counter-reset:s}
+  ol.steps>li{position:relative;padding:0 0 2px 40px;margin:0 0 16px;counter-increment:s}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:1px;width:27px;height:27px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800;box-shadow:0 5px 12px rgba(0,130,200,.25)}
+  ol.steps>li b{color:var(--ink)}
+  code{font-family:"Consolas","D2Coding",monospace;background:#eef4fa;border:1px solid var(--line);border-radius:6px;padding:1.5px 6px;font-size:13px;color:var(--brand-deep);white-space:nowrap}
+  .box{border-radius:14px;padding:14px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+  .box b{display:block;margin-bottom:3px;font-size:13.5px}
+  .tip{background:var(--brand-soft);border-color:var(--brand-line)}
+  .warn{background:var(--amber-soft);border-color:#ecd9b0}
+  .done{background:var(--green-soft);border-color:#bfe6cd}
+  .danger{background:var(--red-soft);border-color:#f2c4c4}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:14px;padding:15px 16px;background:#fbfdff}
+  .card h4{margin:0 0 5px;font-size:14.5px}
+  .card p{margin:0;font-size:13.5px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{border-bottom:1px solid var(--line);padding:11px 10px;text-align:left;vertical-align:top}
+  th{background:#f4f9fd;color:var(--ink-2);font-size:13px;letter-spacing:.02em}
+  tr:last-child td{border-bottom:0}
+  td code{white-space:normal;word-break:break-all}
+  .diagram{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;background:#f8fbff;border:1px dashed var(--line-strong);border-radius:16px;padding:22px 16px;margin:16px 0}
+  .node{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 16px;text-align:center;min-width:118px;box-shadow:0 6px 16px rgba(15,35,60,.06)}
+  .node .ico{font-size:21px;display:block;margin-bottom:4px}
+  .node b{font-size:13px;display:block}
+  .node span{font-size:11.5px;color:var(--muted)}
+  .link{color:var(--brand);font-weight:800;font-size:18px}
+  .checklist{list-style:none;margin:8px 0 0;padding:0}
+  .checklist li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14.5px}
+  .checklist li:last-child{border-bottom:0}
+  .checklist input{margin-top:4px;accent-color:var(--brand);width:17px;height:17px;flex:none}
+  details{border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin:9px 0;background:#fbfdff}
+  summary{cursor:pointer;font-weight:700;font-size:14.5px}
+  details p,details ul{font-size:14px;color:var(--muted)}
+  .footer{text-align:center;color:var(--muted-2);font-size:13px;padding:28px 0 0}
+  .pill{display:inline-block;background:var(--brand-soft);color:var(--brand-deep);border:1px solid var(--brand-line);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700}
+  .big-cta{display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,#0082c8,#0aa2e8);color:#fff;border-radius:16px;padding:18px 20px;margin:16px 0 4px}
+  .big-cta .k{font-size:12.5px;opacity:.85;letter-spacing:.05em}
+  .big-cta .v{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .big-cta .e{margin-left:auto;font-size:30px}
+  @media print{
+    body{background:#fff}
+    header.hero{background:#fff;padding:10px 0 18px}
+    section,.toc{box-shadow:none;break-inside:avoid}
+    .big-cta{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .skip-print{display:none!important}
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="brand"><span class="brand-mark">✦</span> Breeze · 브리즈</div>
+    <div class="kicker">🏫 학교 내부망 서버 · 설치 안내</div>
+    <h1>브리즈 서버,<br>30분이면 학교에서 바로 쓸 수 있어요</h1>
+    <p class="lead">이 가이드는 학교 서버 PC 한 대에 브리즈를 설치하고, 선생님 앱과 학생 웹을 연결하는 순서를 담고 있어요. 전문 지식 없이도 따라 할 수 있게 정리했어요.</p>
+    <div class="meta">
+      <span>⏱ 약 20~30분</span>
+      <span>💻 Windows 10 / 11</span>
+      <span>🌐 인터넷 없이 교내망만으로 동작</span>
+      <span>🗓 2026. 11.</span>
+    </div>
+    <div class="flow">
+      <div><b>STEP 1</b>폴더 복사</div>
+      <div><b>STEP 2</b>서버 설치</div>
+      <div><b>STEP 3</b>첫 설정</div>
+      <div><b>STEP 4</b>명단 등록</div>
+      <div><b>STEP 5</b>앱·웹 연결</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h2>목차</h2>
+    <ol>
+      <li><a href="#ready">준비물</a></li>
+      <li><a href="#step1">서버 폴더 놓기</a></li>
+      <li><a href="#step2">서버 설치 (자동 시작)</a></li>
+      <li><a href="#step3">첫 설정 마법사</a></li>
+      <li><a href="#step4">학교 코드·명단 등록</a></li>
+      <li><a href="#step5">교사 앱·학생 웹 연결</a></li>
+      <li><a href="#check">최종 확인 체크리스트</a></li>
+      <li><a href="#trouble">문제 해결</a></li>
+      <li><a href="#security">보안 수칙</a></li>
+      <li><a href="#faq">자주 묻는 질문</a></li>
+    </ol>
+  </nav>
+
+  <section id="ready">
+    <h2><span class="num">0</span>준비물을 확인해요</h2>
+    <p class="sub">아래 네 가지만 있으면 돼요.</p>
+    <div class="grid2">
+      <div class="card"><h4>🖥 서버 PC</h4><p>Windows 10/11, 메모리 4GB 이상. 가능하면 <b>유선 랜</b>으로 연결하고, 꺼지지 않게 상시 전원을 사용해요.</p></div>
+      <div class="card"><h4>📦 브리즈 서버 폴더</h4><p><code>BreezeServer</code> 폴더 전체(압축을 푼 상태)를 준비해요. 안에 <code>breeze-server.exe</code>가 들어 있어요.</p></div>
+      <div class="card"><h4>🌐 같은 교내망</h4><p>선생님 PC와 학생 크롬북이 서버 PC와 <b>같은 공유기·같은 내부망</b>에 있어야 해요.</p></div>
+      <div class="card"><h4>👤 관리자 권한</h4><p>서버 PC의 Windows 관리자 계정이 필요해요. 설치 파일을 <b>우클릭 → 관리자 권한으로 실행</b>해요.</p></div>
+    </div>
+    <div class="box tip"><b>💡 인터넷이 꼭 필요한가요?</b>아니요. 브리즈는 교내망만으로 동작해요. 인터넷은 나이스 연동·AI 상담을 쓸 때만 있으면 되고, 없어도 서버는 정상 동작해요.</div>
+  </section>
+
+  <section id="step1">
+    <h2><span class="num">1</span>서버 폴더를 놓아요</h2>
+    <p class="sub">서버 PC의 <code>C:\Breeze</code> 폴더에 압축을 풀어 주세요.</p>
+    <ol class="steps">
+      <li><b>폴더 만들기</b> — 탐색기에서 <code>C:\</code>로 이동해 <code>Breeze</code> 폴더를 만들어요.</li>
+      <li><b>압축 풀기</b> — 받은 <code>BreezeServer-win-x64.zip</code>을 그 폴더에 풀어요. <code>breeze-server.exe</code>, 설치 파일, 이 가이드가 한 폴더에 모여야 해요.</li>
+      <li><b>경로 확인</b> — 최종 경로가 <code>C:\Breeze\breeze-server.exe</code>인지 확인해요. 경로에 한글이 없으면 가장 안전해요.</li>
+    </ol>
+    <div class="box warn"><b>⚠ 한글·공백이 있는 경로는 피해 주세요</b><code>C:\사용자\홍길동\바탕 화면</code> 같은 경로는 권한·인코딩 문제가 생길 수 있어요. <code>C:\Breeze</code>를 권장해요.</div>
+    <div class="box tip"><b>💡 SmartScreen 경고가 뜨면</b>서명 비용 문제로 아직 전자 서명이 없어요. 파란 경고창이 보이면 <b>[추가 정보] → [실행]</b>을 눌러 주세요. 학교 보안 프로그램이 차단하면 IT 담당자에게 <code>breeze-server.exe</code> 예외 등록을 요청해 주세요.</div>
+  </section>
+
+  <section id="step2">
+    <h2><span class="num">2</span>서버를 설치해요 <span class="pill">자동 시작</span></h2>
+    <p class="sub">설치 파일 하나로 부팅 시 자동 시작과 방화벽 허용이 한 번에 끝나요.</p>
+    <ol class="steps">
+      <li><b>설치 파일 실행</b> — <code>install-server.bat</code>을 <b>우클릭 → 관리자 권한으로 실행</b>해요.</li>
+      <li><b>자동 처리 확인</b> — 아래 세 가지가 자동으로 돼요.
+        <div class="grid2" style="margin-top:10px">
+          <div class="card"><h4>✅ 부팅 시 자동 시작</h4><p>Windows 예약 작업으로 등록돼요. 로그인하지 않아도 서버가 켜져요.</p></div>
+          <div class="card"><h4>✅ 방화벽 허용</h4><p>TCP 3000 포트와 서버 프로그램의 인바운드를 열어요.</p></div>
+        </div>
+      </li>
+      <li><b>관리 페이지 열기</b> — 설치가 끝나면 브라우저가 <code>http://localhost:3000/admin</code>을 자동으로 열어요.</li>
+    </ol>
+    <div class="big-cta">
+      <div><div class="k">서버 PC에서 여는 관리 페이지</div><div class="v">http://localhost:3000/admin</div></div>
+      <div class="e">🌐</div>
+    </div>
+    <div class="box warn"><b>⚠ 반드시 서버 PC에서 여세요</b>초기 설정(관리자 계정·이용권)은 <b>서버 PC 본체에서만</b> 할 수 있어요. 다른 PC에서는 보안을 위해 막혀 있어요.</div>
+  </section>
+
+  <section id="step3">
+    <h2><span class="num">3</span>첫 설정을 마쳐요</h2>
+    <p class="sub">관리 페이지에 들어가면 1·2단계 마법사가 보여요.</p>
+    <div class="diagram">
+      <div class="node"><span class="ico">👤</span><b>1단계</b><span>관리자 계정 만들기</span></div>
+      <div class="link">→</div>
+      <div class="node"><span class="ico">🎫</span><b>2단계</b><span>30일 체험 시작<br>또는 이용권 등록</span></div>
+      <div class="link">→</div>
+      <div class="node"><span class="ico">✅</span><b>완료</b><span>채팅·쪽지 열림</span></div>
+    </div>
+    <ol class="steps">
+      <li><b>관리자 계정</b> — 사번(영문·숫자 3~20자), 이름, 비밀번호(4자 이상)를 입력해요. 이 계정이 학교의 최고 관리자가 돼요.</li>
+      <li><b>이용권</b> — 이용권 키가 있으면 입력하고, 없으면 <b>[30일 무료 체험 시작]</b>을 눌러요. 체험 중에도 모든 기능을 쓸 수 있어요.</li>
+      <li><b>자동 로그인 토큰</b> — 설정을 마치면 관리 페이지가 토큰을 자동으로 채워요. 서버 PC에서는 따로 입력할 필요가 없어요.</li>
+    </ol>
+    <div class="box done"><b>✓ 이제 채팅이 열렸어요</b>설정 완료 전에는 로그인·쪽지·실시간 알림이 모두 잠겨 있어요. 마법사를 마치면 바로 풀려요.</div>
+  </section>
+
+  <section id="step4">
+    <h2><span class="num">4</span>학교 코드와 명단을 등록해요</h2>
+    <p class="sub">학교 코드는 학생이 로그인할 때 쓰는 우리 학교의 고유 코드예요.</p>
+    <h3>① 학교 코드 정하기</h3>
+    <ol class="steps">
+      <li>관리 페이지의 <b>[🏫 학교 코드 · 학생 웹 연결]</b> 카드로 가요.</li>
+      <li>학교 이름과 학교 코드를 입력해요. 예: <code>가락고</code> / <code>GARAK</code></li>
+      <li><b>[저장]</b>을 누르면 학생 웹 로그인 화면에 코드가 안내돼요.</li>
+    </ol>
+    <h3>② 계정 명단 올리기</h3>
+    <ol class="steps">
+      <li><code>계정_명단_양식.xlsx</code>를 열어 선생님·학생 명단을 채워요.</li>
+      <li>관리 페이지의 <b>[엑셀 올리기]</b>에서 파일을 선택해요.</li>
+      <li>결과 화면에 나온 <b>임시 비밀번호</b>를 선생님·학생에게 전달해요. 임시 비밀번호는 이 화면을 닫으면 다시 볼 수 없어요.</li>
+    </ol>
+    <table>
+      <tr><th>열 이름</th><th>설명</th><th>예시</th></tr>
+      <tr><td><code>username</code></td><td>사번·학번 (영문·숫자 3~20자)</td><td>20250101</td></tr>
+      <tr><td><code>real_name</code></td><td>이름</td><td>김하늘</td></tr>
+      <tr><td><code>password</code></td><td>비밀번호 (비우면 임시 비밀번호 자동 발급)</td><td>(비워도 돼요)</td></tr>
+      <tr><td><code>department</code></td><td>부서 ( <code>&gt;</code>로 하위 부서 )</td><td>교무부&gt;1학년부</td></tr>
+      <tr><td><code>role</code></td><td><code>TEACHER</code>·<code>STAFF</code>·<code>STUDENT</code>·<code>ADMIN</code></td><td>TEACHER</td></tr>
+      <tr><td><code>is_paid_dual_network</code></td><td>유료 듀얼 사용 여부 (0/1)</td><td>0</td></tr>
+    </table>
+    <div class="box tip"><b>💡 학생 계정은 role을 STUDENT로</b>학생은 <code>/student/</code> 웹에서만 로그인하고, 선생님에게만 쪽지를 보낼 수 있어요. 관리자·교사 계정과 분리돼요.</div>
+  </section>
+
+  <section id="step5">
+    <h2><span class="num">5</span>교사 앱과 학생 웹을 연결해요</h2>
+    <p class="sub">서버가 켜지면 같은 교내망의 모든 기기에서 접속할 수 있어요.</p>
+    <div class="diagram">
+      <div class="node"><span class="ico">🖥</span><b>서버 PC</b><span>breeze-server.exe</span></div>
+      <div class="link">⇄</div>
+      <div class="node"><span class="ico">📶</span><b>교내 공유기</b><span>같은 내부망</span></div>
+      <div class="link">⇄</div>
+      <div style="display:grid;gap:8px">
+        <div class="node"><span class="ico">💻</span><b>선생님 PC</b><span>브리즈코어 앱</span></div>
+        <div class="node"><span class="ico">🎒</span><b>학생 크롬북</b><span>웹 브라우저</span></div>
+      </div>
+    </div>
+    <h3>선생님 · 브리즈코어 앱</h3>
+    <ol class="steps">
+      <li>선생님 PC에 브리즈코어 앱을 설치해요. (<code>Breeze-setup.exe</code>)</li>
+      <li>앱 설정 → <b>학교 서버 연결</b>에 서버 주소를 입력해요. 예: <code>http://192.168.0.10:3000</code></li>
+      <li>관리자가 만든 교사 계정으로 로그인해요.</li>
+    </ol>
+    <h3>학생 · 설치 없는 웹</h3>
+    <ol class="steps">
+      <li>크롬북·태블릿 브라우저를 열고 <b>학생 웹 주소</b>로 접속해요. 예: <code>http://192.168.0.10:3000/student/</code></li>
+      <li>학교 코드 + 학번 + 비밀번호로 로그인해요.</li>
+    </ol>
+    <div class="big-cta">
+      <div><div class="k">교사 앱 서버 주소 · 학생 웹 주소는 설치 파일이 알려 줘요</div><div class="v">check-server.bat 으로 언제든 다시 확인할 수 있어요</div></div>
+      <div class="e">🔎</div>
+    </div>
+    <div class="box warn"><b>⚠ IP 주소가 바뀌면 접속이 안 돼요</b>서버 PC의 IP는 공유기에서 <b>고정 IP(또는 DHCP 예약)</b>로 설정해 두는 걸 권장해요.</div>
+  </section>
+
+  <section id="check">
+    <h2><span class="num">✓</span>최종 확인 체크리스트</h2>
+    <p class="sub">아래 항목이 모두 체크되면 학교에 공개할 준비가 끝나요.</p>
+    <ul class="checklist">
+      <li><input type="checkbox"><span><b>서버가 자동으로 켜져요</b> — PC를 재부팅한 뒤 <code>check-server.bat</code>에서 “자동 시작: 등록됨 / 실행 상태: 켜짐”을 확인해요.</span></li>
+      <li><input type="checkbox"><span><b>관리 페이지가 열려요</b> — 서버 PC에서 <code>http://localhost:3000/admin</code>에 접속해요.</span></li>
+      <li><input type="checkbox"><span><b>다른 PC에서도 열려요</b> — 선생님 PC에서 <code>http://서버IP:3000/admin</code> 접속을 확인해요. (관리 기능은 토큰 필요)</span></li>
+      <li><input type="checkbox"><span><b>학생 웹이 열려요</b> — <code>http://서버IP:3000/student/</code>에서 학교 코드가 보이는지 확인해요.</span></li>
+      <li><input type="checkbox"><span><b>교사 앱 로그인이 돼요</b> — 서버 주소를 입력하고 교사 계정으로 로그인해요.</span></li>
+      <li><input type="checkbox"><span><b>쪽지 왕복이 돼요</b> — 교사끼리 쪽지를 보내고, 학생 → 교사 문의가 “학생 문의” 탭에 도착하는지 확인해요.</span></li>
+      <li><input type="checkbox"><span><b>백업 폴더가 생겼어요</b> — <code>C:\Breeze\data\backups</code>가 자동으로 만들어져요. (매일 새벽 3:30)</span></li>
+      <li><input type="checkbox"><span><b>방화벽·보안 예외</b> — 학교 보안 프로그램이 서버를 막지 않는지 IT 담당자와 확인해요.</span></li>
+    </ul>
+  </section>
+
+  <section id="trouble">
+    <h2><span class="num">!</span>문제가 생기면</h2>
+    <p class="sub">대부분의 문제는 아래 표로 해결돼요.</p>
+    <table>
+      <tr><th>증상</th><th>확인해 보세요</th></tr>
+      <tr><td>브라우저가 “사이트에 연결할 수 없음”으로 떠요</td><td>① <code>check-server.bat</code>에서 실행 상태가 “켜짐”인지 확인해요. ② 꺼져 있으면 <code>restart-server.bat</code>을 관리자 권한으로 실행해요.</td></tr>
+      <tr><td>다른 PC에서만 접속이 안 돼요</td><td>① 서버 PC와 같은 공유기인지 확인해요. ② Windows 방화벽에서 <b>Breeze Server</b> 규칙이 “허용”인지 확인해요. ③ IP가 바뀌지 않았는지 <code>check-server.bat</code>으로 확인해요.</td></tr>
+      <tr><td>포트 3000을 다른 프로그램이 써요</td><td>설치 스크립트가 안내해요. 그 프로그램을 끄거나, 서버 PC에서 <code>set EDUTALK_PORT=3001</code> 후 다시 실행해요. (방화벽 규칙도 3001로 다시 등록)</td></tr>
+      <tr><td>서버가 켜지다가 바로 꺼져요</td><td><code>C:\Breeze\logs</code> 폴더의 최신 로그를 열어 원인을 확인해요. 데이터 폴더 권한 문제면 <code>C:\Breeze</code>에서 다시 실행해요.</td></tr>
+      <tr><td>관리자 토큰을 모르겠어요</td><td>서버 PC에서 관리 페이지를 열면 자동으로 채워져요. 다른 PC라면 <code>C:\Breeze\data\.admin_token</code> 파일을 메모장으로 열어 값을 복사해요.</td></tr>
+      <tr><td>Excel 업로드가 실패해요</td><td>첫 번째 시트에 <code>username</code>·<code>real_name</code> 열이 있는지 확인해요. 최대 5,000명까지 올릴 수 있어요.</td></tr>
+      <tr><td>“다른 PC의 라이선스예요”가 떠요</td><td>다른 서버의 <code>license.key</code>가 폴더에 들어 있어요. 그 파일을 지우고 <b>[30일 무료 체험 시작]</b>을 눌러요.</td></tr>
+      <tr><td>SmartScreen이 실행을 막아요</td><td>[추가 정보] → [실행]을 눌러요. 학교 보안 프로그램은 IT 담당자에게 예외 등록을 요청해요.</td></tr>
+    </table>
+  </section>
+
+  <section id="security">
+    <h2><span class="num">🔒</span>꼭 지켜야 할 보안 수칙</h2>
+    <div class="box danger"><b>절대 서버 폴더에 두면 안 되는 파일</b><code>license-vendor-private.key</code> — 이 파일이 있으면 누구나 유효한 이용권을 만들 수 있어요. 오프라인 벤더 PC에만 보관해요.</div>
+    <div class="grid2">
+      <div class="card"><h4>🔑 license.secret</h4><p>서버 등록 코드예요. 외부에 노출하지 말고, 노출이 의심되면 새로 발급해요.</p></div>
+      <div class="card"><h4>🗄 data 폴더</h4><p>계정·쪽지·백업이 들어 있어요. 서버 PC 밖으로 함부로 복사하지 않아요.</p></div>
+      <div class="card"><h4>👤 관리자 계정</h4><p>추측하기 쉬운 비밀번호는 피하고, 관리자 계정은 꼭 필요한 사람만 사용해요.</p></div>
+      <div class="card"><h4>💾 백업</h4><p><code>data\backups</code>의 최근 백업을 주 1회 외장 드라이브에 복사해 두면 안전해요.</p></div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <h2><span class="num">?</span>자주 묻는 질문</h2>
+    <details><summary>인터넷이 끊겨도 쓸 수 있나요?</summary><p>네. 브리즈는 교내망 안에서만 동작해요. 나이스 급식·학사일정과 AI 상담만 인터넷이 필요하고, 없어도 메신저·쪽지·결재·보드는 정상이에요.</p></details>
+    <details><summary>서버 PC를 껐다 켜도 설정이 유지되나요?</summary><p>네. 계정·쪽지·설정은 <code>C:\Breeze\data</code>에 저장돼요. PC를 재부팅하면 자동 시작 작업이 서버를 다시 켜요.</p></details>
+    <details><summary>학생은 어떻게 설치하나요?</summary><p>설치하지 않아요. 크롬북·태블릿 브라우저에서 <code>http://서버IP:3000/student/</code>로 접속하면 돼요.</p></details>
+    <details><summary>선생님 앱은 어디서 받나요?</summary><p>브리즈코어 사이트의 설치 안내에서 <code>Breeze-setup.exe</code>를 받아 설치해요. 설치 후 설정에서 학교 서버 주소를 입력해요.</p></details>
+    <details><summary>서버를 다른 PC로 옮기고 싶어요</summary><p>폴더 전체를 새 PC의 같은 경로에 복사하고 <code>install-server.bat</code>을 다시 실행해요. 데이터가 그대로 따라가요.</p></details>
+    <details><summary>이용권은 어떻게 등록하나요?</summary><p>관리 페이지의 이용권 카드에 키를 붙여 넣고 저장해요. 체험 중에도 언제든 등록할 수 있어요.</p></details>
+  </section>
+
+  <div class="footer">
+    브리즈 · Breeze — 학교의 정보 흐름을 잇는 내부망 메신저<br>
+    이 가이드는 인쇄해서 서버 PC 옆에 붙여 두면 편해요. (Ctrl + P)
+  </div>
+</div>
+</body>
+</html>

@@ -1187,6 +1187,20 @@ async fn update_check(base: String) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
+async fn update_feed_check() -> Result<serde_json::Value, String> {
+    updater::feed_check().await
+}
+
+#[tauri::command]
+async fn update_relay(
+    app: AppHandle,
+    srv: State<'_, srv::SrvState>,
+    feed: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    updater::relay(&app, srv.inner(), feed).await
+}
+
+#[tauri::command]
 async fn update_download(
     app: AppHandle,
     base: String,
@@ -1347,6 +1361,8 @@ fn main() {
             srv_get,
             srv_post,
             update_check,
+            update_feed_check,
+            update_relay,
             update_download,
             update_install,
             remote_view_request,
