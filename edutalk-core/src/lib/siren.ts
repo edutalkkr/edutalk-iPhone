@@ -1,7 +1,6 @@
-// 긴급 공지 알림음 — 부드러운 2음 차임 (아이폰 알림 느낌, 오프라인·설치판 공통)
-//  · WebAudio로 생성 (외부 자산 없음). square/saw 대신 sine + 부드러운 엔벨로프.
+// 긴급 공지 알림음 — 빠른 차임 (ding-dong ding-dong …, 아이폰 알림 느낌)
+//  · WebAudio로 생성 (외부 자산 없음). sine + 부드러운 엔벨로프.
 //  · 브라우저 자동재생 정책 때문에 사용자 조작 이후에만 실제로 울린다.
-//  · 어떤 환경에서도 앱이 죽지 않게 전부 try/catch.
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -15,7 +14,7 @@ function ensureCtx(): AudioContext | null {
     if (!Ctor) return null;
     ctx = new Ctor();
     master = ctx.createGain();
-    master.gain.value = 0.22;
+    master.gain.value = 0.25;
     master.connect(ctx.destination);
     return ctx;
   } catch {
@@ -25,7 +24,7 @@ function ensureCtx(): AudioContext | null {
   }
 }
 
-/** 부드러운 차임 2음 (E5 → C6) */
+/** 빠른 차임: 0.28초 간격으로 ding-dong 반복 */
 export function playSiren(seconds = 6): boolean {
   try {
     const c = ensureCtx();
@@ -33,13 +32,15 @@ export function playSiren(seconds = 6): boolean {
     void c.resume().catch(() => undefined);
     stopSiren();
 
-    // 2음 차임을 seconds 동안 3회 반복 (간격 1.6초)
-    const notes = [659.25, 783.99]; // E5, G5
-    const repeat = Math.max(1, Math.floor(seconds / 1.6));
+    const pairs = [[659.25, 523.25], [659.25, 523.25]]; // ding-dong
+    const interval = 0.28;
+    const count = Math.max(1, Math.floor(seconds / interval));
     const now0 = c.currentTime;
-    for (let r = 0; r < repeat; r++) {
-      const t0 = now0 + r * 1.6;
-      notes.forEach((freq, i) => {
+    for (let i = 0; i < count; i++) {
+      const t0 = now0 + i * interval;
+      const hi = pairs[i % pairs.length][0];
+      const lo = pairs[i % pairs.length][1];
+      [hi, lo].forEach((freq, j) => {
         const osc = c.createOscillator();
         osc.type = "sine";
         osc.frequency.value = freq;
@@ -47,16 +48,16 @@ export function playSiren(seconds = 6): boolean {
         g.gain.value = 0;
         osc.connect(g);
         g.connect(master!);
-        const start = t0 + i * 0.18;
+        const start = t0 + j * 0.12;
         try {
           g.gain.setValueAtTime(0, start);
-          g.gain.linearRampToValueAtTime(0.18, start + 0.04);
-          g.gain.exponentialRampToValueAtTime(0.0001, start + 0.42);
+          g.gain.linearRampToValueAtTime(0.2, start + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
         } catch {
-          g.gain.value = 0.12;
+          g.gain.value = 0.15;
         }
         osc.start(start);
-        osc.stop(start + 0.45);
+        osc.stop(start + 0.24);
         activeNodes.push(osc, g);
       });
     }

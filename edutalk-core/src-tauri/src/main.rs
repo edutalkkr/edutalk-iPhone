@@ -1211,8 +1211,56 @@ async fn update_download(
 }
 
 #[tauri::command]
-fn update_install(app: AppHandle, installer: String) -> Result<(), String> {
-    updater::install(&app, &installer)
+fn show_alert_window(app: tauri::AppHandle, title: String, body: String) -> Result<(), String> {
+    use tauri::WebviewUrl;
+    let safe_title = title.replace('<', "&lt;").replace('>', "&gt;");
+    let safe_body = body.replace('<', "&lt;").replace('>', "&gt;");
+    let html = format!(
+        r#"<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+        *{{box-sizing:border-box;margin:0;padding:0}}
+        body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;background:#101828;color:#fff;min-height:100vh;display:flex;flex-direction:column}}
+        .bar{{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#b42318}}
+        .bar b{{font-size:13px}}
+        .bar .x{{margin-left:auto;background:transparent;border:0;color:#fff;font-size:18px;cursor:pointer;opacity:.8}}
+        .body{{padding:16px 18px;flex:1}}
+        .title{{font-size:16px;font-weight:800;line-height:1.35;margin-bottom:8px}}
+        .text{{font-size:13px;line-height:1.6;color:#e6eaf2;white-space:pre-wrap;overflow-wrap:anywhere}}
+        .foot{{padding:10px 18px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:#a7b1c2}}
+        </style></head><body>
+        <div class="bar"><span>🚨</span><b>긴급 공지 · BreezeCore</b><button class="x" onclick="window.close()">×</button></div>
+        <div class="body"><div class="title">{title}</div><div class="text">{body}</div></div>
+        <div class="foot">브리즈 · 학교 내부망 메신저</div>
+        <script>setTimeout(()=>{{try{{window.close()}}catch(e){{}}}},30000);</script>
+        </body></html>"#,
+        title = safe_title, body = safe_body
+    );
+    let data_url = format!("data:text/html;charset=utf-8,{}", urlencoding(html));
+    let label = format!("alert-{}", chrono::Utc::now().timestamp_millis());
+    let win = tauri::WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(data_url.parse().map_err(|e| e.to_string())?))
+        .title("긴급 공지")
+        .inner_size(360.0, 280.0)
+        .resizable(false)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .center()
+        .build()
+        .map_err(|e| e.to_string())?;
+    let _ = win.set_focus();
+    Ok(())
+}
+
+
+fn urlencoding(s: String) -> String {
+    // 간단한 percent-encoding
+    let mut out = String::new();
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            _ => out.push_str(&format!("%{:02X}", b)),
+        }
+    }
+    out
 }
 
 #[tauri::command]
@@ -1420,6 +1468,7 @@ fn main() {
             update_relay,
             update_download,
             update_install,
+            show_alert_window,
             form_download,
             remote_view_request,
             remote_view_respond,

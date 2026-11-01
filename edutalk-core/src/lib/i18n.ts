@@ -67,6 +67,36 @@ const dict: Record<string, { ko: string; en: string }> = {
 
   // 토스트
   "toast.update.available": { ko: "새 버전이 있어요.", en: "A new version is available." },
+
+  // 설정
+  "settings.language": { ko: "언어 / Language", en: "Language" },
+  "settings.network": { ko: "네트워크 설정", en: "Network" },
+  "settings.focus": { ko: "Focus Mode (퇴근 후 업무 휴식)", en: "Focus Mode (after-hours rest)" },
+  "settings.ui": { ko: "화면 모션", en: "Motion" },
+  "settings.uiScale": { ko: "UI 크기", en: "UI scale" },
+  "settings.dark": { ko: "다크 모드", en: "Dark mode" },
+  "settings.logout": { ko: "로그아웃", en: "Log out" },
+
+  // 조직도
+  "org.title": { ko: "조직도", en: "Org chart" },
+  "org.search": { ko: "이름·과목·부서·차량번호 검색", en: "Search name, subject, dept, car no." },
+  "org.onlineOnly": { ko: "접속만", en: "Online only" },
+  "org.add": { ko: "+ 교사", en: "+ Teacher" },
+  "org.csv": { ko: "CSV", en: "CSV" },
+  "org.favorites": { ko: "즐겨찾기", en: "Favorites" },
+  "org.memo": { ko: "쪽지 보내기", en: "Send note" },
+  "org.chat": { ko: "빠른 대화", en: "Quick chat" },
+  "org.screen": { ko: "화면 보기 요청", en: "Request screen" },
+
+  // 쪽지
+  "memo.compose": { ko: "쪽지 쓰기", en: "Compose note" },
+  "memo.send": { ko: "보내기", en: "Send" },
+  "memo.cancel": { ko: "취소", en: "Cancel" },
+  "memo.empty": { ko: "아직 쪽지가 없어요.", en: "No notes yet." },
+
+  // 퀵 메모
+  "quick.fold": { ko: "접기", en: "Collapse" },
+  "quick.delete": { ko: "삭제", en: "Delete" },
 };
 
 export function getLang(): Lang {

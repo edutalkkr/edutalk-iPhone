@@ -1049,6 +1049,9 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
     }
     let alive = true;
     if (sirenOn) playSiren(7);
+    if (typeof document !== "undefined" && document.hidden) {
+      void call("show_alert_window", { title: emergency.title, body: emergency.body }).catch(() => undefined);
+    }
     void summarize3(`${emergency.title}\n${emergency.body}`).then((r) => {
       if (alive) setEmgSummary(r.lines);
     });
