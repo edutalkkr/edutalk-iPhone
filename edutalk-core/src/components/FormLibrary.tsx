@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { listForms, downloadForm, type FormItem } from "../services/forms";
 
-export default function FormLibrary({ enabled }: { enabled: boolean }) {
-  const [open, setOpen] = useState(false);
+export default function FormLibrary({ enabled, open: openProp, onClose: onCloseProp }: { enabled: boolean; open?: boolean; onClose?: () => void }) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp !== undefined ? openProp : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (onCloseProp && !v) onCloseProp();
+    else if (openProp === undefined) setInternalOpen(v);
+  };
   const [forms, setForms] = useState<FormItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -36,15 +41,17 @@ export default function FormLibrary({ enabled }: { enabled: boolean }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="bz-form-fab"
-        title="학교 공식 양식함"
-        aria-label="학교 공식 양식함 열기"
-      >
-        📂
-      </button>
+      {openProp === undefined && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="bz-form-fab"
+          title="학교 공식 양식함"
+          aria-label="학교 공식 양식함 열기"
+        >
+          📂
+        </button>
+      )}
       {open && (
         <div className="bz-overlay show" role="dialog" aria-modal="true">
           <div className="bz-modal bz-forms">

@@ -32,6 +32,7 @@ const dict: Record<string, { ko: string; en: string }> = {
   "tab.chat": { ko: "빠른 대화", en: "Quick Chat" },
   "tab.timetable": { ko: "시간표·대강", en: "Timetable" },
   "tab.work": { ko: "업무/공지", en: "Work & Notices" },
+  "tab.forms": { ko: "학교 양식함", en: "Form Library" },
   "tab.consult": { ko: "AI 상담 일지", en: "AI Consult Log" },
   "tab.approval": { ko: "전자결재", en: "E-Approval" },
   "tab.whiteboard": { ko: "협업 보드", en: "Whiteboard" },

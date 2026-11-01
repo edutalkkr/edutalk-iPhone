@@ -106,6 +106,7 @@ export default function OrgTreePane(p: Props) {
   const [onlineFirst, setOnlineFirst] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [showCsv, setShowCsv] = useState(false);
+  const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [csv, setCsv] = useState("");
   const [fName, setFName] = useState("");
   const [fDept, setFDept] = useState("");

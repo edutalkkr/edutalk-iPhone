@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { SchoolSettings, DlpRule } from "../../types";
 import { bzConfirm } from "../ui/BzDialog";
+import { getLang, setLang } from "../../lib/i18n";
 
 interface Props {
   settings: SchoolSettings;
@@ -44,7 +45,19 @@ export default function AdminSettings(p: Props) {
 
       <div className="anim-card edu-card p-6 space-y-6">
         <section>
-          <h2 className="font-bold text-lg mb-4 flex items-center gap-2">🌐 네트워크 설정</h2>
+          <h2 className="font-bold text-lg mb-4 flex items-center gap-2">🌐 언어 / Language</h2>
+          <div className="flex items-center gap-2">
+            <button
+              className={`edu-btn !py-1.5 !px-3 ${getLang() === "ko" ? "!bg-edu-blue !text-white" : ""}`}
+              onClick={() => { setLang("ko"); window.alert("언어가 바뀌었어요. 완전히 적용하려면 브리즈코어를 다시 시작해 주세요."); }}
+            >🇰🇷 한국어</button>
+            <button
+              className={`edu-btn !py-1.5 !px-3 ${getLang() === "en" ? "!bg-edu-blue !text-white" : ""}`}
+              onClick={() => { setLang("en"); window.alert("Language changed. Please restart BreezeCore for full effect."); }}
+            >🇺🇸 English</button>
+          </div>
+        </section>
+        <section>
           <div className="anim-list space-y-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" className="w-5 h-5 rounded border-edu-line text-edu-blue focus:ring-edu-blue" 

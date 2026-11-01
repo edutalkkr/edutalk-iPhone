@@ -244,6 +244,7 @@ export type ActiveView =
   | "survey"
   | "audit"
   | "settings"
+  | "forms"
   | "admin-dashboard"
   | "admin-users"
   | "admin-notices"

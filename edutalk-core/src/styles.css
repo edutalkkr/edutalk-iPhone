@@ -894,11 +894,13 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 9px;
   width: 100%;
   height: 36px;
   padding: 0 8px;
   border-radius: 10px;
+  text-align: left;
   font-weight: 700;
   color: rgb(var(--edu-sub));
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);

@@ -56,6 +56,7 @@ const TEACHER_TABS: TabDef[] = [
   { id: "chat", icon: <IconChat size={19} />, labelKey: "tab.chat" },
   { id: "timetable", icon: <IconCalendar size={19} />, labelKey: "tab.timetable" },
   { id: "work", icon: <IconMegaphone size={19} />, labelKey: "tab.work" },
+  { id: "forms", icon: <span aria-hidden>📂</span>, labelKey: "tab.forms" },
   { id: "consult", icon: <IconStickyNote size={19} />, labelKey: "tab.consult" },
   { id: "approval", icon: <IconCheckCircle size={19} />, labelKey: "tab.approval" },
   { id: "whiteboard", icon: <IconGrid size={19} />, labelKey: "tab.whiteboard" },
@@ -66,9 +67,9 @@ const TEACHER_TABS: TabDef[] = [
   { id: "settings", icon: <IconSettingsGear size={19} />, labelKey: "tab.settings" },
 ];
 
-const RAIL_MIN = 160;
-const RAIL_MAX = 360;
-const RAIL_COLLAPSE_AT = 112;
+const RAIL_MIN = 148;
+const RAIL_MAX = 260;
+const RAIL_COLLAPSE_AT = 108;
 
 function clampRail(v: number) {
   return Math.max(RAIL_MIN, Math.min(RAIL_MAX, Math.round(v)));
@@ -83,6 +84,7 @@ const ADMIN_TABS: TabDef[] = [
   { id: "admin-settings", icon: <IconSettingsGear size={19} />, labelKey: "tab.admin-settings" },
   { id: "admin-school", icon: <IconSchool size={19} />, labelKey: "tab.admin-school" },
   { id: "work", icon: <IconMegaphone size={19} />, labelKey: "tab.work" },
+  { id: "forms", icon: <span aria-hidden>📂</span>, labelKey: "tab.forms" },
   { id: "memo", icon: <IconNote size={19} />, labelKey: "tab.memo" },
   { id: "student-inbox", icon: <IconReply size={19} />, labelKey: "tab.student-inbox" },
   { id: "consult", icon: <IconStickyNote size={19} />, labelKey: "tab.consult" },
@@ -182,7 +184,7 @@ export default function LeftSidebar(p: Props) {
   const [railWidth, setRailWidth] = useState<number>(() => {
     try {
       const saved = Number(localStorage.getItem("edutalk-rail-width"));
-      return clampRail(Number.isFinite(saved) && saved > 0 ? saved : compact ? 184 : 224);
+      return clampRail(Number.isFinite(saved) && saved > 0 ? saved : compact ? 168 : 200);
     } catch {
       return compact ? 184 : 224;
     }
@@ -390,12 +392,7 @@ export default function LeftSidebar(p: Props) {
             </button>
           </BzTooltip>
         </div>
-        {!collapsed && (
-          <div className="rail-sub text-edu-sub truncate w-full" title={`${p.me.dept}${p.me.subject ? ` · ${p.me.subject}` : ""}`}>
-            {p.me.dept}
-            {p.me.subject ? ` · ${p.me.subject}` : ""}
-          </div>
-        )}
+        {/* 부서/과목은 상태 선택 캡션에서 확인 */}
       </div>
 
       {/* 사이드바 폭 조절 손잡이 — 왼쪽 끝까지 끌면 접힌다. */}

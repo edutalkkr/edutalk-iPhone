@@ -160,6 +160,7 @@ const VIEW_TITLE: Record<ActiveView, string> = {
   print: "보안 인쇄",
   survey: "설문조사",
   settings: "설정",
+  forms: "학교 양식함",
   audit: "보안·감사",
   "admin-dashboard": "관리자 대시보드",
   "admin-users": "사용자 관리",
@@ -209,6 +210,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   // 로그인 상태: 팝업 창은 메인 창에서 열린 것이므로 바로 로그인된 상태로 시작한다.
   const [isLoggedIn, setIsLoggedIn] = useState(() => popupMode);
   const [serverBase, setServerBase] = useState<string | null>(null);
+  const [formLibOpen, setFormLibOpen] = useState(false);
   const [loginError, setLoginError] = useState("");
   // 관리자 모드 상태
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
@@ -1178,6 +1180,10 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       return;
     }
     // 조직도는 "메인 창의 기본 화면"이라 창을 새로 띄우지 않는다.
+    if (v === "forms") {
+      setFormLibOpen(true);
+      return;
+    }
     if (v !== "org" && v !== "login" && windowMode === "multi" && isTauriDesktop() && v !== view) {
       void openPopup(v);
       return;
@@ -2804,7 +2810,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       )}
       <UpdateToast enabled={isLoggedIn && !popupMode} base={serverBase} />
       <UpdateRelay enabled={isLoggedIn && !popupMode} base={serverBase} />
-      <FormLibrary enabled={isLoggedIn && !popupMode} />
+      <FormLibrary enabled={isLoggedIn && !popupMode} open={formLibOpen} onClose={() => setFormLibOpen(false)} />
       <div className="edu-toast-wrap">
         {toasts.map((t) => (
           <div key={t.id} className={`edu-toast${t.leaving ? " leaving" : ""}`}>
