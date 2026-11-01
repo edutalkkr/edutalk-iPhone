@@ -937,6 +937,12 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         openMemoRef.current?.(memoId);
         setView("memo");
       }
+      const draftTitle = ev.params?.draftTitle;
+      const draftBody = ev.params?.draftBody;
+      if (draftTitle !== undefined || draftBody !== undefined) {
+        setMemoDraft({ title: draftTitle ?? "", body: draftBody ?? "" });
+        setView("memo");
+      }
     });
     return off;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1179,8 +1185,14 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   };
   // 퀵 메모 → 쪽지 초안으로 옮긴다 (받는 사람은 사용자가 직접 고른다)
   const sendQuickToMemo = (text: string, sourceTitle?: string) => {
-    setMemoDraft({ title: sourceTitle && sourceTitle !== "퀵 메모" ? sourceTitle : "", body: text });
+    const title = sourceTitle && sourceTitle !== "퀵 메모" ? sourceTitle : "";
     useQuick.getState().setLayerOpen(false);
+    if (windowMode === "multi" && isTauriDesktop()) {
+      void openPopup("memo", { draftTitle: title, draftBody: text });
+      toast("퀵 메모를 쪽지 초안으로 옮겼어요. 받는 사람을 골라 보내 주세요.");
+      return;
+    }
+    setMemoDraft({ title, body: text });
     setView("memo");
     toast("퀵 메모를 쪽지 초안으로 옮겼어요. 받는 사람을 골라 보내 주세요.");
   };

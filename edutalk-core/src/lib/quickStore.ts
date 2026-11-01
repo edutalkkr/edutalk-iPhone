@@ -18,6 +18,8 @@ export interface QuickNote {
   collapsed: boolean;
   /** 맨 위 고정(항상 위) */
   pinned: boolean;
+  /** 본문 글자 크기 (px) */
+  fontSize?: number;
   createdAt: string;
   updatedAt: string;
 }

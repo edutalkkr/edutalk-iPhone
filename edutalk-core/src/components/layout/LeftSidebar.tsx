@@ -326,6 +326,16 @@ export default function LeftSidebar(p: Props) {
     contextMenu(e, items, tab.label);
   };
 
+  const moveTab = (id: ActiveView, delta: number) => {
+    if (!p.onReorderTabs) return;
+    const ids = normalizeOrder(p.tabOrder, baseTabs.map((t) => t.id));
+    const from = ids.indexOf(id);
+    const to = from + delta;
+    if (from < 0 || to < 0 || to >= ids.length) return;
+    const [moved] = ids.splice(from, 1);
+    ids.splice(to, 0, moved);
+    p.onReorderTabs(ids);
+  };
   const commitReorder = (fromId: ActiveView, toId: ActiveView) => {
     if (fromId === toId || !p.onReorderTabs) return;
     const ids = normalizeOrder(p.tabOrder, baseTabs.map((t) => t.id));
@@ -503,14 +513,25 @@ export default function LeftSidebar(p: Props) {
               title={reorderMode ? `${t.label} — 끌어서 순서를 바꿔 보세요` : undefined}
             >
               <span className="edu-rail-ico" aria-hidden>{t.icon}</span>
-              <span
-                className={`rail-label edu-rail-txt truncate transition-[opacity,max-width,margin] duration-250 ease-out ${
-                  collapsed ? "opacity-0 max-w-0 ml-0 overflow-hidden" : "opacity-100 max-w-[14rem]"
-                }`}
-              >
+              <span className={"rail-label edu-rail-txt truncate transition-[opacity,max-width,margin] duration-250 ease-out " + (collapsed ? "opacity-0 max-w-0 ml-0 overflow-hidden" : "opacity-100 max-w-[14rem]")}>
                 {t.label}
               </span>
-              {reorderMode && !collapsed && <span className="edu-rail-grip" aria-hidden>⋮⋮</span>}
+              {reorderMode && !collapsed && (
+                <span className="flex shrink-0 gap-0.5 ml-auto">
+                  <button
+                    type="button"
+                    className="w-5 h-5 grid place-items-center rounded text-[10px] hover:bg-edu-chip"
+                    onClick={(e) => { e.stopPropagation(); moveTab(t.id, -1); }}
+                    aria-label="위로 이동"
+                  >▲</button>
+                  <button
+                    type="button"
+                    className="w-5 h-5 grid place-items-center rounded text-[10px] hover:bg-edu-chip"
+                    onClick={(e) => { e.stopPropagation(); moveTab(t.id, 1); }}
+                    aria-label="아래로 이동"
+                  >▼</button>
+                </span>
+              )}
               {!reorderMode && badge > 0 && <span className="edu-rail-badge">{badge > 99 ? "99+" : badge}</span>}
             </button>
           );

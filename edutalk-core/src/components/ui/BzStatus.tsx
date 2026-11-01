@@ -2,10 +2,10 @@
 // [아이콘 + 컬러 점 + 텍스트] 조합으로 단순 색 점보다 직관성을 높인다.
 
 import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { STATUS_LIST, STATUS_META } from "../../lib/status";
 import type { TeacherStatus } from "../../types";
 import { StatusIcon } from "./BzIcons";
-import { useContextMenu } from "./BzContextMenu";
 
 interface DotProps {
   status: TeacherStatus;
@@ -64,34 +64,65 @@ interface PickerProps {
   hintFor?: (s: TeacherStatus) => string | undefined;
 }
 
-/** 내 상태 선택 — 클릭 시 브리즈 컨텍스트 메뉴로 8종 선택 */
+/** 내 상태 선택 — 버튼을 누르면 아래로 펼쳐지고, 바깥/상단을 누르면 접힌다. */
 export function StatusPicker({ value, onChange, focusActive = false, className = "", caption = "내 상태", compact = false, hintFor }: PickerProps) {
-  const openMenu = useContextMenu();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const items = STATUS_LIST.map((s) => {
-    const meta = STATUS_META[s];
-    return {
-      id: s,
-      label: meta.label,
-      icon: (
-        <span style={{ color: meta.color, display: "inline-flex" }}>
-          <StatusIcon status={s} size={14} />
-        </span>
-      ),
-      hint: s === value && focusActive ? "Focus Mode" : hintFor?.(s),
-      onSelect: () => onChange(s),
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     };
-  });
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const select = (s: TeacherStatus) => {
+    onChange(s);
+    setOpen(false);
+  };
 
   return (
-    <button
-      type="button"
-      className={`bz-st-pick ${className}`}
-      onClick={(e) => openMenu(e, items, caption)}
-      aria-haspopup="menu"
-    >
-      <StatusBadge status={focusActive ? "away" : value} focus={focusActive} compact={compact} text={focusActive ? "퇴근 후 업무 휴식 중" : undefined} />
-      <span className="bz-st-caret" aria-hidden="true">▾</span>
-    </button>
+    <div ref={containerRef} className="bz-st-pick-wrap relative w-full">
+      {open && <div className="bz-st-backdrop" aria-hidden="true" />}
+      <button
+        type="button"
+        className={`bz-st-pick ${className}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <StatusBadge status={focusActive ? "away" : value} focus={focusActive} compact={compact} text={focusActive ? "퇴근 후 업무 휴식 중" : undefined} />
+        <span className="bz-st-caret" aria-hidden="true">{open ? "▴" : "▾"}</span>
+      </button>
+      {open && (
+        <div className="bz-st-menu" role="listbox" aria-label={caption}>
+          {STATUS_LIST.map((s) => {
+            const meta = STATUS_META[s];
+            const active = s === value && !focusActive;
+            return (
+              <button
+                key={s}
+                type="button"
+                role="option"
+                aria-selected={active}
+                className={`bz-st-item ${active ? "is-active" : ""}`}
+                onClick={() => select(s)}
+              >
+                <span style={{ color: meta.color, display: "inline-flex" }}>
+                  <StatusIcon status={s} size={14} />
+                </span>
+                <span className="bz-st-dot" style={{ background: meta.color }} aria-hidden="true" />
+                <span className="bz-st-item-label">{meta.label}</span>
+                {hintFor?.(s) && <span className="bz-st-item-hint">{hintFor(s)}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

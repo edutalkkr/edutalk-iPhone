@@ -34,6 +34,16 @@ export default function QuickMemos({ onClose, onSendAsMemo, onToast }: Props) {
   const setBarOpen = useQuick((s) => s.setBarOpen);
   const openMenu = useContextMenu();
   const [q, setQ] = useState("");
+  const [emptyHintVisible, setEmptyHintVisible] = useState(true);
+  useEffect(() => {
+    if (!barOpen || notes.length !== 0) {
+      setEmptyHintVisible(true);
+      return;
+    }
+    setEmptyHintVisible(true);
+    const t = window.setTimeout(() => setEmptyHintVisible(false), 10000);
+    return () => window.clearTimeout(t);
+  }, [barOpen, notes.length]);
   const [zSeq, setZSeq] = useState<Record<string, number>>({});
   const [leaving, setLeaving] = useState<Set<string>>(() => new Set());
   const seqRef = useRef(1);
@@ -194,8 +204,8 @@ export default function QuickMemos({ onClose, onSendAsMemo, onToast }: Props) {
             </button>
           </BzTooltip>
           <BzTooltip content="입력바만 접기 (메모는 남아 있어요)" position="bottom">
-            <button className="edu-ghost !px-2 !py-1.5" onClick={onClose} aria-label="퀵 메모 입력바 접기">
-              <IconChevronDown size={15} />
+            <button className="edu-ghost !px-2 !py-1.5" onClick={() => setBarOpen(false)} aria-label="입력바 접기">
+              ✕
             </button>
           </BzTooltip>
         </div>
@@ -251,7 +261,12 @@ export default function QuickMemos({ onClose, onSendAsMemo, onToast }: Props) {
                   {n.collapsed ? "▸" : "▾"}
                 </button>
               </BzTooltip>
-              <BzTooltip content="삭제" position="bottom">
+              <BzTooltip content="글자 크기 줄이기" position="bottom">
+                <button className="bz-note-btn" onClick={() => update(n.id, { fontSize: Math.max(10, (n.fontSize ?? 13) - 1) })} aria-label="글자 작게">A-</button>
+              </BzTooltip>
+              <BzTooltip content="글자 크기 키우기" position="bottom">
+                <button className="bz-note-btn" onClick={() => update(n.id, { fontSize: Math.min(20, (n.fontSize ?? 13) + 1) })} aria-label="글자 크게">A+</button>
+              </BzTooltip>
                 <button
                   className="bz-note-btn"
                   aria-label="메모 삭제"
@@ -262,10 +277,10 @@ export default function QuickMemos({ onClose, onSendAsMemo, onToast }: Props) {
                 >
                   ✕
                 </button>
-              </BzTooltip>
             </div>
             <textarea
               className="bz-note-body"
+              style={{ fontSize: n.fontSize ?? 13 }}
               value={n.body}
               placeholder="여기에 바로 적어 두세요. (자동 저장)"
               autoFocus={pendingFocus.current === n.id}
@@ -283,7 +298,7 @@ export default function QuickMemos({ onClose, onSendAsMemo, onToast }: Props) {
         );
       })}
 
-      {barOpen && notes.length === 0 && (
+      {barOpen && notes.length === 0 && emptyHintVisible && (
         <div className="bz-notes-empty">
           아직 메모가 없어요. <b>새 메모</b>를 눌러 바로 적어 보세요.
         </div>

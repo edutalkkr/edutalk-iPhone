@@ -453,7 +453,7 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   align-items: center;
   gap: 9px;
   max-width: min(560px, calc(100vw - 24px));
-  padding: 12px 16px 15px;
+  padding: 12px 16px 12px;
   border-radius: 14px;
   background: #101828;
   color: #fff;
@@ -913,7 +913,8 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
 .edu-rail-ico { display: inline-flex; width: 20px; justify-content: center; flex: 0 0 auto; }
 .edu-rail-txt { flex: 1; min-width: 0; }
 .edu-rail-badge {
-  flex: 0 0 auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
   background: #E5484D; color: #fff; font-size: 10.5px; font-weight: 800;
   display: inline-grid; place-items: center;
 }
