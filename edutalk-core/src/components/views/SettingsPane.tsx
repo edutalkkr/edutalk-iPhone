@@ -7,6 +7,7 @@ import { storeSet } from "../../lib/localStore";
 import { APP_VERSION, EDITION_LABEL } from "../../lib/version";
 import { bzConfirm } from "../ui/BzDialog";
 import { previewSiren } from "../../lib/siren";
+import { getLang, setLang } from "../../lib/i18n";
 import { focusWindowText } from "../../lib/focus";
 import type { ActiveView } from "../../types";
 
@@ -214,6 +215,19 @@ export default function SettingsPane(p: Props) {
         <button className="edu-ghost w-full mt-2" onClick={() => previewSiren()}>
           🔔 사이렌 미리 듣기 (2초)
         </button>
+      </div>
+      <div className="edu-card p-4">
+        <div className="font-extrabold text-[15px]">🌐 언어 / Language</div>
+        <div className="flex gap-2 mt-2.5">
+          <button
+            className={`edu-btn !py-1.5 !px-3 ${getLang() === "ko" ? "!bg-edu-blue !text-white" : ""}`}
+            onClick={() => { setLang("ko"); window.alert("언어가 바뀌었어요. 완전히 적용하려면 브리즈코어를 다시 시작해 주세요."); }}
+          >🇰🇷 한국어</button>
+          <button
+            className={`edu-btn !py-1.5 !px-3 ${getLang() === "en" ? "!bg-edu-blue !text-white" : ""}`}
+            onClick={() => { setLang("en"); window.alert("Language changed. Please restart BreezeCore for full effect."); }}
+          >🇺🇸 English</button>
+        </div>
       </div>
       <div className="edu-card p-4">
         <div className="font-extrabold text-[15px]">연결 자동 전환</div>
