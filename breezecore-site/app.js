@@ -159,9 +159,7 @@
     return (
       '<div class="day-bubble ' +
       (bubble.tone || "") +
-      '"><span aria-hidden="true">' +
-      bubble.icon +
-      "</span><div><b>" +
+      '"><div><b>' +
       bubble.title +
       "</b><small>" +
       bubble.meta +
@@ -517,6 +515,41 @@
     window.__breezeSiteConfig = cfg;
     openSitePopup(cfg);
   });
+
+  /* ---------- 버튼 마그네틱 마이크로 인터랙션 ---------- */
+  if (!reduceMotion && window.matchMedia && window.matchMedia("(pointer: fine)").matches) {
+    document.querySelectorAll(".btn-primary, .header-cta").forEach((btn) => {
+      btn.addEventListener("pointermove", (e) => {
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        btn.style.transform = "translate(" + (x * 0.18).toFixed(1) + "px, " + (y * 0.18).toFixed(1) + "px)";
+      });
+      btn.addEventListener("pointerleave", () => {
+        btn.style.transform = "";
+      });
+    });
+  }
+
+  /* ---------- 히어로 패럴랙스 ---------- */
+  const heroVisual = document.querySelector(".hero-visual");
+  const heroShot = document.querySelector(".hero-shot");
+  if (heroVisual && heroShot && !reduceMotion) {
+    let ticking = false;
+    const updateParallax = () => {
+      ticking = false;
+      const rect = heroVisual.getBoundingClientRect();
+      const center = rect.top + rect.height / 2 - window.innerHeight / 2;
+      const offset = Math.max(-40, Math.min(40, -center * 0.08));
+      heroShot.style.transform = "translate3d(0, " + offset.toFixed(1) + "px, 0)";
+    };
+    window.addEventListener("scroll", () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(updateParallax);
+    }, { passive: true });
+    updateParallax();
+  }
 
   /* ---------- 연도 ---------- */
   const year = $("#year");

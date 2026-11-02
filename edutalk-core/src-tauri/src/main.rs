@@ -1211,6 +1211,11 @@ async fn update_download(
 }
 
 #[tauri::command]
+fn update_install(app: AppHandle, installer: String) -> Result<(), String> {
+    updater::install(&app, &installer)
+}
+
+#[tauri::command]
 fn show_alert_window(app: tauri::AppHandle, title: String, body: String) -> Result<(), String> {
     use tauri::WebviewUrl;
     let safe_title = title.replace('<', "&lt;").replace('>', "&gt;");
@@ -1236,7 +1241,7 @@ fn show_alert_window(app: tauri::AppHandle, title: String, body: String) -> Resu
     );
     let data_url = format!("data:text/html;charset=utf-8,{}", urlencoding(html));
     let label = format!("alert-{}", chrono::Utc::now().timestamp_millis());
-    let win = tauri::WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(data_url.parse().map_err(|e| e.to_string())?))
+    let win = tauri::WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(tauri::Url::parse(&data_url).map_err(|e| e.to_string())?))
         .title("긴급 공지")
         .inner_size(360.0, 280.0)
         .resizable(false)
