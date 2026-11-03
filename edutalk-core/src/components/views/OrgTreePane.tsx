@@ -317,56 +317,46 @@ export default function OrgTreePane(p: Props) {
                       return items;
                     };
                     return (
-                      <div
-                        key={m.id}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 ${i > 0 ? "border-t border-edu-line" : ""}`}
-                        onContextMenu={(e) => openMenu(e, rowMenu(), m.name)}
-                      >
-                        <BzTooltip content={`${m.name} · ${meta.label}`} position="top">
+                      <div key={m.id} className={i > 0 ? "border-t border-edu-line" : ""}>
+                        <div
+                          className={"flex items-center gap-2 px-2.5 py-1.5 cursor-pointer hover:bg-edu-chip/40 " + (expandedMember === m.id ? "bg-edu-chip/30" : "")}
+                          onClick={() => setExpandedMember(expandedMember === m.id ? null : m.id)}
+                          onContextMenu={(e) => openMenu(e, rowMenu(), m.name)}
+                        >
                           <span
-                            className="w-7 h-7 rounded-full grid place-items-center text-white font-extrabold shrink-0 text-[12px] cursor-default"
+                            className="w-7 h-7 rounded-full grid place-items-center text-white font-extrabold shrink-0 text-[12px]"
                             style={{ background: m.avatarColor }}
                           >
                             {(m.name || "?")[0]}
                           </span>
-                        </BzTooltip>
-                        <span className="font-bold text-[13px] shrink-0 max-w-[88px] truncate">
-                          {m.name}
-                          {isMe && <span className="text-edu-strong"> (나)</span>}
-                        </span>
-                        <button
-                          type="button"
-                          className={"w-5 h-5 grid place-items-center rounded text-[13px] hover:bg-edu-chip shrink-0 transition-colors " + (fav.has(m.id) ? "text-[#F59E0B]" : "text-edu-muted")}
-                          onClick={() => toggleFav(m.id)}
-                          aria-label={fav.has(m.id) ? "즐겨찾기 해제" : "즐겨찾기"}
-                          title={fav.has(m.id) ? "즐겨찾기 해제" : "즐겨찾기"}
-                        >
-                          {fav.has(m.id) ? "★" : "☆"}
-                        </button>
-                        <BzTooltip className="min-w-0 flex-1" content={`${m.subject} · ${m.position} · ${m.dept}\n${m.statusMessage || meta.label}`} position="top">
-                          <span className="min-w-0 w-full text-[11.5px] text-edu-sub truncate text-left">
-                            {m.subject} · {m.position}
+                          <span className="font-bold text-[13px] shrink-0 max-w-[96px] truncate">
+                            {m.name}
+                            {isMe && <span className="text-edu-strong"> (나)</span>}
                           </span>
-                        </BzTooltip>
-                        <BzTooltip content={`${meta.label} · ${m.statusMessage || "상태 메시지 없음"}`} position="top">
-                          <span className="shrink-0 inline-flex">
+                          <button
+                            type="button"
+                            className={"w-5 h-5 grid place-items-center rounded text-[13px] hover:bg-edu-chip shrink-0 transition-colors " + (fav.has(m.id) ? "text-[#F59E0B]" : "text-edu-muted")}
+                            onClick={(e) => { e.stopPropagation(); toggleFav(m.id); }}
+                            aria-label={fav.has(m.id) ? "즐겨찾기 해제" : "즐겨찾기"}
+                          >
+                            {fav.has(m.id) ? "★" : "☆"}
+                          </button>
+                          <span className="ml-auto shrink-0">
                             <StatusBadge status={m.status} compact text={meta.short} />
                           </span>
-                        </BzTooltip>
-                        {!isMe && (
-                          <span className="flex shrink-0 gap-0.5">
-                            <BzTooltip content="쪽지 보내기" position="left">
-                              <button className="w-7 h-7 grid place-items-center rounded-lg text-[13px] hover:bg-edu-chip" onClick={() => p.onMemo(m)} aria-label="쪽지 보내기">✉️</button>
-                            </BzTooltip>
-                            <BzTooltip content="빠른 대화" position="left">
-                              <button className="w-7 h-7 grid place-items-center rounded-lg text-[13px] hover:bg-edu-chip" onClick={() => p.onChat(m)} aria-label="빠른 대화">💬</button>
-                            </BzTooltip>
-                            {isPeer && (
-                              <BzTooltip content="화면 보기 요청 (교내망)" position="left">
-                                <button className="w-7 h-7 grid place-items-center rounded-lg text-[13px] hover:bg-edu-chip" onClick={() => p.onRemotePc(m.id, m.name)} aria-label="화면 보기 요청">🖥️</button>
-                              </BzTooltip>
+                        </div>
+                        {expandedMember === m.id && (
+                          <div className="px-2.5 pb-2 pt-1 flex flex-wrap items-center gap-1.5 bg-edu-bg/40">
+                            <span className="text-[11.5px] text-edu-sub truncate flex-1 min-w-0">{m.subject} · {m.position} · {m.dept}</span>
+                            {!isMe && (
+                              <>
+                                <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onMemo(m)}>✉️ 쪽지</button>
+                                <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onChat(m)}>💬 대화</button>
+                                {isPeer && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemotePc(m.id, m.name)}>🖥️ 화면</button>}
+                                {p.onRemote && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemote?.(m)}>🛠️ 지원</button>}
+                              </>
                             )}
-                          </span>
+                          </div>
                         )}
                       </div>
                     );

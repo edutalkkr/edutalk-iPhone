@@ -947,6 +947,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 브리즈코어 관리자 로그인 실패 기록.
+    // 로그인 전 실패도 기록해야 하므로 생성만 비로그인에 허용하고,
+    // 열람·삭제는 관리자만 가능하게 한다.
+    match /adminLoginAttempts/{attemptId} {
+      allow create: if request.resource.data.keys().hasOnly(['ip', 'userAgent', 'createdAt'])
+        && request.resource.data.ip is string
+        && request.resource.data.ip.size() <= 64
+        && request.resource.data.userAgent is string
+        && request.resource.data.userAgent.size() <= 400;
+      allow read, delete: if isAdmin();
+    }
+
     // 푸시 토큰 (FCM) — 본인 토큰만 읽기/쓰기, 관리자는 전체 조회 가능
     match /pushTokens/{uid} {
       allow read: if self(uid) || isAdmin();

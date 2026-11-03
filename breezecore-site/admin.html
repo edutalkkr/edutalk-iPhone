@@ -51,7 +51,8 @@
           <p class="admin-error" id="loginError" role="alert" hidden></p>
           <button class="admin-primary" id="loginBtn" type="submit">로그인</button>
         </form>
-        <p class="admin-foot-note">브리즈 앱에서 관리자 역할을 가진 계정만 저장할 수 있어요.</p>
+        <p class="admin-warning">⚠️ 여러 번 연속하여 비밀번호를 틀릴 시 비정상 접근으로 감지되어 IP 주소가 기록될 수 있어요. 관리자가 아니라면 이 페이지를 나가주세요.</p>
+        <p class="admin-foot-note">이메일은 Firebase Auth에 등록된 관리자 계정(브리즈 앱에서 관리자 역할을 가진 계정)을 사용해요. 비밀번호는 이 브라우저에 저장되지 않아요.</p>
       </div>
     </section>
 
@@ -136,6 +137,40 @@
               </div>
             </div>
           </div>
+        </section>
+
+        <section class="admin-card">
+          <h2>관리자 비밀번호 변경</h2>
+          <p class="admin-card-desc">현재 비밀번호를 확인한 뒤에만 변경할 수 있어요. 관리자 계정으로 로그인된 상태에서만 동작해요.</p>
+          <div class="admin-grid">
+            <label class="admin-field admin-span-2">
+              <span>현재 비밀번호</span>
+              <input id="currentPassword" type="password" autocomplete="current-password" />
+            </label>
+            <label class="admin-field">
+              <span>새 비밀번호</span>
+              <input id="newPassword" type="password" autocomplete="new-password" />
+            </label>
+            <label class="admin-field">
+              <span>새 비밀번호 확인</span>
+              <input id="confirmPassword" type="password" autocomplete="new-password" />
+            </label>
+          </div>
+          <div class="admin-inline-actions">
+            <button class="admin-primary" id="changePasswordBtn" type="button">비밀번호 변경</button>
+            <span class="admin-save-state" id="passwordState" role="status"></span>
+          </div>
+        </section>
+
+        <section class="admin-card">
+          <div class="admin-card-head">
+            <div>
+              <h2>비정상 접근 기록</h2>
+              <p>3회 이상 비밀번호를 틀린 시도의 IP 주소가 기록돼요. 본인이 틀린 기록이라면 삭제할 수 있어요.</p>
+            </div>
+            <button class="admin-secondary" id="clearAttemptsBtn" type="button">전체 삭제</button>
+          </div>
+          <div id="attemptsList" class="admin-attempts">기록이 없어요.</div>
         </section>
 
         <div class="admin-actions">
