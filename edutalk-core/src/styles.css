@@ -885,7 +885,7 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
 }
 .edu-rail-resizer:hover::after, .rail-dragging .edu-rail-resizer::after { opacity: 0.5; }
 .rail-dragging { transition: none !important; }
-.edu-rail .rail-label { font-size: 12.5px; letter-spacing: -0.15px; transition: opacity 0.2s ease, max-width 0.28s cubic-bezier(0.22, 0.8, 0.24, 1), margin 0.28s ease; }
+.edu-rail .rail-label { font-size: 12.5px; letter-spacing: -0.15px; max-width: 14rem; transition: opacity 0.2s ease, max-width 0.28s cubic-bezier(0.22, 0.8, 0.24, 1), margin 0.28s ease; }
 .edu-rail .rail-sub { font-size: 11px; line-height: 1.35; }
 .edu-rail .rail-tiny { font-size: 10px; letter-spacing: -0.1px; }
 .edu-rail[data-rail="compact"] .rail-label { font-size: 12px; }
