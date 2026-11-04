@@ -301,19 +301,21 @@ export default function OrgTreePane(p: Props) {
                             <StatusBadge status={m.status} compact text={meta.short} className="max-w-full" />
                           </span>
                         </div>
-                        {expandedMember === m.id && (
-                          <div className="px-2.5 pb-2 pt-1 flex flex-wrap items-center gap-1.5 bg-edu-bg/40">
-                            <span className="text-[11.5px] text-edu-sub truncate flex-1 min-w-0">{m.subject} · {m.position} · {m.dept}</span>
-                            {!isMe && (
-                              <>
-                                <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onMemo(m)}>✉️ 쪽지</button>
-                                <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onChat(m)}>💬 대화</button>
-                                {isPeer && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemotePc(m.id, m.name)}>🖥️ 화면</button>}
-                                {p.onRemote && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemote?.(m)}>🛠️ 지원</button>}
-                              </>
-                            )}
+                        <div className={`org-row-expand ${expandedMember === m.id ? "is-open" : ""}`}>
+                          <div className="org-row-expand-inner">
+                            <div className="px-2.5 pb-2 pt-1 flex flex-wrap items-center gap-1.5 bg-edu-bg/40">
+                              <span className="text-[11.5px] text-edu-sub break-words min-w-0 flex-1 leading-snug">{m.subject} · {m.position} · {m.dept}</span>
+                              {!isMe && (
+                                <>
+                                  <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onMemo(m)}>✉️ 쪽지</button>
+                                  <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onChat(m)}>💬 대화</button>
+                                  {isPeer && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemotePc(m.id, m.name)}>🖥️ 화면</button>}
+                                  {p.onRemote && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemote?.(m)}>🛠️ 지원</button>}
+                                </>
+                              )}
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}

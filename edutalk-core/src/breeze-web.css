@@ -287,7 +287,21 @@
 .bz-form-info small { display: block; font-size: 11.5px; color: var(--bz-muted); margin-top: 2px; overflow-wrap: anywhere; }
 .bz-forms-msg { margin-top: 10px; font-size: 12.5px; color: var(--bz-sub); }
 
-/* ---------- 교내 업데이트 중계 (UpdateRelay) ---------- */
+/* ---------- 조직도 멤버 행 확장 (클릭 시 아래로 늘어남) ---------- */
+.org-row-expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows 0.24s cubic-bezier(0.22, 0.8, 0.24, 1), opacity 0.18s ease, visibility 0s linear 0.26s;
+}
+.org-row-expand.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition: grid-template-rows 0.24s cubic-bezier(0.22, 0.8, 0.24, 1), opacity 0.18s ease, visibility 0s;
+}
+.org-row-expand-inner { min-height: 0; overflow: hidden; }
 .bz-relay { width: min(488px, calc(100vw - 24px)); padding: 26px 26px 22px; }
 .bz-relay-kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .bz-relay-badge {
@@ -917,6 +931,9 @@
   transition: background-color 0.2s ease, box-shadow 0.24s ease, border-radius 0.26s cubic-bezier(0.22, 0.8, 0.24, 1);
 }
 .bz-st-pick-wrap.is-open {
+  position: absolute;
+  top: auto;
+  left: 6px; right: 6px;
   z-index: 50;
   background: var(--bz-surface);
   border-radius: 14px;
@@ -929,8 +946,8 @@
 .bz-st-pick { position: relative; z-index: 2; }
 .bz-st-backdrop {
   position: fixed; inset: 0; z-index: 0;
-  background: rgba(12, 16, 22, 0.28);
-  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  background: rgba(12, 16, 22, 0.10);
+  backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px);
   opacity: 0; pointer-events: none;
   transition: opacity 0.2s ease;
 }
