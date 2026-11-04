@@ -17,6 +17,12 @@ export interface SummaryResult {
   cached?: boolean;
 }
 
+/** 불용어(한국어/영어) */
+const STOPWORDS = new Set([
+  "그리고", "그러나", "하지만", "또한", "또는", "및", "등", "위해", "대한", "통해", "관련", "에서", "으로", "에게", "으로써",
+  "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "at", "for", "with", "by", "is", "are", "was", "were",
+]);
+
 /** 문장 다듬기 공통 */
 function cleanLine(s: string): string {
   let t = String(s || "")
@@ -28,27 +34,83 @@ function cleanLine(s: string): string {
   return t;
 }
 
-/** 로컬 폴백: 문장을 골라 최대 3줄 */
+/** 토큰화 */
+function tokenize(s: string): string[] {
+  return (s.toLowerCase().match(/[a-z가-힣0-9]+/g) || []).filter((w) => w.length > 1 && !STOPWORDS.has(w));
+}
+
+/** 로컬 폴백: TF-IDF 기반 추출 요약 (단순 첫 3문장 대신 핵심 문장 선택) */
 export function summarizeLocal(text: string): string[] {
   const plain = text.replace(/\s+/g, " ").trim();
   if (!plain) return [];
-  const parts = plain
+  const sentences = plain
     .split(/(?<=[.!?。！？])\s+|[\n\r]+/)
     .map((s) => s.trim())
     .filter((s) => s.length >= 8);
-  const out: string[] = [];
-  for (const p of parts) {
-    const line = cleanLine(p);
-    if (line && !out.includes(line)) out.push(line);
-    if (out.length >= 3) break;
-  }
-  if (!out.length) {
-    // 문장 구분이 없으면 길이 기준으로 잘라 3줄
+  if (!sentences.length) {
     for (let i = 0; i < 3 && i * 90 < plain.length; i++) {
-      out.push(cleanLine(plain.slice(i * 90, (i + 1) * 90)));
+      const line = cleanLine(plain.slice(i * 90, (i + 1) * 90));
+      if (line) sentences.push(line);
     }
   }
+  if (sentences.length <= 3) {
+    return sentences.map(cleanLine).filter(Boolean).slice(0, 3);
+  }
+
+  // 단어 빈도
+  const freq = new Map<string, number>();
+  for (const s of sentences) {
+    for (const w of tokenize(s)) freq.set(w, (freq.get(w) || 0) + 1);
+  }
+  const maxFreq = Math.max(1, ...freq.values());
+
+  // 문장 점수: 단어 빈도 합 / 문장 길이 (정규화) + 위치 가중치
+  const scored = sentences.map((s, idx) => {
+    const words = tokenize(s);
+    const wordScore = words.reduce((acc, w) => acc + (freq.get(w) || 0), 0) / Math.max(1, words.length);
+    const norm = 1 / (1 + Math.abs(words.length - 12) * 0.05);
+    const positionBoost = idx === 0 ? 0.35 : idx < 3 ? 0.15 : 0;
+    const score = (wordScore / maxFreq) * norm + positionBoost;
+    return { idx, s, score };
+  });
+
+  // 상위 3개 선택 후 원래 순서로 정렬
+  const top = scored
+    .slice()
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .sort((a, b) => a.idx - b.idx);
+
+  const out = top.map((t) => cleanLine(t.s)).filter(Boolean);
+  if (!out.length) {
+    return sentences.slice(0, 3).map(cleanLine).filter(Boolean);
+  }
   return out.slice(0, 3);
+}
+
+/** 온디바이스 AI (Chrome Prompt API / Gemini Nano) 시도 — 사용 가능할 때만 */
+async function tryOnDeviceSummary(text: string): Promise<string[] | null> {
+  try {
+    const LM = (window as unknown as { LanguageModel?: { availability?: () => Promise<string>; create?: (opts?: unknown) => Promise<{ prompt: (p: string) => Promise<string>; destroy?: () => void }> } }).LanguageModel;
+    if (!LM || typeof LM.create !== "function") return null;
+    if (typeof LM.availability === "function") {
+      const avail = await LM.availability();
+      if (avail !== "available" && avail !== "readily") return null;
+    }
+    const session = await LM.create({ temperature: 0.2, topK: 3 });
+    const prompt = `다음 글을 한국어로 정확히 3줄로 요약해 주세요. 각 줄은 90자 이내, 불필요한 서론 없이 핵심만:\n\n${text.slice(0, 4000)}`;
+    const raw = await session.prompt(prompt);
+    try { session.destroy?.(); } catch { /* noop */ }
+    const lines = String(raw || "")
+      .split(/\n+/)
+      .map((l) => cleanLine(l))
+      .filter(Boolean)
+      .slice(0, 3);
+    if (lines.length >= 2) return lines;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // 서버 생존 확인 결과를 60초 캐싱한다 — 서버 없는 학교에서 매번 7초를 기다리지 않게.
@@ -88,6 +150,11 @@ export async function summarize3(text: string): Promise<SummaryResult> {
     }
   } catch {
     /* 아래 로컬 폴백으로 */
+  }
+  // 서버가 없거나 실패한 경우: 온디바이스 AI(지원 런타임) 시도 → 실패 시 개선된 로컬 추출
+  const onDevice = await tryOnDeviceSummary(clipped);
+  if (onDevice && onDevice.length) {
+    return { lines: onDevice, source: "local" };
   }
   return { lines: summarizeLocal(clipped), source: "local" };
 }

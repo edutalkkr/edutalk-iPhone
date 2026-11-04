@@ -1137,6 +1137,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   // 메뉴 팝업 창: 설정·쪽지함·시간표 등은 메인 창을 덮지 않고 새 창(?win=view)으로 연다.
   const POPUP_SIZES: Record<string, { w: number; h: number }> = {
     org: { w: 520, h: 680 },
+    forms: { w: 560, h: 640 },
     memo: { w: 880, h: 700 },
     chat: { w: 820, h: 640 },
     timetable: { w: 1040, h: 700 },
@@ -1189,6 +1190,10 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
     }
     // 조직도는 "메인 창의 기본 화면"이라 창을 새로 띄우지 않는다.
     if (v === "forms") {
+      if (windowMode === "multi" && isTauriDesktop()) {
+        void openPopup("forms");
+        return;
+      }
       setFormLibOpen(true);
       return;
     }
@@ -2819,6 +2824,9 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       <UpdateToast enabled={isLoggedIn && !popupMode} base={serverBase} />
       <UpdateRelay enabled={isLoggedIn && !popupMode} base={serverBase} />
       <FormLibrary enabled={isLoggedIn && !popupMode} open={formLibOpen} onClose={() => setFormLibOpen(false)} />
+      {popupMode && popupView === "forms" && (
+        <FormLibrary enabled={true} open={true} onClose={() => { try { window.close(); } catch { /* noop */ } }} />
+      )}
       <div className="edu-toast-wrap">
         {toasts.map((t) => (
           <div key={t.id} className={`edu-toast${t.leaving ? " leaving" : ""}`}>

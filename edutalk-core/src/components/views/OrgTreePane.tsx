@@ -87,6 +87,22 @@ export default function OrgTreePane(p: Props) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [onlineOnly, setOnlineOnly] = useState(false);
+  const [fav, setFav] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem("breeze-org-favorites");
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const toggleFav = (id: string) => {
+    setFav((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      try { localStorage.setItem("breeze-org-favorites", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
   const [onlineFirst, setOnlineFirst] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [showCsv, setShowCsv] = useState(false);
@@ -124,6 +140,7 @@ export default function OrgTreePane(p: Props) {
   }, [q, p.teachers]);
 
   const onlineCount = p.teachers.filter((t) => isPresentStatus(t.status)).length;
+  const favTeachers = p.teachers.filter((t) => fav.has(t.id));
   const sortMembers = (arr: Teacher[]) =>
     onlineFirst
       ? [...arr].sort((a, b) => statusSortKey(a.status) - statusSortKey(b.status) || a.name.localeCompare(b.name, "ko"))
@@ -238,6 +255,25 @@ export default function OrgTreePane(p: Props) {
       )}
 
       {/* 창이 넓으면(md 이상) 부서 카드가 2단으로 붙어 스크롤이 절반이 된다 */}
+      {favTeachers.length > 0 && !q.trim() && (
+        <div className="edu-card overflow-hidden">
+          <div className="w-full flex items-center gap-1.5 px-2.5 py-2 bg-edu-bg font-bold text-[13px]">
+            <span>⭐ 즐겨찾기</span>
+            <span className="ml-auto shrink-0 text-[11px] text-edu-sub font-semibold">{favTeachers.length}명</span>
+          </div>
+          <div className="bg-white">
+            {favTeachers.map((m, i) => (
+              <div key={m.id} className={`flex items-center gap-2 px-2.5 py-1.5 ${i > 0 ? "border-t border-edu-line" : ""}`}>
+                <span className="w-7 h-7 rounded-full grid place-items-center text-white font-extrabold shrink-0 text-[12px]" style={{ background: m.avatarColor }}>{(m.name || "?")[0]}</span>
+                <span className="font-bold text-[13px] shrink-0 max-w-[88px] truncate">{m.name}</span>
+                <span className="min-w-0 flex-1 text-[11.5px] text-edu-sub truncate">{m.subject}</span>
+                <StatusBadge status={m.status} compact />
+                <button className="w-6 h-6 grid place-items-center rounded-lg hover:bg-edu-chip text-[13px] text-[#F59E0B]" onClick={() => toggleFav(m.id)} aria-label="즐겨찾기 해제">★</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="columns-1 md:columns-2 gap-2 anim-list [&>*]:break-inside-avoid [&>*]:mb-2 [&>*:last-child]:mb-0">
         {p.depts.length === 0 && (
           <div className="edu-card p-6 text-center text-edu-sub text-[13px] md:col-span-2">
@@ -303,15 +339,16 @@ export default function OrgTreePane(p: Props) {
                         </div>
                         <div className={`org-row-expand ${expandedMember === m.id ? "is-open" : ""}`}>
                           <div className="org-row-expand-inner">
-                            <div className="px-2.5 pb-2 pt-1 flex flex-wrap items-center gap-1.5 bg-edu-bg/40">
-                              <span className="text-[11.5px] text-edu-sub break-words min-w-0 flex-1 leading-snug">{m.subject} · {m.position} · {m.dept}</span>
+                            <div className="px-2.5 pb-2 pt-1 flex flex-col gap-1.5 bg-edu-bg/40">
+                              <span className="text-[11.5px] text-edu-sub truncate min-w-0">{m.subject} · {m.position} · {m.dept}</span>
                               {!isMe && (
-                                <>
+                                <div className="flex flex-wrap items-center gap-1.5">
                                   <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onMemo(m)}>✉️ 쪽지</button>
                                   <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onChat(m)}>💬 대화</button>
                                   {isPeer && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemotePc(m.id, m.name)}>🖥️ 화면</button>}
                                   {p.onRemote && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemote?.(m)}>🛠️ 지원</button>}
-                                </>
+                                  <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => toggleFav(m.id)}>{fav.has(m.id) ? "★ 즐겨찾기 해제" : "☆ 즐겨찾기"}</button>
+                                </div>
                               )}
                             </div>
                           </div>

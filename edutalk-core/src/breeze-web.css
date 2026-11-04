@@ -946,8 +946,7 @@
 .bz-st-pick { position: relative; z-index: 2; }
 .bz-st-backdrop {
   position: fixed; inset: 0; z-index: 0;
-  background: rgba(12, 16, 22, 0.10);
-  backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px);
+  background: transparent;
   opacity: 0; pointer-events: none;
   transition: opacity 0.2s ease;
 }
