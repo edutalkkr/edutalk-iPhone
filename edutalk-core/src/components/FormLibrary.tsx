@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listForms, downloadForm, type FormItem } from "../services/forms";
+import { IconFormLibrary } from "./ui/BzIcons";
 
 export default function FormLibrary({ enabled, open: openProp, onClose: onCloseProp }: { enabled: boolean; open?: boolean; onClose?: () => void }) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -49,14 +50,14 @@ export default function FormLibrary({ enabled, open: openProp, onClose: onCloseP
           title="학교 공식 양식함"
           aria-label="학교 공식 양식함 열기"
         >
-          📂
+          <IconFormLibrary size={20} />
         </button>
       )}
       {open && (
         <div className="bz-overlay show" role="dialog" aria-modal="true">
           <div className="bz-modal bz-forms">
             <div className="bz-forms-head">
-              <h2>학교 공식 양식함</h2>
+              <h2 className="inline-flex items-center gap-2"><IconFormLibrary size={18} className="text-edu-blue" /> 학교 공식 양식함</h2>
               <button type="button" className="bz-close" onClick={() => setOpen(false)} aria-label="닫기">
                 ✕
               </button>

@@ -64,65 +64,113 @@ interface PickerProps {
   hintFor?: (s: TeacherStatus) => string | undefined;
 }
 
-/** 내 상태 선택 — 버튼을 누르면 아래로 펼쳐지고, 바깥/상단을 누르면 접힌다. */
+/** 내 상태 선택 — 버튼이 아래로 자라나며 목록이 펼쳐지고, 바깥을 누르면 접힌다. */
 export function StatusPicker({ value, onChange, focusActive = false, className = "", caption = "내 상태", compact = false, hintFor }: PickerProps) {
   const [open, setOpen] = useState(false);
+  const [shell, setShell] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<number | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimer.current != null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const expand = () => {
+    clearCloseTimer();
+    setShell(true);
+    setOpen(true);
+  };
+
+  const collapse = () => {
+    setOpen(false);
+    clearCloseTimer();
+    // 접히는 모션(0.26s)이 끝날 때까지 패널 배경을 유지한다.
+    closeTimer.current = window.setTimeout(() => {
+      setShell(false);
+      closeTimer.current = null;
+    }, 300);
+  };
+
+  useEffect(() => () => clearCloseTimer(), []);
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const onPointer = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        collapse();
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") collapse();
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const select = (s: TeacherStatus) => {
     onChange(s);
-    setOpen(false);
+    collapse();
   };
 
   return (
-    <div ref={containerRef} className="bz-st-pick-wrap relative w-full">
-      {open && <div className="bz-st-backdrop" aria-hidden="true" />}
+    <div
+      ref={containerRef}
+      className={`bz-st-pick-wrap relative w-full ${shell ? "is-open" : ""}`}
+    >
+      <div
+        className={`bz-st-backdrop ${open ? "show" : ""}`}
+        aria-hidden="true"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          collapse();
+        }}
+      />
       <button
         type="button"
         className={`bz-st-pick ${className}`}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? collapse() : expand())}
         aria-expanded={open}
         aria-haspopup="listbox"
       >
         <StatusBadge status={focusActive ? "away" : value} focus={focusActive} compact={compact} text={focusActive ? "퇴근 후 업무 휴식 중" : undefined} />
-        <span className="bz-st-caret" aria-hidden="true">{open ? "▴" : "▾"}</span>
+        <span className={`bz-st-caret ${open ? "is-open" : ""}`} aria-hidden="true">▾</span>
       </button>
-      {open && (
-        <div className="bz-st-menu" role="listbox" aria-label={caption}>
-          {STATUS_LIST.map((s) => {
-            const meta = STATUS_META[s];
-            const active = s === value && !focusActive;
-            return (
-              <button
-                key={s}
-                type="button"
-                role="option"
-                aria-selected={active}
-                className={`bz-st-item ${active ? "is-active" : ""}`}
-                onClick={() => select(s)}
-              >
-                <span style={{ color: meta.color, display: "inline-flex" }}>
-                  <StatusIcon status={s} size={14} />
-                </span>
-                <span className="bz-st-dot" style={{ background: meta.color }} aria-hidden="true" />
-                <span className="bz-st-item-label">{meta.label}</span>
-                {hintFor?.(s) && <span className="bz-st-item-hint">{hintFor(s)}</span>}
-              </button>
-            );
-          })}
+      <div className={`bz-st-expander ${open ? "is-open" : ""}`} aria-hidden={!open}>
+        <div className="bz-st-expander-inner">
+          <div className="bz-st-menu" role="listbox" aria-label={caption}>
+            {STATUS_LIST.map((s) => {
+              const meta = STATUS_META[s];
+              const active = s === value && !focusActive;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  className={`bz-st-item ${active ? "is-active" : ""}`}
+                  onClick={() => select(s)}
+                >
+                  <span style={{ color: meta.color, display: "inline-flex" }}>
+                    <StatusIcon status={s} size={14} />
+                  </span>
+                  <span className="bz-st-dot" style={{ background: meta.color }} aria-hidden="true" />
+                  <span className="bz-st-item-label">{meta.label}</span>
+                  {hintFor?.(s) && <span className="bz-st-item-hint">{hintFor(s)}</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // 브리즈 좌측 레일 (2026-10 개편)
 //  · 세로형/가로형 구분 없이 "하나의 유연 레일" — 조직도 내장 패널 제거(중복 조직도 버그 근절)
 //  · 좁은 창에서도 아이콘 단독 노출 금지 → 항상 [아이콘 + 텍스트]
-//  · 최소 너비 140px (min-width), 창 폭에 따라 152↔208px 유연, 서브 텍스트 자동 축소
+//  · 최소 너비 156px (가장 긴 메뉴 이름이 잘리지 않는 선), 창 폭에 따라 168↔260px 유연
 //  · 프로필 하단에 상태 픽커(8종) + 로그아웃 (ROLE_ADMIN / ROLE_TEACHER 공통)
 
 import type { ReactNode } from "react";
@@ -21,6 +21,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconCloudIcon,
+  IconFormLibrary,
   IconGrid,
   IconLogout,
   IconMegaphone,
@@ -56,7 +57,7 @@ const TEACHER_TABS: TabDef[] = [
   { id: "chat", icon: <IconChat size={19} />, labelKey: "tab.chat" },
   { id: "timetable", icon: <IconCalendar size={19} />, labelKey: "tab.timetable" },
   { id: "work", icon: <IconMegaphone size={19} />, labelKey: "tab.work" },
-  { id: "forms", icon: <span aria-hidden>📂</span>, labelKey: "tab.forms" },
+  { id: "forms", icon: <IconFormLibrary size={19} />, labelKey: "tab.forms" },
   { id: "consult", icon: <IconStickyNote size={19} />, labelKey: "tab.consult" },
   { id: "approval", icon: <IconCheckCircle size={19} />, labelKey: "tab.approval" },
   { id: "whiteboard", icon: <IconGrid size={19} />, labelKey: "tab.whiteboard" },
@@ -67,9 +68,10 @@ const TEACHER_TABS: TabDef[] = [
   { id: "settings", icon: <IconSettingsGear size={19} />, labelKey: "tab.settings" },
 ];
 
-const RAIL_MIN = 148;
+const RAIL_MIN = 156;
 const RAIL_MAX = 260;
-const RAIL_COLLAPSE_AT = 108;
+const RAIL_COLLAPSED = 60;
+const RAIL_COLLAPSE_AT = 132;
 
 function clampRail(v: number) {
   return Math.max(RAIL_MIN, Math.min(RAIL_MAX, Math.round(v)));
@@ -84,7 +86,7 @@ const ADMIN_TABS: TabDef[] = [
   { id: "admin-settings", icon: <IconSettingsGear size={19} />, labelKey: "tab.admin-settings" },
   { id: "admin-school", icon: <IconSchool size={19} />, labelKey: "tab.admin-school" },
   { id: "work", icon: <IconMegaphone size={19} />, labelKey: "tab.work" },
-  { id: "forms", icon: <span aria-hidden>📂</span>, labelKey: "tab.forms" },
+  { id: "forms", icon: <IconFormLibrary size={19} />, labelKey: "tab.forms" },
   { id: "memo", icon: <IconNote size={19} />, labelKey: "tab.memo" },
   { id: "student-inbox", icon: <IconReply size={19} />, labelKey: "tab.student-inbox" },
   { id: "consult", icon: <IconStickyNote size={19} />, labelKey: "tab.consult" },
@@ -224,7 +226,7 @@ export default function LeftSidebar(p: Props) {
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
-    const startWidth = collapsed ? 70 : compact ? Math.min(210, railWidth) : railWidth;
+    const startWidth = collapsed ? RAIL_COLLAPSED : compact ? Math.min(210, railWidth) : railWidth;
     let isCollapsed = collapsed;
     let nextWidth = railWidth;
     setDragging(true);
@@ -264,7 +266,7 @@ export default function LeftSidebar(p: Props) {
     window.addEventListener("pointerup", up);
   };
 
-  const effectiveWidth = collapsed ? 70 : compact ? Math.min(210, railWidth) : railWidth;
+  const effectiveWidth = collapsed ? RAIL_COLLAPSED : compact ? Math.min(210, railWidth) : railWidth;
 
   const getBadge = (id: ActiveView) => {
     if (id === "memo") return p.unreadMemo;
@@ -372,13 +374,11 @@ export default function LeftSidebar(p: Props) {
               {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
             </div>
           </BzTooltip>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <div className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
-                {p.me.name || "내 프로필"}
-              </div>
+          <div className={`min-w-0 overflow-hidden transition-[max-height,max-width,opacity] duration-300 ease-out ${collapsed ? "max-h-0 max-w-0 opacity-0" : "max-h-6 max-w-full flex-1 opacity-100"}`}>
+            <div className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
+              {p.me.name || "내 프로필"}
             </div>
-          )}
+          </div>
           <BzTooltip content={collapsed ? "메뉴 펼치기" : "메뉴 접기"} position="right">
             <button
               type="button"

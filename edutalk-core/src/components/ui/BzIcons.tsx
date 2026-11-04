@@ -248,6 +248,16 @@ export function IconFolder(p: IconProps) {
   );
 }
 
+/** 학교 양식함 — 폴더 안에 서식 문서가 한 장 보이는 형태 (이모지 대체) */
+export function IconFormLibrary(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+      <path d="M9 11h6M9 14.5h3.5" />
+    </Svg>
+  );
+}
+
 export function IconFile(p: IconProps) {
   return (
     <Svg {...p}>
