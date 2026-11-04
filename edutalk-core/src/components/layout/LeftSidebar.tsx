@@ -2,7 +2,7 @@
 //  · 세로형/가로형 구분 없이 "하나의 유연 레일" — 조직도 내장 패널 제거(중복 조직도 버그 근절)
 //  · 좁은 창에서도 아이콘 단독 노출 금지 → 항상 [아이콘 + 텍스트]
 //  · 최소 너비 156px (가장 긴 메뉴 이름이 잘리지 않는 선), 창 폭에 따라 168↔260px 유연
-//  · 프로필 하단에 상태 픽커(8종) + 로그아웃 (ROLE_ADMIN / ROLE_TEACHER 공통)
+//  · 프로필 하단에 상태 픽커(8종) — 이름과 상태만 간결하게 보여 준다.
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -362,7 +362,7 @@ export default function LeftSidebar(p: Props) {
       }`}
     >
       {/* ---------- 프로필 + 작은 접기 버튼 ---------- */}
-      {/* 이름·부서는 각각 한 줄을 온전히 쓰고, 접힌 상태에서는 아바타와 펴기 버튼만 세로로 쌓는다. */}
+      {/* 접힌 상태에서는 아바타와 펴기 버튼만 세로로 쌓는다. */}
       <div className={`profile-row relative flex flex-col px-1 ${collapsed ? "items-center gap-1.5" : "gap-1"}`}>
         <div className={`flex items-center gap-2.5 min-w-0 ${collapsed ? "flex-col gap-1.5" : "w-full"}`}>
           <BzTooltip content={`${p.me.name || "내 프로필"} · ${p.me.dept}`} position="right" disabled={!collapsed}>
