@@ -23,7 +23,6 @@ import {
   IconCloudIcon,
   IconFormLibrary,
   IconGrid,
-  IconLogout,
   IconMegaphone,
   IconNote,
   IconPrinter,
