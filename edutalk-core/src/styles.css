@@ -900,12 +900,12 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   margin-right: 6px;
   height: 36px;
   padding: 0 5px 0 7px;
-  border-radius: 10px 18px 18px 10px;
+  border-radius: 10px 999px 999px 10px;
   text-align: left;
   font-weight: 700;
   color: rgb(var(--edu-sub));
-  background: rgb(var(--edu-surface));
-  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
+  background: rgb(var(--edu-chip));
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08);
   transition: background-color 0.15s ease, color 0.15s ease, padding 0.28s cubic-bezier(0.22, 0.8, 0.24, 1), gap 0.28s cubic-bezier(0.22, 0.8, 0.24, 1), transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.16s ease;
 }
 .edu-rail-tab:hover { background: rgb(var(--edu-chip)); color: rgb(var(--edu-ink)); transform: translateX(2px); box-shadow: 0 4px 12px rgba(16, 24, 40, 0.10); }
@@ -962,8 +962,8 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   margin-right: 0;
   padding: 0 0 0 13px;
   gap: 0;
-  border-radius: 12px;
-  background: rgb(var(--edu-surface));
+  border-radius: 12px 999px 999px 12px;
+  background: rgb(var(--edu-chip));
 }
 
 .edu-rail[data-collapsed="true"] .edu-rail-txt { display: block; }
