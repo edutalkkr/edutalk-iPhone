@@ -12,6 +12,7 @@ import WorkBox from "../WorkBox";
 import ScheduledBox from "../ScheduledBox";
 import BzTooltip from "../ui/BzTooltip";
 import { bzConfirm } from "../ui/BzDialog";
+import { previewSiren } from "../../lib/siren";
 import { summarize3, type SummaryResult } from "../../lib/ai";
 import { fsDownload, fsPut, humanSize, newFileId, pickFiles } from "../../lib/fileStore";
 import { IconPaperclip, IconSparkles, IconTrash, IconX, IconEye } from "../ui/BzIcons";
@@ -55,6 +56,7 @@ export default function WorkPane(p: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [urgent, setUrgent] = useState(false);
+  const [pendingPublish, setPendingPublish] = useState<any>(null);
   const [targetKind, setTargetKind] = useState<NoticeDraft["targetKind"]>("all");
   const [deptPick, setDeptPick] = useState("");
   const [posPicks, setPosPicks] = useState<string[]>([]);
@@ -106,7 +108,7 @@ export default function WorkPane(p: Props) {
     if (targetKind === "dept" && !deptPick) return p.onToast("부서를 골라 주세요.");
     if (targetKind === "position" && !posPicks.length) return p.onToast("직급을 1개 이상 골라 주세요.");
     if (targetKind === "selected" && !teacherPicks.length) return p.onToast("공지를 받을 교사를 1명 이상 골라 주세요.");
-    p.onPublish({
+    const draft = {
       title: title.trim(),
       body: body.trim(),
       urgent,
@@ -117,8 +119,16 @@ export default function WorkPane(p: Props) {
       startAt: startAt ? new Date(startAt).toISOString() : null,
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
       attachments: atts,
-    });
+    };
+    setPendingPublish(draft);
+  };
+
+  const confirmPublish = () => {
+    if (!pendingPublish) return;
+    p.onPublish(pendingPublish);
     setTitle(""); setBody(""); setUrgent(false); setTargetKind("all"); setDeptPick(""); setPosPicks([]); setTeacherPicks([]); setStartAt(""); setExpiresAt(""); setAtts([]); setPreview(null);
+    setPendingPublish(null);
+    p.onToast(pendingPublish.urgent ? "긴급 공지를 올렸어요. 사이렌이 울려요." : "공지를 올렸어요.");
   };
 
   const runSummary = async (id: string, text: string) => {
@@ -366,6 +376,43 @@ export default function WorkPane(p: Props) {
               })}
               {p.notices.length === 0 && <div className="text-center text-edu-sub text-[13px] py-8">올라온 공지가 없어요.</div>}
             </div>
+          </div>
+        </div>
+      )}
+
+      {pendingPublish && (
+        <div className="edu-overlay" onClick={() => setPendingPublish(null)}>
+          <div className="edu-modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            {pendingPublish.urgent ? (
+              <>
+                <div className="font-black text-[17px] text-[#D92D20]">🚨 긴급 공지로 보내시겠어요?</div>
+                <div className="text-[13px] mt-2 text-edu-sub leading-relaxed">공지 대상 교직원 컴퓨터에 팝업이 뜨고 사이렌이 울리게 돼요.</div>
+                <div className="mt-3 bg-edu-bg border border-edu-line rounded-xl p-3">
+                  <div className="font-bold text-edu-ink">{pendingPublish.title}</div>
+                  <div className="text-[12px] text-edu-sub mt-1 whitespace-pre-wrap">{pendingPublish.body.slice(0, 240)}{pendingPublish.body.length > 240 ? "…" : ""}</div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button type="button" className="edu-ghost flex-1" onClick={() => previewSiren()}>🔊 사이렌 미리 듣기</button>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button type="button" className="edu-ghost flex-1" onClick={() => setPendingPublish(null)}>취소</button>
+                  <button type="button" className="edu-btn flex-1" style={{ background: "#D92D20", borderColor: "#D92D20" }} onClick={confirmPublish}>긴급 공지 보내기</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="font-black text-[17px]">공지 미리보기</div>
+                <div className="text-[13px] mt-1 text-edu-sub">이 내용으로 공지를 보내시겠어요?</div>
+                <div className="mt-3 bg-edu-bg border border-edu-line rounded-xl p-3">
+                  <div className="font-bold text-edu-ink">{pendingPublish.title}</div>
+                  <div className="text-[12px] text-edu-sub mt-1 whitespace-pre-wrap">{pendingPublish.body.slice(0, 300)}{pendingPublish.body.length > 300 ? "…" : ""}</div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button type="button" className="edu-ghost flex-1" onClick={() => setPendingPublish(null)}>취소</button>
+                  <button type="button" className="edu-btn flex-1" onClick={confirmPublish}>공지 보내기</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
