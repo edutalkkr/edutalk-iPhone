@@ -268,6 +268,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const [unreadStudent, setUnreadStudent] = useState(0);
   const [emergency, setEmergency] = useState<NoticeItem | null>(null);
+  const sirenIntervalRef = useRef<number | null>(null);
   const [nowTick, setNowTick] = useState(0);
   const [peers, setPeers] = useState<Peer[]>([]);
   const meRef = useRef<Teacher | null>(null);
@@ -884,7 +885,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
             setNotices(rows.map((n) => ({ ...n, scope: (n.scope ?? "all") as "all" | "dept", dept: n.dept ?? "" })));
           }
         });
-        if (ev?.urgent) setEmergency(ev.urgent);
+        if (ev?.urgent && ev.urgent.level === "urgent") setEmergency(ev.urgent);
       } else if (scope === "notice-ping") {
         if (!focusActiveRef.current) toastMain(`📢 ${ev?.title || "공지"} — 아직 안 읽으셨다면 확인해 주세요.`);
       } else if (scope === "admin") {
@@ -1050,7 +1051,12 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       return;
     }
     let alive = true;
-    if (sirenOn) playSiren(7);
+    if (sirenOn) playSiren(2.2);
+    if (sirenOn) {
+      sirenIntervalRef.current = window.setInterval(() => {
+        if (alive) playSiren(2.2);
+      }, 2400);
+    }
     if (typeof document !== "undefined" && document.hidden) {
       void call("show_alert_window", { title: emergency.title, body: emergency.body }).catch(() => undefined);
     }
@@ -1064,6 +1070,10 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
     }
     return () => {
       alive = false;
+      if (sirenIntervalRef.current != null) {
+        window.clearInterval(sirenIntervalRef.current);
+        sirenIntervalRef.current = null;
+      }
       stopSiren();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2587,7 +2597,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
               onTogglePopup={(id) => {
                 setNotices((s) => s.map((n) => (n.id === id ? { ...n, popup: !n.popup } : n)));
                 const n = notices.find((x) => x.id === id);
-                if (n && !n.popup) setEmergency({ ...n, popup: true });
+                if (n && !n.popup && n.level === "urgent") setEmergency({ ...n, popup: true });
               }}
               onDelete={(id) => {
                 setNotices((s) => s.filter((n) => n.id !== id));
@@ -2785,7 +2795,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         />
       )}
       {emergency && (
-        <div className="edu-overlay" onClick={() => { stopSiren(); setEmergency(null); }}>
+        <div className="edu-overlay" onClick={() => { /* 확인 버튼으로만 닫는다 */ }}>
           <div className="edu-modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
             <div className="font-black text-[17px] text-[#D92D20] emg-title-pulse">🚨 긴급 공지</div>
             <div className="font-extrabold text-[15px] mt-1">{emergency.title}</div>
@@ -2847,6 +2857,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         <FormLibrary
           enabled={true}
           open={true}
+          page={true}
           onClose={() => {
             // 브라우저의 window.close()는 Tauri 창에서 막혀 창이 남는다.
             // 팝업 창 자체를 닫아야 하므로 Tauri 창 API로 닫는다.

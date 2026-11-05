@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { AdminNotice, Teacher, DeptGroup } from "../../types";
 import { bzConfirm } from "../ui/BzDialog";
+import { previewSiren } from "../../lib/siren";
 
 interface Props {
   notices: AdminNotice[];
@@ -19,6 +20,7 @@ export default function AdminNotices(p: Props) {
   const [filterLevel, setFilterLevel] = useState<AdminNotice["level"] | "all">("all");
   const [filterScope, setFilterScope] = useState<AdminNotice["scope"] | "all">("all");
   const [showForm, setShowForm] = useState<{ edit?: AdminNotice } | null>(null);
+  const [publishTarget, setPublishTarget] = useState<AdminNotice | null>(null);
 
   const filteredNotices = useMemo(() => {
     let result = [...p.notices];
@@ -130,7 +132,7 @@ export default function AdminNotices(p: Props) {
                     <div className="flex items-center gap-1">
                       <button className="edu-btn !py-1 !px-2 !text-xs" onClick={() => setShowForm({ edit: n })}>수정</button>
                       {!n.publishedAt && (
-                        <button className="edu-btn !py-1 !px-2 !text-xs bg-[#E8F4FB] text-[#0069A8] hover:bg-[#D6EFFF]" onClick={() => p.onPublish(n.id)}>게시</button>
+                        <button className="edu-btn !py-1 !px-2 !text-xs bg-[#E8F4FB] text-[#0069A8] hover:bg-[#D6EFFF]" onClick={() => setPublishTarget(n)}>게시</button>
                       )}
                       <button className="edu-btn !py-1 !px-2 !text-xs bg-[#FFF0F1] text-[#B42318] hover:bg-[#FECACA]" onClick={async () => { const ok = await bzConfirm({ title: "정말 삭제하시겠습니까?", message: `"${n.title}" 공지를 삭제해요.`, confirmText: "삭제", danger: true }); if (ok) p.onDelete(n.id); }}>삭제</button>
                     </div>
@@ -150,6 +152,48 @@ export default function AdminNotices(p: Props) {
           onSubmit={handleSubmit}
           onClose={() => setShowForm(null)}
         />
+      )}
+
+      {publishTarget && (
+        <div className="edu-overlay" onClick={() => setPublishTarget(null)}>
+          <div className="edu-modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            {publishTarget.level === "urgent" ? (
+              <>
+                <div className="font-black text-[17px] text-[#D92D20]">🚨 긴급 공지로 보내시겠어요?</div>
+                <div className="text-[13px] mt-2 text-edu-sub leading-relaxed">
+                  공지 대상 교직원 컴퓨터에 팝업이 뜨고 사이렌이 울리게 돼요.
+                </div>
+                <div className="mt-3 bg-edu-bg border border-edu-line rounded-xl p-3">
+                  <div className="font-bold text-edu-ink">{publishTarget.title}</div>
+                  <div className="text-[12px] text-edu-sub mt-1 whitespace-pre-wrap">{publishTarget.body.slice(0, 240)}{publishTarget.body.length > 240 ? "…" : ""}</div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button type="button" className="edu-ghost flex-1" onClick={() => previewSiren()}>🔊 사이렌 미리 듣기</button>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button type="button" className="edu-ghost flex-1" onClick={() => setPublishTarget(null)}>취소</button>
+                  <button type="button" className="edu-btn flex-1" style={{ background: "#D92D20", borderColor: "#D92D20" }} onClick={() => { p.onPublish(publishTarget.id); setPublishTarget(null); p.onToast("긴급 공지를 게시했어요. 사이렌이 울려요."); }}>긴급 공지 보내기</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="font-black text-[17px]">공지 미리보기</div>
+                <div className="text-[13px] mt-1 text-edu-sub">이 내용으로 공지를 보내시겠어요?</div>
+                <div className="mt-3 bg-edu-bg border border-edu-line rounded-xl p-3">
+                  <div className="font-bold text-edu-ink">{publishTarget.title}</div>
+                  <div className="text-[12px] text-edu-sub mt-1 whitespace-pre-wrap">{publishTarget.body.slice(0, 300)}{publishTarget.body.length > 300 ? "…" : ""}</div>
+                  <div className="text-[11px] text-edu-muted mt-2">
+                    대상: {publishTarget.scope === "all" ? "전체" : publishTarget.targetDept || publishTarget.targetGrade || publishTarget.targetClass}
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button type="button" className="edu-ghost flex-1" onClick={() => setPublishTarget(null)}>취소</button>
+                  <button type="button" className="edu-btn flex-1" onClick={() => { p.onPublish(publishTarget.id); setPublishTarget(null); p.onToast("공지를 게시했어요."); }}>공지 보내기</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
