@@ -33,17 +33,29 @@ function cleanLine(s) {
 function localSummary(text) {
   const plain = String(text || '').replace(/\s+/g, ' ').trim();
   if (!plain) return [];
-  const parts = plain.split(/(?<=[.!?。！？])\s+|[\n\r]+/).map((s) => s.trim()).filter((s) => s.length >= 8);
-  const out = [];
-  for (const p of parts) {
-    const line = cleanLine(p);
-    if (line && !out.includes(line)) out.push(line);
-    if (out.length >= 3) break;
-  }
-  if (!out.length) {
+  const sentences = plain.split(/(?<=[.!?。！？])\s+|[\n\r]+/).map((s) => s.trim()).filter((s) => s.length >= 8);
+  if (!sentences.length) {
+    const out = [];
     for (let i = 0; i < 3 && i * 90 < plain.length; i++) out.push(cleanLine(plain.slice(i * 90, (i + 1) * 90)));
+    return out.slice(0, 3);
   }
-  return out.slice(0, 3);
+  if (sentences.length <= 3) return sentences.map(cleanLine).filter(Boolean).slice(0, 3);
+
+  const STOP = new Set(['그리고','그러나','하지만','또한','또는','및','등','위해','대한','통해','관련','에서','으로','에게','the','a','an','and','or','but','of','to','in','on','at','for','with','by','is','are','was','were']);
+  const tokenize = (s) => (String(s).toLowerCase().match(/[a-z가-힣0-9]+/g) || []).filter((w) => w.length > 1 && !STOP.has(w));
+  const freq = new Map();
+  for (const s of sentences) for (const w of tokenize(s)) freq.set(w, (freq.get(w) || 0) + 1);
+  const maxFreq = Math.max(1, ...freq.values());
+  const scored = sentences.map((s, idx) => {
+    const words = tokenize(s);
+    const wordScore = words.reduce((acc, w) => acc + (freq.get(w) || 0), 0) / Math.max(1, words.length);
+    const norm = 1 / (1 + Math.abs(words.length - 12) * 0.05);
+    const positionBoost = idx === 0 ? 0.35 : idx < 3 ? 0.15 : 0;
+    return { idx, s, score: (wordScore / maxFreq) * norm + positionBoost };
+  });
+  const top = scored.slice().sort((a, b) => b.score - a.score).slice(0, 3).sort((a, b) => a.idx - b.idx);
+  const out = top.map((t) => cleanLine(t.s)).filter(Boolean);
+  return (out.length ? out : sentences.slice(0, 3).map(cleanLine).filter(Boolean)).slice(0, 3);
 }
 
 /* ---------- Gemini 호출 (실패하면 null → 로컬 폴백) ---------- */
@@ -143,7 +155,7 @@ module.exports = function createSummariesRouter({ needAuth, needStaff, aiLimiter
       if (!raw.trim()) return res.status(400).json({ ok: false, error: '요약할 공지 내용이 없어요.' });
 
       const { masked, hits, total } = maskSensitive(raw);
-      const key = crypto.createHash('sha256').update(masked).digest('hex').slice(0, 32);
+      const key = crypto.createHash('sha256').update(masked).digest('hex').slice(0, 32) + ':v2';
       const force = body.force === true;
 
       if (!force) {

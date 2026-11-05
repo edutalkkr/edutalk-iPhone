@@ -966,7 +966,7 @@
   visibility: visible;
   transition: grid-template-rows 0.26s cubic-bezier(0.22, 0.8, 0.24, 1), opacity 0.18s ease, visibility 0s;
 }
-.bz-st-expander-inner { min-height: 0; overflow: hidden; }
+.bz-st-expander-inner { min-height: 0; overflow: hidden; background: var(--bz-surface); border-radius: 0 0 14px 14px; }
 .bz-st-menu {
   display: flex; flex-direction: column; gap: 2px;
   padding: 4px 6px 8px;
