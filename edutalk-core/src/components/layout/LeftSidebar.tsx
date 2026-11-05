@@ -12,7 +12,6 @@ import { FOCUS_MESSAGE } from "../../lib/focus";
 import BzTooltip from "../ui/BzTooltip";
 import { useContextMenu, type BzMenuItem } from "../ui/BzContextMenu";
 import { StatusBadge, StatusPicker } from "../ui/BzStatus";
-import { bzConfirm } from "../ui/BzDialog";
 import {
   IconBarChart,
   IconCalendar,
@@ -21,8 +20,10 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconCloudIcon,
+  IconEdit,
   IconFormLibrary,
   IconGrid,
+  IconLogout,
   IconMegaphone,
   IconNote,
   IconPrinter,
@@ -148,6 +149,8 @@ interface Props {
   onReorderTabs?: (order: ActiveView[]) => void;
   /** 로그아웃 (설정 화면과 동일 동작) */
   onLogout?: () => void;
+  /** 프로필 편집 창 열기 */
+  onEditProfile?: () => void;
   /** 퀵 메모(포스트잇) 레이어 토글 */
   onQuickMemo?: () => void;
   /** 퀵 메모 열려 있는 개수 뱃지 */
@@ -192,8 +195,29 @@ export default function LeftSidebar(p: Props) {
   const [dragging, setDragging] = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
   const [dragTabId, setDragTabId] = useState<ActiveView | null>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const contextMenu = useContextMenu();
   const autoRestore = useRef<boolean | null>(null);
+
+  // 이름을 누르면 프로필 메뉴가 열린다. 바깥을 누르거나 Esc를 누르면 닫는다.
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setProfileMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [profileMenuOpen]);
 
   // AI 상담·전자결재·협업 보드는 좁은 창에서 작업 공간이 필요하다.
   // 새 기능에 들어갈 때만 레일을 접고, 나올 때 사용자가 원래 두었던 상태로 돌린다.
@@ -300,17 +324,6 @@ export default function LeftSidebar(p: Props) {
       ? "교내연결 (내부망) — 누르면 외부연결로 전환"
       : "외부연결 — 누르면 교내연결로 전환";
 
-  const askLogout = async () => {
-    if (!p.onLogout) return;
-    const ok = await bzConfirm({
-      title: "로그아웃 할까요?",
-      message: "다시 이용하려면 교원 ID와 비밀번호로 로그인해야 해요.",
-      confirmText: "로그아웃",
-      danger: true,
-    });
-    if (ok) p.onLogout();
-  };
-
   const openTabMenu = (e: React.MouseEvent, tab: TabDef) => {
     const items: BzMenuItem[] = [
       {
@@ -367,21 +380,33 @@ export default function LeftSidebar(p: Props) {
     >
       {/* ---------- 프로필 + 작은 접기 버튼 ---------- */}
       {/* 접힌 상태에서는 아바타와 펴기 버튼만 세로로 쌓는다. */}
-      <div className={`profile-row relative flex flex-col px-1 ${collapsed ? "items-center gap-1.5" : "gap-1"}`}>
+      <div ref={profileMenuRef} className={`profile-row relative flex flex-col px-1 ${collapsed ? "items-center gap-1.5" : "gap-1"}`}>
         <div className={`flex items-center gap-2.5 min-w-0 ${collapsed ? "flex-col gap-1.5" : "w-full"}`}>
-          <BzTooltip content={`${p.me.name || "내 프로필"} · ${p.me.dept}`} position="right" disabled={!collapsed}>
-            <div
-              className={`${collapsed ? "w-8 h-8 rounded-lg text-[13px]" : "w-10 h-10 rounded-xl text-base"} grid place-items-center text-white font-black shrink-0 select-none`}
-              style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}
-            >
-              {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
+          <button
+            type="button"
+            onClick={() => setProfileMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={profileMenuOpen}
+            aria-label={`${p.me.name || "내 프로필"} 프로필 메뉴`}
+            className={`profile-trigger min-w-0 flex items-center gap-2.5 ${collapsed ? "flex-col gap-1.5" : "flex-1 text-left"}`}
+          >
+            <BzTooltip content={`${p.me.name || "내 프로필"} · ${p.me.dept}`} position="right" disabled={!collapsed || profileMenuOpen}>
+              <div
+                className={`${collapsed ? "w-8 h-8 rounded-lg text-[13px]" : "w-10 h-10 rounded-xl text-base"} grid place-items-center text-white font-black shrink-0 select-none`}
+                style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}
+              >
+                {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
+              </div>
+            </BzTooltip>
+            <div className={`min-w-0 overflow-hidden transition-[max-height,max-width,opacity] duration-300 ease-out ${collapsed ? "max-h-0 max-w-0 opacity-0" : "max-h-6 max-w-full flex-1 opacity-100"}`}>
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
+                  {p.me.name || "내 프로필"}
+                </span>
+                <span className={`profile-caret shrink-0 ${profileMenuOpen ? "is-open" : ""}`} aria-hidden>▾</span>
+              </div>
             </div>
-          </BzTooltip>
-          <div className={`min-w-0 overflow-hidden transition-[max-height,max-width,opacity] duration-300 ease-out ${collapsed ? "max-h-0 max-w-0 opacity-0" : "max-h-6 max-w-full flex-1 opacity-100"}`}>
-            <div className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
-              {p.me.name || "내 프로필"}
-            </div>
-          </div>
+          </button>
           <BzTooltip content={collapsed ? "메뉴 펼치기" : "메뉴 접기"} position="right">
             <button
               type="button"
@@ -394,6 +419,40 @@ export default function LeftSidebar(p: Props) {
             </button>
           </BzTooltip>
         </div>
+        {profileMenuOpen && (
+          <div className="profile-menu anim-pop" role="menu" aria-label="내 프로필 메뉴">
+            <button
+              type="button"
+              role="menuitem"
+              className="profile-menu-item"
+              onClick={() => {
+                setProfileMenuOpen(false);
+                p.onEditProfile?.();
+              }}
+            >
+              <span className="profile-menu-ico" aria-hidden><IconEdit size={15} /></span>
+              <span className="min-w-0">
+                <b>프로필 편집</b>
+                <small>이름·부서·과목을 바꿔요</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="profile-menu-item is-danger"
+              onClick={() => {
+                setProfileMenuOpen(false);
+                p.onLogout?.();
+              }}
+            >
+              <span className="profile-menu-ico" aria-hidden><IconLogout size={15} /></span>
+              <span className="min-w-0">
+                <b>로그아웃</b>
+                <small>로그인 화면으로 돌아가요</small>
+              </span>
+            </button>
+          </div>
+        )}
         {/* 부서/과목은 상태 선택 캡션에서 확인 */}
       </div>
 
@@ -408,7 +467,7 @@ export default function LeftSidebar(p: Props) {
       />
 
       {/* ---------- 내 상태 (아이콘 + 컬러 점 + 텍스트) ---------- */}
-      <div className="edu-rail-status mt-2 px-0.5">
+      <div className="mt-2 px-0.5">
         <StatusPicker
           value={normalizeStatus(p.me.status)}
           onChange={p.onStatus}

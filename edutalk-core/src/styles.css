@@ -870,27 +870,66 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
 .edu-rail-collapse:hover { color: rgb(var(--edu-ink)); background: rgb(var(--edu-hover)); }
 .edu-rail-collapse:active { transform: scale(0.92); }
 
-/* 레일 상단의 이름 카드·상태 버튼도 오른쪽 끝을 둥글게 해 떠 있는 느낌을 준다 */
-.edu-rail .profile-row {
-  margin-right: 6px;
-  padding: 6px;
-  border-radius: 12px 999px 999px 12px;
+/* 프로필 이름 → 편집·로그아웃 메뉴 (상태 선택처럼 아래로 떠오른다) */
+.profile-trigger {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+.profile-trigger:focus-visible {
+  outline: 2px solid rgb(var(--edu-blue));
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.profile-caret {
+  font-size: 9px;
+  line-height: 1;
+  color: rgb(var(--edu-muted));
+  transition: transform 0.22s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+.profile-caret.is-open { transform: rotate(180deg); }
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 4px;
+  z-index: 70;
+  width: 188px;
+  max-width: calc(100vw - 12px);
+  padding: 5px;
+  background: rgb(var(--edu-surface));
+  border: 1px solid rgb(var(--edu-line));
+  border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(16, 24, 40, 0.18), 0 2px 8px rgba(16, 24, 40, 0.08);
+}
+.profile-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  color: rgb(var(--edu-ink));
+  transition: background-color 0.14s ease;
+}
+.profile-menu-item + .profile-menu-item { margin-top: 2px; }
+.profile-menu-item:hover { background: rgb(var(--edu-chip)); }
+.profile-menu-item b { display: block; font-size: 13px; font-weight: 800; line-height: 1.25; }
+.profile-menu-item small { display: block; margin-top: 1px; font-size: 10.5px; color: rgb(var(--edu-sub)); }
+.profile-menu-ico {
+  width: 24px; height: 24px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  flex: 0 0 auto;
   background: rgb(var(--edu-chip));
-  box-shadow: inset 0 0 0 1px rgb(var(--edu-line)), 0 2px 10px rgba(16, 24, 40, 0.07);
+  color: rgb(var(--edu-strong));
 }
-.edu-rail .edu-rail-status {
-  margin-right: 4px;
-  padding-left: 0;
-}
-.edu-rail .edu-rail-status .bz-st-pick {
-  border-radius: 10px 999px 999px 10px;
-  box-shadow: 0 2px 10px rgba(16, 24, 40, 0.07);
-}
-.edu-rail[data-collapsed="true"] .profile-row {
-  margin-right: 4px;
-  padding: 5px 0;
-  border-radius: 10px 999px 999px 10px;
-}
+.profile-menu-item.is-danger .profile-menu-ico { background: rgba(229, 72, 77, 0.12); color: #E5484D; }
+.profile-menu-item.is-danger b { color: #E5484D; }
 .edu-rail[data-collapsed="true"] .profile-row { padding-left: 0; padding-right: 0; }
 .edu-rail[data-collapsed="true"] .edu-rail-collapse {
   position: static;

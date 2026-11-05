@@ -17,6 +17,7 @@ interface Props {
   classNo: string;
   blocked: boolean;
   onImport: (csv: string) => { ok: boolean; count: number; error?: string };
+  onSaveCell: (target: { weekday: number; period: number; grade: string; classNo: string }, next: { subject: string; teacher: string; room: string } | null) => void;
   onRequestSwap: (period: number, weekday: number, toTeacherId: string, reason: string) => void;
   onAcceptSwap: (id: string) => void;
   onRejectSwap: (id: string) => void;
@@ -299,6 +300,12 @@ export default function TimetablePane(p: Props) {
   const [showBusy, setShowBusy] = useState(false);
   const [csv, setCsv] = useState("");
   const [showImport, setShowImport] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editCell, setEditCell] = useState<{ weekday: number; period: number } | null>(null);
+  const [editSubject, setEditSubject] = useState("");
+  const [editTeacher, setEditTeacher] = useState("");
+  const [editRoom, setEditRoom] = useState("");
+
   // 세로형 기본: 요일 하나씩 본다 (400px 창에 5일 표는 다 안 들어감). 0=전체.
   const todayWd = (() => { const d = new Date().getDay(); return d >= 1 && d <= 5 ? d : 1; })();
   const [dayTab, setDayTab] = useState<number>(todayWd);
@@ -310,6 +317,14 @@ export default function TimetablePane(p: Props) {
     () => p.cells.filter((c) => c.grade === p.grade && c.classNo === curCls),
     [p.cells, p.grade, curCls]
   );
+  useEffect(() => {
+    if (!editCell) return;
+    const c = grid.find((x) => x.weekday === editCell.weekday && x.period === editCell.period);
+    setEditSubject(c?.subject ?? "");
+    setEditTeacher(c?.teacher ?? (p.myName ?? ""));
+    setEditRoom(c?.room ?? "");
+  }, [editCell, grid, p.myName]);
+
   const cellOf = (wd: number, per: number) => grid.find((c) => c.weekday === wd && c.period === per);
 
   // 스마트 보강 추천: 이 시간 공강인 선생님을 기본으로 보여 주고,
@@ -400,11 +415,22 @@ export default function TimetablePane(p: Props) {
             </button>
           ))}
           <span className="ml-auto flex gap-1.5">
+            <button
+              className={`edu-ghost !text-[12.5px] ${editMode ? "bg-edu-soft text-edu-strong" : ""}`}
+              onClick={() => { setEditMode((v) => !v); setEditCell(null); }}
+            >
+              {editMode ? "✓ 편집 끝내기" : "✏️ 시간표 편집"}
+            </button>
             <button className="edu-ghost !text-[12.5px]" onClick={() => setShowImport((v) => !v)}>
               📥 CSV 가져오기
             </button>
           </span>
         </div>
+        {editMode && (
+          <div className="mt-2 rounded-xl border border-edu-blueline bg-edu-bg px-2.5 py-2 text-[12px] text-edu-sub">
+            편집 모드예요. 칸을 눌러 과목·선생님·교실을 바꾸거나 공강으로 비워 주세요.
+          </div>
+        )}
         <div className="mt-2 flex gap-1.5 flex-wrap">
           {([1, 2, 3, 4, 5] as const).map((d) => (
             <button
@@ -480,7 +506,10 @@ export default function TimetablePane(p: Props) {
                         key={wd}
                         className={`border p-0 ${active ? "outline outline-2 outline-edu-blue outline-offset-[-2px]" : "border-edu-line"}`}
                       >
-                        <button className="w-full text-left px-2 py-1.5 hover:bg-edu-soft min-h-[64px]" onClick={() => setSel({ weekday: wd, period: per })}>
+                        <button className="w-full text-left px-2 py-1.5 hover:bg-edu-soft min-h-[64px]" onClick={() => {
+                          if (editMode) setEditCell({ weekday: wd, period: per });
+                          else setSel({ weekday: wd, period: per });
+                        }}>
                           {c ? (
                             <>
                               <span className="font-bold text-[13px] block leading-tight">
@@ -629,6 +658,70 @@ export default function TimetablePane(p: Props) {
         }}
         onToast={p.onToast}
       />
+
+      {editCell && (
+        <div
+          className="fixed inset-0 z-[80] grid place-items-center bg-[rgba(15,23,42,0.36)] backdrop-blur-[2px] p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tt-edit-title"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setEditCell(null); }}
+        >
+          <div className="w-full max-w-[420px] rounded-2xl bg-edu-surface border border-edu-line shadow-2xl p-5 anim-pop">
+            <div className="flex items-center justify-between gap-2">
+              <h3 id="tt-edit-title" className="text-[16px] font-extrabold text-edu-ink">
+                시간표 바꾸기 · {WD[editCell.weekday]} {editCell.period}교시
+              </h3>
+              <button type="button" className="bz-close" onClick={() => setEditCell(null)} aria-label="닫기">✕</button>
+            </div>
+            <p className="mt-1 text-[12px] text-edu-sub">
+              {p.grade} {curCls} · 이 시간에 놓일 수업을 바꿔요.
+            </p>
+            <div className="mt-3 flex flex-col gap-2.5">
+              <label className="flex flex-col gap-1">
+                <span className="text-[12px] font-extrabold text-edu-sub">과목</span>
+                <input className="edu-input" value={editSubject} onChange={(e) => setEditSubject(e.target.value)} maxLength={30} placeholder="예: 수학" autoFocus />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[12px] font-extrabold text-edu-sub">선생님</span>
+                <input className="edu-input" value={editTeacher} onChange={(e) => setEditTeacher(e.target.value)} maxLength={20} placeholder={p.myName ?? "선생님"} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[12px] font-extrabold text-edu-sub">교실</span>
+                <input className="edu-input" value={editRoom} onChange={(e) => setEditRoom(e.target.value)} maxLength={20} placeholder="예: 2-1 교실" />
+              </label>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                className="edu-ghost flex-1"
+                onClick={() => {
+                  p.onSaveCell({ weekday: editCell.weekday, period: editCell.period, grade: p.grade, classNo: curCls }, null);
+                  setEditCell(null);
+                  p.onToast("이 시간을 공강으로 바꿨어요.");
+                }}
+              >
+                공강으로 비우기
+              </button>
+              <button
+                type="button"
+                className="edu-btn flex-1"
+                onClick={() => {
+                  if (!editSubject.trim()) { p.onToast("과목을 적어 주세요."); return; }
+                  p.onSaveCell(
+                    { weekday: editCell.weekday, period: editCell.period, grade: p.grade, classNo: curCls },
+                    { subject: editSubject, teacher: editTeacher.trim() || (p.myName ?? ""), room: editRoom.trim() }
+                  );
+                  setEditCell(null);
+                  p.onToast("시간표를 바꿨어요.");
+                }}
+              >
+                저장하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

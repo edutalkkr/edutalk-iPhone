@@ -26,6 +26,7 @@ import type {
 import UpdateToast from "./components/UpdateToast";
 import UpdateRelay from "./components/UpdateRelay";
 import FormLibrary from "./components/FormLibrary";
+import ProfileEditDialog from "./components/ui/ProfileEditDialog";
 import { ME_ID, nowIso, type SchoolSetup } from "./mock/initialData";
 import { storeGet, storeSet } from "./lib/localStore";
 import { call, emitEvent, listenEvent } from "./lib/tauri";
@@ -211,6 +212,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   const [isLoggedIn, setIsLoggedIn] = useState(() => popupMode);
   const [serverBase, setServerBase] = useState<string | null>(null);
   const [formLibOpen, setFormLibOpen] = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [loginError, setLoginError] = useState("");
   // 관리자 모드 상태
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
@@ -1724,6 +1726,20 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
     return { ok: true, count: freshCount };
   };
 
+  const saveTimetableCell = (target: { weekday: number; period: number; grade: string; classNo: string }, next: { subject: string; teacher: string; room: string } | null) => {
+    const match = (c: TimetableCell) => c.weekday === target.weekday && c.period === target.period && c.grade === target.grade && c.classNo === target.classNo;
+    let merged: TimetableCell[];
+    if (next && (next.subject.trim() || next.teacher.trim() || next.room.trim())) {
+      const cell = { weekday: target.weekday, period: target.period, grade: target.grade, classNo: target.classNo, subject: next.subject.trim(), teacher: next.teacher.trim(), room: next.room.trim() };
+      merged = cells.some(match) ? cells.map((c) => (match(c) ? cell : c)) : [...cells, cell];
+    } else {
+      merged = cells.filter((c) => !match(c));
+    }
+    setCells(merged);
+    setChangedKeys((s) => new Set(s).add(cellKey({ weekday: target.weekday, period: target.period, grade: target.grade, classNo: target.classNo })));
+    void syncTimetable(merged, "시간표 편집");
+  };
+
   const importCsv = (csv: string) => {
     const lines = csv.replace(/^\uFEFF/, "").split("\n").map((l) => l.trim()).filter(Boolean);
     if (!lines.length) return { ok: false, count: 0, error: "CSV가 비어 있어요." };
@@ -2352,6 +2368,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         onView={goView}
         onToast={toast}
         onLogout={handleLogout}
+        onEditProfile={() => setProfileEditOpen(true)}
         onQuickMemo={toggleQuickMemos}
         quickMemoOpen={quickLayerOpen ? quickNoteCount : 0}
         focusActive={focusActive}
@@ -2514,6 +2531,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
               webUrl={String(import.meta.env.VITE_PUBLIC_WEB_URL || "https://edutalk.cloud").replace(/\/+$/, "")}
               onInviteMeeting={inviteMeeting}
               onImport={importCsv}
+              onSaveCell={saveTimetableCell}
               onRequestSwap={requestSwap}
               onAcceptSwap={acceptSwap}
               onRejectSwap={rejectSwap}
@@ -2842,6 +2860,16 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
           }}
         />
       )}
+      <ProfileEditDialog
+        open={profileEditOpen}
+        me={me}
+        onClose={() => setProfileEditOpen(false)}
+        onSave={(patch) => {
+          setTeachers((ts) => ts.map((t) => (t.id === ME_ID ? { ...t, ...patch } : t)));
+          if (patch.name) syncMe(patch.name);
+        }}
+        onToast={toast}
+      />
       <div className="edu-toast-wrap">
         {toasts.map((t) => (
           <div key={t.id} className={`edu-toast${t.leaving ? " leaving" : ""}`}>
