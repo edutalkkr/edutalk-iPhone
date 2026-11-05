@@ -219,6 +219,10 @@ export default function LeftSidebar(p: Props) {
       /* 저장소가 막혀 있어도 이번 실행 동안은 동작 */
     }
   };
+  // 넓은 창에서는 메뉴가 항상 왼쪽에 펼쳐져 보이도록 자동으로 연다.
+  useEffect(() => {
+    if (p.expand && collapsed) persistCollapsed(false);
+  }, [p.expand]);
   const toggleRail = () => persistCollapsed(!collapsed);
 
   const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
