@@ -452,18 +452,30 @@ export default function LeftSidebar(p: Props) {
         ) : (
           <>
             <div className="flex items-center gap-2.5 min-w-0 w-full">
-              <div
-                className="w-10 h-10 rounded-xl text-base grid place-items-center text-white font-black shrink-0 select-none"
-                style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={profileMenuOpen}
+                aria-label={`${p.me.name || "내 프로필"} 프로필 메뉴`}
+                className="profile-trigger min-w-0 flex items-center gap-2.5 flex-1 text-left"
               >
-                {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
-                  {p.me.name || "내 프로필"}
+                <div
+                  className="w-10 h-10 rounded-xl text-base grid place-items-center text-white font-black shrink-0 select-none"
+                  style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}
+                >
+                  {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
                 </div>
-                <div className="text-[10.5px] text-edu-sub truncate">{p.me.dept}{p.me.subject ? ` · ${p.me.subject}` : ""}</div>
-              </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
+                      {p.me.name || "내 프로필"}
+                    </span>
+                    <span className={`profile-caret shrink-0 ${profileMenuOpen ? "is-open" : ""}`} aria-hidden>▾</span>
+                  </div>
+                  <div className="text-[10.5px] text-edu-sub truncate">{p.me.dept}{p.me.subject ? ` · ${p.me.subject}` : ""}</div>
+                </div>
+              </button>
               <BzTooltip content="메뉴 접기" position="right">
                 <button
                   type="button"
@@ -476,14 +488,18 @@ export default function LeftSidebar(p: Props) {
                 </button>
               </BzTooltip>
             </div>
-            <div className="flex gap-1.5 mt-1.5">
-              <button type="button" className="flex-1 rounded-lg bg-edu-chip hover:bg-edu-hover px-2 py-1.5 text-[11.5px] font-bold text-edu-ink" onClick={() => p.onEditProfile?.()}>
-                <IconEdit size={12} className="inline mr-1" />프로필 편집
-              </button>
-              <button type="button" className="flex-1 rounded-lg bg-[rgba(229,72,77,0.10)] hover:bg-[rgba(229,72,77,0.18)] px-2 py-1.5 text-[11.5px] font-bold text-[#E5484D]" onClick={() => p.onLogout?.()}>
-                <IconLogout size={12} className="inline mr-1" />로그아웃
-              </button>
-            </div>
+            {profileMenuOpen && (
+              <div className="profile-menu anim-pop" role="menu" aria-label="내 프로필 메뉴">
+                <button type="button" role="menuitem" className="profile-menu-item" onClick={() => { setProfileMenuOpen(false); p.onEditProfile?.(); }}>
+                  <span className="profile-menu-ico" aria-hidden><IconEdit size={15} /></span>
+                  <span className="min-w-0"><b>프로필 편집</b><small>이름·부서·과목을 바꿔요</small></span>
+                </button>
+                <button type="button" role="menuitem" className="profile-menu-item is-danger" onClick={() => { setProfileMenuOpen(false); p.onLogout?.(); }}>
+                  <span className="profile-menu-ico" aria-hidden><IconLogout size={15} /></span>
+                  <span className="min-w-0"><b>로그아웃</b><small>로그인 화면으로 돌아가요</small></span>
+                </button>
+              </div>
+            )}
           </>
         )}
         {/* 부서/과목은 상태 선택 캡션에서 확인 */}
@@ -609,22 +625,6 @@ export default function LeftSidebar(p: Props) {
               <span className={"rail-label edu-rail-txt truncate transition-[opacity,max-width,margin] duration-250 ease-out " + (collapsed ? "opacity-0 max-w-0 ml-0 overflow-hidden" : "opacity-100 max-w-[14rem]")}>
                 {tr(t.labelKey)}
               </span>
-              {reorderMode && !collapsed && (
-                <span className="flex shrink-0 gap-0.5 ml-auto">
-                  <button
-                    type="button"
-                    className="w-5 h-5 grid place-items-center rounded text-[10px] hover:bg-edu-chip"
-                    onClick={(e) => { e.stopPropagation(); moveTab(t.id, -1); }}
-                    aria-label="위로 이동"
-                  >▲</button>
-                  <button
-                    type="button"
-                    className="w-5 h-5 grid place-items-center rounded text-[10px] hover:bg-edu-chip"
-                    onClick={(e) => { e.stopPropagation(); moveTab(t.id, 1); }}
-                    aria-label="아래로 이동"
-                  >▼</button>
-                </span>
-              )}
               {!reorderMode && badge > 0 && <span className="edu-rail-badge">{badge > 99 ? "99+" : badge}</span>}
             </button>
           );
