@@ -957,24 +957,21 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   align-items: center;
   justify-content: flex-start;
   gap: 7px;
-  width: calc(100% - 6px);
-  margin-right: 6px;
+  width: 100%;
   height: 36px;
-  padding: 0 5px 0 7px;
-  border-radius: 10px 999px 999px 10px;
+  padding: 0 5px;
+  border-radius: 10px;
   text-align: left;
   font-weight: 700;
   color: rgb(var(--edu-sub));
-  background: rgb(var(--edu-chip));
-  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08);
-  transition: background-color 0.15s ease, color 0.15s ease, padding 0.28s cubic-bezier(0.22, 0.8, 0.24, 1), gap 0.28s cubic-bezier(0.22, 0.8, 0.24, 1), transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.16s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, padding 0.28s cubic-bezier(0.22, 0.8, 0.24, 1), gap 0.28s cubic-bezier(0.22, 0.8, 0.24, 1), transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.edu-rail-tab:hover { background: rgb(var(--edu-chip)); color: rgb(var(--edu-ink)); transform: translateX(2px); box-shadow: 0 4px 12px rgba(16, 24, 40, 0.10); }
-.edu-rail-tab:active { transform: translateX(1px) scale(0.985); }
+.edu-rail-tab:hover { background: rgb(var(--edu-chip)); color: rgb(var(--edu-ink)); }
+.edu-rail-tab:active { transform: scale(0.975); }
 .edu-rail-tab.active {
   background: rgb(var(--edu-soft));
   color: rgb(var(--edu-strong));
-  box-shadow: 0 6px 16px rgba(0, 130, 200, 0.14), inset 0 0 0 1px rgb(var(--edu-blueline));
+  box-shadow: inset 0 0 0 1px rgb(var(--edu-blueline));
 }
 .edu-rail-ico { display: inline-flex; width: 19px; justify-content: center; flex: 0 0 auto; }
 .edu-rail-txt { flex: 1; min-width: 0; }
@@ -1023,7 +1020,7 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   margin-right: 0;
   padding: 0 0 0 13px;
   gap: 0;
-  border-radius: 12px 999px 999px 12px;
+  border-radius: 10px;
   background: rgb(var(--edu-chip));
 }
 

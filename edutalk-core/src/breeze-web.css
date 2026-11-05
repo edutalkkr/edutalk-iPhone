@@ -931,10 +931,10 @@
   transition: background-color 0.2s ease, box-shadow 0.24s ease, border-radius 0.26s cubic-bezier(0.22, 0.8, 0.24, 1);
 }
 .bz-st-pick-wrap.is-open {
-  position: absolute;
+  position: relative;
   top: auto;
-  left: 6px; right: 6px;
-  z-index: 50;
+  left: auto; right: auto;
+  z-index: 20;
   background: var(--bz-surface);
   border-radius: 14px;
   box-shadow: 0 0 0 1px var(--bz-line), var(--bz-shadow-float);

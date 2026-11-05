@@ -143,6 +143,8 @@ interface Props {
   userRole?: UserRole;
   /** 교사가 숨긴 메뉴 (설정에서 다시 표시) */
   hiddenTabs?: ActiveView[];
+  /** 숨긴 메뉴 모두 복원 */
+  onRestoreAllTabs?: () => void;
   /** 사용자가 끌어서 바꾼 메뉴 순서 */
   tabOrder?: ActiveView[];
   onHideTab?: (id: ActiveView) => void;
@@ -324,6 +326,29 @@ export default function LeftSidebar(p: Props) {
       ? "교내연결 (내부망) — 누르면 외부연결로 전환"
       : "외부연결 — 누르면 교내연결로 전환";
 
+  const openRailMenu = (e: React.MouseEvent) => {
+    const items: BzMenuItem[] = [
+      {
+        id: "reorder",
+        label: "순서 변경",
+        hint: "끌어서 이동",
+        onSelect: () => {
+          setReorderMode(true);
+          p.onToast("메뉴를 끌어서 순서를 바꾼 뒤 [완료]를 눌러 주세요.");
+        },
+      },
+      { id: "sep", separator: true },
+      {
+        id: "restore",
+        label: "숨긴 메뉴 복원",
+        hint: hidden.size ? `${hidden.size}개 숨김` : "숨긴 메뉴 없음",
+        disabled: hidden.size === 0,
+        onSelect: () => p.onRestoreAllTabs?.(),
+      },
+    ];
+    contextMenu(e, items, "메뉴");
+  };
+
   const openTabMenu = (e: React.MouseEvent, tab: TabDef) => {
     const items: BzMenuItem[] = [
       {
@@ -381,77 +406,85 @@ export default function LeftSidebar(p: Props) {
       {/* ---------- 프로필 + 작은 접기 버튼 ---------- */}
       {/* 접힌 상태에서는 아바타와 펴기 버튼만 세로로 쌓는다. */}
       <div ref={profileMenuRef} className={`profile-row relative flex flex-col px-1 ${collapsed ? "items-center gap-1.5" : "gap-1"}`}>
-        <div className={`flex items-center gap-2.5 min-w-0 ${collapsed ? "flex-col gap-1.5" : "w-full"}`}>
-          <button
-            type="button"
-            onClick={() => setProfileMenuOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={profileMenuOpen}
-            aria-label={`${p.me.name || "내 프로필"} 프로필 메뉴`}
-            className={`profile-trigger min-w-0 flex items-center gap-2.5 ${collapsed ? "flex-col gap-1.5" : "flex-1 text-left"}`}
-          >
-            <BzTooltip content={`${p.me.name || "내 프로필"} · ${p.me.dept}`} position="right" disabled={!collapsed || profileMenuOpen}>
+        {collapsed ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setProfileMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              aria-label={`${p.me.name || "내 프로필"} 프로필 메뉴`}
+              className="profile-trigger min-w-0 flex flex-col items-center gap-1.5"
+            >
+              <BzTooltip content={`${p.me.name || "내 프로필"} · ${p.me.dept}`} position="right" disabled={profileMenuOpen}>
+                <div
+                  className="w-8 h-8 rounded-lg text-[13px] grid place-items-center text-white font-black shrink-0 select-none"
+                  style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}
+                >
+                  {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
+                </div>
+              </BzTooltip>
+            </button>
+            <BzTooltip content="메뉴 펼치기" position="right">
+              <button
+                type="button"
+                onClick={toggleRail}
+                aria-label="메뉴 펼치기"
+                aria-expanded={false}
+                className="edu-rail-collapse shrink-0"
+              >
+                <IconChevronRight size={13} />
+              </button>
+            </BzTooltip>
+            {profileMenuOpen && (
+              <div className="profile-menu anim-pop" role="menu" aria-label="내 프로필 메뉴">
+                <button type="button" role="menuitem" className="profile-menu-item" onClick={() => { setProfileMenuOpen(false); p.onEditProfile?.(); }}>
+                  <span className="profile-menu-ico" aria-hidden><IconEdit size={15} /></span>
+                  <span className="min-w-0"><b>프로필 편집</b><small>이름·부서·과목을 바꿔요</small></span>
+                </button>
+                <button type="button" role="menuitem" className="profile-menu-item is-danger" onClick={() => { setProfileMenuOpen(false); p.onLogout?.(); }}>
+                  <span className="profile-menu-ico" aria-hidden><IconLogout size={15} /></span>
+                  <span className="min-w-0"><b>로그아웃</b><small>로그인 화면으로 돌아가요</small></span>
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2.5 min-w-0 w-full">
               <div
-                className={`${collapsed ? "w-8 h-8 rounded-lg text-[13px]" : "w-10 h-10 rounded-xl text-base"} grid place-items-center text-white font-black shrink-0 select-none`}
+                className="w-10 h-10 rounded-xl text-base grid place-items-center text-white font-black shrink-0 select-none"
                 style={{ background: "linear-gradient(145deg,#0082C8,#0069A8)" }}
               >
                 {isAdmin ? "관" : (p.me.name || "B").slice(0, 1)}
               </div>
-            </BzTooltip>
-            <div className={`min-w-0 overflow-hidden transition-[max-height,max-width,opacity] duration-300 ease-out ${collapsed ? "max-h-0 max-w-0 opacity-0" : "max-h-6 max-w-full flex-1 opacity-100"}`}>
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
+              <div className="min-w-0 flex-1">
+                <div className="rail-label font-extrabold truncate text-edu-ink" title={p.me.name || "내 프로필"}>
                   {p.me.name || "내 프로필"}
-                </span>
-                <span className={`profile-caret shrink-0 ${profileMenuOpen ? "is-open" : ""}`} aria-hidden>▾</span>
+                </div>
+                <div className="text-[10.5px] text-edu-sub truncate">{p.me.dept}{p.me.subject ? ` · ${p.me.subject}` : ""}</div>
               </div>
+              <BzTooltip content="메뉴 접기" position="right">
+                <button
+                  type="button"
+                  onClick={toggleRail}
+                  aria-label="메뉴 접기"
+                  aria-expanded={true}
+                  className="edu-rail-collapse shrink-0"
+                >
+                  <IconChevronLeft size={13} />
+                </button>
+              </BzTooltip>
             </div>
-          </button>
-          <BzTooltip content={collapsed ? "메뉴 펼치기" : "메뉴 접기"} position="right">
-            <button
-              type="button"
-              onClick={toggleRail}
-              aria-label={collapsed ? "메뉴 펼치기" : "메뉴 접기"}
-              aria-expanded={!collapsed}
-              className="edu-rail-collapse shrink-0"
-            >
-              {collapsed ? <IconChevronRight size={13} /> : <IconChevronLeft size={13} />}
-            </button>
-          </BzTooltip>
-        </div>
-        {profileMenuOpen && (
-          <div className="profile-menu anim-pop" role="menu" aria-label="내 프로필 메뉴">
-            <button
-              type="button"
-              role="menuitem"
-              className="profile-menu-item"
-              onClick={() => {
-                setProfileMenuOpen(false);
-                p.onEditProfile?.();
-              }}
-            >
-              <span className="profile-menu-ico" aria-hidden><IconEdit size={15} /></span>
-              <span className="min-w-0">
-                <b>프로필 편집</b>
-                <small>이름·부서·과목을 바꿔요</small>
-              </span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="profile-menu-item is-danger"
-              onClick={() => {
-                setProfileMenuOpen(false);
-                p.onLogout?.();
-              }}
-            >
-              <span className="profile-menu-ico" aria-hidden><IconLogout size={15} /></span>
-              <span className="min-w-0">
-                <b>로그아웃</b>
-                <small>로그인 화면으로 돌아가요</small>
-              </span>
-            </button>
-          </div>
+            <div className="flex gap-1.5 mt-1.5">
+              <button type="button" className="flex-1 rounded-lg bg-edu-chip hover:bg-edu-hover px-2 py-1.5 text-[11.5px] font-bold text-edu-ink" onClick={() => p.onEditProfile?.()}>
+                <IconEdit size={12} className="inline mr-1" />프로필 편집
+              </button>
+              <button type="button" className="flex-1 rounded-lg bg-[rgba(229,72,77,0.10)] hover:bg-[rgba(229,72,77,0.18)] px-2 py-1.5 text-[11.5px] font-bold text-[#E5484D]" onClick={() => p.onLogout?.()}>
+                <IconLogout size={12} className="inline mr-1" />로그아웃
+              </button>
+            </div>
+          </>
         )}
         {/* 부서/과목은 상태 선택 캡션에서 확인 */}
       </div>
@@ -542,7 +575,7 @@ export default function LeftSidebar(p: Props) {
           </button>
         </div>
       )}
-      <nav className="w-full flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5" aria-label="주 메뉴">
+      <nav className="w-full flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5" aria-label="주 메뉴" onContextMenu={openRailMenu}>
         {tabs.map((t) => {
           const badge = getBadge(t.id);
           const active = p.view === t.id;
