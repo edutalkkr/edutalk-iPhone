@@ -2825,7 +2825,22 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       <UpdateRelay enabled={isLoggedIn && !popupMode} base={serverBase} />
       <FormLibrary enabled={isLoggedIn && !popupMode} open={formLibOpen} onClose={() => setFormLibOpen(false)} />
       {popupMode && popupView === "forms" && (
-        <FormLibrary enabled={true} open={true} onClose={() => { try { window.close(); } catch { /* noop */ } }} />
+        <FormLibrary
+          enabled={true}
+          open={true}
+          onClose={() => {
+            // 브라우저의 window.close()는 Tauri 창에서 막혀 창이 남는다.
+            // 팝업 창 자체를 닫아야 하므로 Tauri 창 API로 닫는다.
+            void (async () => {
+              try {
+                const { getCurrentWindow } = await import("@tauri-apps/api/window");
+                await getCurrentWindow().close();
+              } catch {
+                try { window.close(); } catch { /* noop */ }
+              }
+            })();
+          }}
+        />
       )}
       <div className="edu-toast-wrap">
         {toasts.map((t) => (

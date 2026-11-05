@@ -408,7 +408,7 @@ export default function LeftSidebar(p: Props) {
       />
 
       {/* ---------- 내 상태 (아이콘 + 컬러 점 + 텍스트) ---------- */}
-      <div className="mt-2 px-0.5">
+      <div className="edu-rail-status mt-2 px-0.5">
         <StatusPicker
           value={normalizeStatus(p.me.status)}
           onChange={p.onStatus}
