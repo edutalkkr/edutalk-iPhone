@@ -2379,6 +2379,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
         tabOrder={tabOrder}
         onHideTab={hideNavTab}
         onReorderTabs={setTabOrder}
+        onRestoreAllTabs={() => { setHiddenTabs([]); toast("숨긴 메뉴를 모두 다시 표시했어요."); }}
       />
       )}
       <main className="flex-1 min-w-0 h-full overflow-y-auto">
