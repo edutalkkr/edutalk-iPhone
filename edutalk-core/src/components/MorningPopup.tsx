@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { call, EventRow } from "../lib/tauri";
+import { usePresence } from "../lib/usePresence";
 
 // 출근 팝업: 오늘 일정 + 수락 대기 보강을 카드로 한 번 보여준다
 export default function MorningPopup() {
   const [show, setShow] = useState(false);
+  const { mounted, closing } = usePresence(show, 170);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [subs, setSubs] = useState(0);
 
@@ -30,11 +32,13 @@ export default function MorningPopup() {
     })();
   }, []);
 
-  if (!show) return null;
+  if (!mounted) return null;
+  const closeClass = closing ? " is-closing" : "";
   return (
-    <div className="edu-overlay"
+    <div className={`edu-overlay${closeClass}`}
+      aria-hidden={closing || undefined}
       onClick={() => setShow(false)}>
-      <div className="edu-modal" style={{ maxWidth: 448 }} onClick={(e) => e.stopPropagation()}>
+      <div className={`edu-modal${closeClass}`} style={{ maxWidth: 448 }} onClick={(e) => e.stopPropagation()}>
         <h2 className="font-bold text-[17px] mb-2">오늘 아침 한 장</h2>
         {events.map((e) => (
           <div key={e.id} className="text-sm border-b border-edu-line py-1.5 last:border-0">

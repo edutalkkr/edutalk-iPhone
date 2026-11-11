@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { DeptGroup, Teacher, TeacherStatus } from "../../types";
+import type { DeptGroup, Teacher } from "../../types";
 import type { Peer } from "../../lib/tauri";
 import { api } from "../../services/api";
 import type { NeisEventItem, NeisMealItem } from "../../types/api";
@@ -95,6 +95,7 @@ export default function OrgTreePane(p: Props) {
       return new Set();
     }
   });
+  const [expandedFav, setExpandedFav] = useState<string | null>(null);
   const toggleFav = (id: string) => {
     setFav((prev) => {
       const next = new Set(prev);
@@ -262,15 +263,48 @@ export default function OrgTreePane(p: Props) {
             <span className="ml-auto shrink-0 text-[11px] text-edu-sub font-semibold">{favTeachers.length}명</span>
           </div>
           <div className="bg-white">
-            {favTeachers.map((m, i) => (
-              <div key={m.id} className={`flex items-center gap-2 px-2.5 py-1.5 ${i > 0 ? "border-t border-edu-line" : ""}`}>
-                <span className="w-7 h-7 rounded-full grid place-items-center text-white font-extrabold shrink-0 text-[12px]" style={{ background: m.avatarColor }}>{(m.name || "?")[0]}</span>
-                <span className="font-bold text-[13px] shrink-0 max-w-[88px] truncate">{m.name}</span>
-                <span className="min-w-0 flex-1 text-[11.5px] text-edu-sub truncate">{m.subject}</span>
-                <StatusBadge status={m.status} compact />
-                <button className="w-6 h-6 grid place-items-center rounded-lg hover:bg-edu-chip text-[13px] text-[#F59E0B]" onClick={() => toggleFav(m.id)} aria-label="즐겨찾기 해제">★</button>
-              </div>
-            ))}
+            {favTeachers.map((m, i) => {
+              const isMe = m.id === ME_ID;
+              const isPeer = peerIds.has(m.id);
+              const expanded = expandedFav === m.id;
+              return (
+                <div key={m.id} className={i > 0 ? "border-t border-edu-line" : ""}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedFav(expanded ? null : m.id)}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-edu-chip"
+                    aria-expanded={expanded}
+                  >
+                    <span className="w-7 h-7 rounded-full grid place-items-center text-white font-extrabold shrink-0 text-[12px]" style={{ background: m.avatarColor }}>{(m.name || "?")[0]}</span>
+                    <span className="font-bold text-[13px] shrink-0 max-w-[88px] truncate">{m.name}</span>
+                    <span className="min-w-0 flex-1 text-[11.5px] text-edu-sub truncate">{m.subject}</span>
+                    <StatusBadge status={m.status} compact />
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="w-6 h-6 grid place-items-center rounded-lg hover:bg-edu-chip text-[13px] text-[#F59E0B]"
+                      onClick={(e) => { e.stopPropagation(); toggleFav(m.id); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggleFav(m.id); } }}
+                      aria-label="즐겨찾기 해제"
+                    >★</span>
+                  </button>
+                  {expanded && (
+                    <div className="px-2.5 pb-2 pt-1 flex flex-col gap-1.5 bg-edu-bg/40">
+                      <span className="text-[11.5px] text-edu-sub truncate">{m.subject} · {m.position} · {m.dept}</span>
+                      {!isMe && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onMemo(m)}>✉️ 쪽지</button>
+                          <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onChat(m)}>💬 대화</button>
+                          {isPeer && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemotePc(m.id, m.name)}>🖥️ 화면</button>}
+                          {p.onRemote && <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => p.onRemote?.(m)}>🛠️ 지원</button>}
+                          <button className="edu-ghost !px-2 !py-1 !text-[11px]" onClick={() => toggleFav(m.id)}>★ 즐겨찾기 해제</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

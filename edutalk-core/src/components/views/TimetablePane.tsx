@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { SwapRecord, Teacher, TimetableCell } from "../../types";
 import { TIMETABLE_CSV_SAMPLE } from "../../mock/initialData";
 import { readCsvText } from "../../lib/csv";
+import { usePresence } from "../../lib/usePresence";
 import { FreeMatchBox, NextClassBanner } from "../FusionBanner";
 import { cellKey, monthlySubCount, PERIOD_TABLE } from "../../lib/fusion";
 
@@ -302,6 +304,10 @@ export default function TimetablePane(p: Props) {
   const [showImport, setShowImport] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editCell, setEditCell] = useState<{ weekday: number; period: number } | null>(null);
+  const { mounted: editMounted, closing: editClosing } = usePresence(Boolean(editCell), 170);
+  const lastEditCell = useRef<{ weekday: number; period: number } | null>(null);
+  if (editCell) lastEditCell.current = editCell;
+  const editView = editCell ?? lastEditCell.current;
   const [editSubject, setEditSubject] = useState("");
   const [editTeacher, setEditTeacher] = useState("");
   const [editRoom, setEditRoom] = useState("");
@@ -402,6 +408,7 @@ export default function TimetablePane(p: Props) {
           </div>
         </div>
       )}
+
       <div className="edu-card p-3.5 anim-card">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-extrabold text-[15px]">주간 시간표 ({p.grade} {curCls} · 1~7교시)</span>
@@ -659,18 +666,19 @@ export default function TimetablePane(p: Props) {
         onToast={p.onToast}
       />
 
-      {editCell && (
+      {editMounted && editView && createPortal(
         <div
-          className="fixed inset-0 z-[80] grid place-items-center bg-[rgba(15,23,42,0.36)] backdrop-blur-[2px] p-4"
+          className={`fixed inset-0 z-[80] grid place-items-center bg-[rgba(15,23,42,0.36)] backdrop-blur-[2px] p-4 bz-fade-backdrop${editClosing ? " is-closing" : ""}`}
           role="dialog"
           aria-modal="true"
+          aria-hidden={editClosing || undefined}
           aria-labelledby="tt-edit-title"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setEditCell(null); }}
         >
-          <div className="w-full max-w-[420px] rounded-2xl bg-edu-surface border border-edu-line shadow-2xl p-5 anim-pop">
+          <div className={`w-full max-w-[420px] rounded-2xl bg-edu-surface border border-edu-line shadow-2xl p-5${editClosing ? " is-closing" : " anim-pop"}`}>
             <div className="flex items-center justify-between gap-2">
               <h3 id="tt-edit-title" className="text-[16px] font-extrabold text-edu-ink">
-                시간표 바꾸기 · {WD[editCell.weekday]} {editCell.period}교시
+                시간표 바꾸기 · {WD[editView.weekday]} {editView.period}교시
               </h3>
               <button type="button" className="bz-close" onClick={() => setEditCell(null)} aria-label="닫기">✕</button>
             </div>
@@ -696,7 +704,7 @@ export default function TimetablePane(p: Props) {
                 type="button"
                 className="edu-ghost flex-1"
                 onClick={() => {
-                  p.onSaveCell({ weekday: editCell.weekday, period: editCell.period, grade: p.grade, classNo: curCls }, null);
+                  p.onSaveCell({ weekday: editView.weekday, period: editView.period, grade: p.grade, classNo: curCls }, null);
                   setEditCell(null);
                   p.onToast("이 시간을 공강으로 바꿨어요.");
                 }}
@@ -709,7 +717,7 @@ export default function TimetablePane(p: Props) {
                 onClick={() => {
                   if (!editSubject.trim()) { p.onToast("과목을 적어 주세요."); return; }
                   p.onSaveCell(
-                    { weekday: editCell.weekday, period: editCell.period, grade: p.grade, classNo: curCls },
+                    { weekday: editView.weekday, period: editView.period, grade: p.grade, classNo: curCls },
                     { subject: editSubject, teacher: editTeacher.trim() || (p.myName ?? ""), room: editRoom.trim() }
                   );
                   setEditCell(null);
@@ -721,7 +729,8 @@ export default function TimetablePane(p: Props) {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
+
     </div>
   );
 }

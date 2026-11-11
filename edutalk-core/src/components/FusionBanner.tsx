@@ -26,8 +26,8 @@ export function NextClassBanner(p: {
   }, [tick]);
   const next = useMemo(() => {
     void tick;
-    return nextClassToday(p.cells, p.grade, p.classNo, p.myName, new Date());
-  }, [tick, p.cells, p.grade, p.classNo, p.myName]);
+    return nextClassToday(p.cells, p.grade, p.myName, new Date());
+  }, [tick, p.cells, p.grade, p.myName]);
 
   const urgent = next ? isFiveMinBefore(next.period) : false;
 

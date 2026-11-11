@@ -251,16 +251,6 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   border-color: #2c3542;
 }
 
-/* 탭이 눌리면 통통 튀며 active로 (웹 room 전환 느낌) */
-@keyframes edu-tab-in {
-  from { opacity: 0.4; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.tab-active {
-  animation: edu-tab-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
 /* 목록 스태거: 위에서 아래로 차례로 (웹 roomFadeIn 느낌) */
 .anim-list > * {
   animation: edu-card-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -275,30 +265,6 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
 .anim-list > *:nth-child(7) { animation-delay: 0.18s; }
 .anim-list > *:nth-child(8) { animation-delay: 0.21s; }
 .anim-list > *:nth-child(n+9) { animation-delay: 0.24s; }
-
-.edu-pill-blue {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 9px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 800;
-  background: #0082C8;
-  color: #fff;
-  white-space: nowrap;
-}
-
-.edu-pill-green {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 9px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 800;
-  background: #16A34A;
-  color: #fff;
-  white-space: nowrap;
-}
 
 .bubble {
   @apply max-w-[85%] rounded-2xl px-3.5 py-2 text-[15px] bg-edu-chip border-0;
@@ -535,9 +501,19 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   animation: edu-overlay-show 0.22s ease both;
 }
 
+.edu-overlay.is-closing {
+  animation: edu-overlay-hide 0.18s ease forwards;
+  pointer-events: none;
+}
+
 @keyframes edu-overlay-show {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes edu-overlay-hide {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 .edu-modal {
@@ -552,39 +528,23 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   animation: edu-modal-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+.edu-modal.is-closing {
+  animation: edu-modal-out 0.18s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 @keyframes edu-modal-in {
   from { opacity: 0; transform: translateY(16px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes edu-modal-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(8px) scale(0.99); }
+}
+
 [data-theme="dark"] .edu-modal {
   background: #1a2029;
   border: 1px solid #2c3542;
-}
-
-.edu-modal-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: transparent;
-  color: #5B6472;
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-  line-height: 1;
-  z-index: 2;
-  transition: background 0.18s, transform 0.18s;
-}
-
-.edu-modal-close:hover {
-  background: #F1F2F8;
-}
-
-.edu-modal-close:active {
-  transform: scale(0.94);
 }
 
 /* ---------- 웹 브리즈 프레즌스 도트 ---------- */
@@ -652,12 +612,10 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
 }
 
 .anim-page { animation: edu-page-in 0.16s ease both; }
-.anim-view { animation: edu-page-in 0.16s ease both; }
 .anim-card { animation: edu-card-in 0.2s ease both; }
 .anim-pop { animation: edu-pop-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes edu-pop-in { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
 .anim-bubble { animation: edu-bubble-in 0.18s ease both; }
-.anim-pill { animation: edu-pulse-dot 0.5s ease; }
 
 .animate-shake { animation: edu-shake 0.5s ease-in-out; }
 
@@ -683,13 +641,10 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
 /* ---------- 모션 줄이기: 나타나기·사라지기만 ---------- */
 
 [data-motion="fade"] .anim-page,
-[data-motion="fade"] .anim-view,
 [data-motion="fade"] .anim-card,
 [data-motion="fade"] .anim-bubble,
 [data-motion="fade"] .edu-toast,
 [data-motion="fade"] .edu-modal,
-[data-motion="fade"] .anim-pill,
-[data-motion="fade"] .tab-active,
 [data-motion="fade"] .anim-list > * {
   animation-name: edu-fade !important;
   animation-duration: 0.12s !important;
@@ -742,7 +697,6 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
 /* 운영체제에서 줄이기를 켰는데 아직 정하지 않았다면 페이드만으로 시작 */
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-motion]) .anim-page,
-  :root:not([data-motion]) .anim-view,
   :root:not([data-motion]) .anim-card,
   :root:not([data-motion]) .anim-bubble,
   :root:not([data-motion]) .edu-toast,
@@ -754,98 +708,6 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   :root:not([data-motion]) .edu-toast.leaving {
     animation-name: edu-fade-out !important;
     animation-duration: 0.12s !important;
-  }
-}
-
-/* ---------- 세로형 기본 ----------
-   기본은 1열 세로형이지만, 창을 넓게 키우면 여백을 남기지 않는다.
-   넓은 화면에서는 카드·목록이 창 폭을 그대로 채우고, 화면이 아주 넓으면
-   쪽지·업무처럼 원래 다단인 화면은 다단을 살린다 (아래 kill 규칙 제거). */
-
-[data-layout="classic"] .core-main-inner {
-  max-width: none !important;
-}
-
-/* ---------- 세로형 (옛날 메신저처럼 좁게) ---------- */
-
-.nav-short {
-  display: none;
-}
-
-[data-layout="classic"] .app-shell {
-  display: grid;
-  grid-template-columns: 60px 1fr;
-  grid-template-rows: auto 1fr;
-  height: 100vh;
-  min-height: 0;
-}
-
-[data-layout="classic"] .app-header {
-  grid-column: 1 / -1;
-  position: static;
-}
-
-[data-layout="classic"] .app-header .edu-pill-blue,
-[data-layout="classic"] .app-header .edu-pill-green {
-  display: none;
-}
-
-[data-layout="classic"] .app-nav {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-  padding: 8px 6px;
-  border-bottom: 0;
-  border-right: 1px solid #E6E8F0;
-  overflow-x: visible;
-  overflow-y: auto;
-}
-
-[data-layout="classic"] .app-tab {
-  border: 0 !important;
-  border-left: 3px solid transparent !important;
-  margin: 0 !important;
-  padding: 10px 4px !important;
-  text-align: center;
-  border-radius: 8px;
-}
-
-[data-layout="classic"] .app-tab .nav-full {
-  display: none;
-}
-
-[data-layout="classic"] .app-tab .nav-short {
-  display: inline;
-  font-size: 15px;
-}
-
-[data-layout="classic"] .app-main {
-  max-width: 100%;
-  overflow-y: auto;
-  height: 100%;
-}
-
-[data-layout="classic"] .memo-grid,
-[data-layout="classic"] .work-grid,
-[data-layout="classic"] .quick-grid {
-  grid-template-columns: 1fr !important;
-}
-
-[data-layout="classic"] .memo-side-stack {
-  order: 2;
-}
-
-/* 세로형은 "브라우저 미리보기"에서만 400px로 묶어 세로 메신저처럼 보이게 한다.
-   설치판(.exe)에서는 창을 키우거나 팝업 창을 열어도 이 규칙이 꺼져 있어
-   내용이 창 폭 전체를 채운다 — 양옆 여백이 생기지 않는다. */
-@media (min-width: 700px) {
-  html[data-layout="classic"] body[data-preview="1"] .h-screen {
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    border-left: 1px solid #E6E8F0;
-    border-right: 1px solid #E6E8F0;
-    box-shadow: 0 0 40px rgba(16, 24, 40, 0.08);
   }
 }
 
@@ -973,6 +835,18 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
   color: rgb(var(--edu-strong));
   box-shadow: inset 0 0 0 1px rgb(var(--edu-blueline));
 }
+.reorder-grip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1;
+  color: rgb(var(--edu-muted));
+  letter-spacing: -2px;
+  margin-right: 2px;
+  user-select: none;
+}
+.edu-rail[data-reorder="true"] .edu-rail-tab { cursor: grab; }
+.edu-rail[data-reorder="true"] .edu-rail-tab:active { cursor: grabbing; }
 .edu-rail-ico { display: inline-flex; width: 19px; justify-content: center; flex: 0 0 auto; }
 .edu-rail-txt { flex: 1; min-width: 0; }
 .edu-rail-badge {
@@ -991,9 +865,6 @@ html[data-preview-zoom="1"] .app-window > .h-screen {
 .edu-rail-tab.is-reordering { cursor: grab; }
 .edu-rail-tab.is-reordering:active { cursor: grabbing; transform: none; }
 .edu-rail-tab.is-dragging { opacity: 0.42; transform: scale(0.97); }
-.edu-rail-grip { flex: 0 0 auto; margin-left: 2px; color: rgb(var(--edu-muted)); font-size: 11px; letter-spacing: -2px; }
-.edu-rail-danger:hover { background: rgba(229, 72, 77, 0.12); color: #D92D20; }
-[data-theme="dark"] .edu-rail-danger:hover { color: #F87171; background: rgba(248, 113, 113, 0.14); }
 .edu-rail[data-rail="compact"] .edu-rail-tab { height: 36px; padding: 0 5px; gap: 7px; }
 
 /* 접힘 상태: 텍스트는 폭과 투명도로 부드럽게 사라지고, 아이콘만 남는다 */
@@ -1134,16 +1005,6 @@ select:focus-visible {
 /* 시간표 표: 헤더 고정 + 칸 호버 */
 table th {
   position: static;
-}
-
-/* 긴급 공지 점멸은 모션 끄기에서 제외하지 않고, 줄이기에서는 정지 */
-@keyframes edu-urgent {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 45, 32, 0); }
-  50% { box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.25); }
-}
-
-[data-motion="fade"] .anim-urgent {
-  animation: none !important;
 }
 
 /* 감사 리포트 인쇄용 */

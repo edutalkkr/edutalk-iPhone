@@ -92,12 +92,6 @@ export interface HwptplRow {
   note: string;
 }
 
-export interface ScratchRow {
-  id: string;
-  body: string;
-  updated_at: string;
-}
-
 export interface SearchHit {
   kind: string;
   ref_id: string;

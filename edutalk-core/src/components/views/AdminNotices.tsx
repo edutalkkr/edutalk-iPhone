@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { AdminNotice, Teacher, DeptGroup } from "../../types";
+import { usePresence } from "../../lib/usePresence";
 import { bzConfirm } from "../ui/BzDialog";
-import { previewSiren } from "../../lib/siren";
+import BzNoticePublishDialog from "../ui/BzNoticePublishDialog";
 
 interface Props {
   notices: AdminNotice[];
@@ -21,6 +23,10 @@ export default function AdminNotices(p: Props) {
   const [filterScope, setFilterScope] = useState<AdminNotice["scope"] | "all">("all");
   const [showForm, setShowForm] = useState<{ edit?: AdminNotice } | null>(null);
   const [publishTarget, setPublishTarget] = useState<AdminNotice | null>(null);
+  const { mounted: formMounted, closing: formClosing } = usePresence(Boolean(showForm), 170);
+  const lastShowForm = useRef<{ edit?: AdminNotice } | null>(null);
+  if (showForm) lastShowForm.current = showForm;
+  const formView = showForm ?? lastShowForm.current;
 
   const filteredNotices = useMemo(() => {
     let result = [...p.notices];
@@ -144,9 +150,10 @@ export default function AdminNotices(p: Props) {
         </div>
       </div>
 
-      {showForm && (
+      {formMounted && formView && (
         <NoticeFormModal
-          initial={showForm.edit}
+          initial={formView.edit}
+          closing={formClosing}
           teachers={p.teachers}
           depts={p.depts}
           onSubmit={handleSubmit}
@@ -154,52 +161,29 @@ export default function AdminNotices(p: Props) {
         />
       )}
 
-      {publishTarget && (
-        <div className="edu-overlay" onClick={() => setPublishTarget(null)}>
-          <div className="edu-modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
-            {publishTarget.level === "urgent" ? (
-              <>
-                <div className="font-black text-[17px] text-[#D92D20]">🚨 긴급 공지로 보내시겠어요?</div>
-                <div className="text-[13px] mt-2 text-edu-sub leading-relaxed">
-                  공지 대상 교직원 컴퓨터에 팝업이 뜨고 사이렌이 울리게 돼요.
-                </div>
-                <div className="mt-3 bg-edu-bg border border-edu-line rounded-xl p-3">
-                  <div className="font-bold text-edu-ink">{publishTarget.title}</div>
-                  <div className="text-[12px] text-edu-sub mt-1 whitespace-pre-wrap">{publishTarget.body.slice(0, 240)}{publishTarget.body.length > 240 ? "…" : ""}</div>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <button type="button" className="edu-ghost flex-1" onClick={() => previewSiren()}>🔊 사이렌 미리 듣기</button>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <button type="button" className="edu-ghost flex-1" onClick={() => setPublishTarget(null)}>취소</button>
-                  <button type="button" className="edu-btn flex-1" style={{ background: "#D92D20", borderColor: "#D92D20" }} onClick={() => { p.onPublish(publishTarget.id); setPublishTarget(null); p.onToast("긴급 공지를 게시했어요. 사이렌이 울려요."); }}>긴급 공지 보내기</button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="font-black text-[17px]">공지 미리보기</div>
-                <div className="text-[13px] mt-1 text-edu-sub">이 내용으로 공지를 보내시겠어요?</div>
-                <div className="mt-3 bg-edu-bg border border-edu-line rounded-xl p-3">
-                  <div className="font-bold text-edu-ink">{publishTarget.title}</div>
-                  <div className="text-[12px] text-edu-sub mt-1 whitespace-pre-wrap">{publishTarget.body.slice(0, 300)}{publishTarget.body.length > 300 ? "…" : ""}</div>
-                  <div className="text-[11px] text-edu-muted mt-2">
-                    대상: {publishTarget.scope === "all" ? "전체" : publishTarget.targetDept || publishTarget.targetGrade || publishTarget.targetClass}
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <button type="button" className="edu-ghost flex-1" onClick={() => setPublishTarget(null)}>취소</button>
-                  <button type="button" className="edu-btn flex-1" onClick={() => { p.onPublish(publishTarget.id); setPublishTarget(null); p.onToast("공지를 게시했어요."); }}>공지 보내기</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <BzNoticePublishDialog
+        notice={publishTarget ? {
+          title: publishTarget.title,
+          body: publishTarget.body,
+          urgent: publishTarget.level === "urgent",
+          targetLabel: publishTarget.scope === "all"
+            ? "전체"
+            : publishTarget.targetDept || publishTarget.targetGrade || publishTarget.targetClass,
+        } : null}
+        onCancel={() => setPublishTarget(null)}
+        onConfirm={() => {
+          if (!publishTarget) return;
+          const urgent = publishTarget.level === "urgent";
+          p.onPublish(publishTarget.id);
+          setPublishTarget(null);
+          p.onToast(urgent ? "긴급 공지를 게시했어요. 사이렌이 울려요." : "공지를 게시했어요.");
+        }}
+      />
     </div>
   );
 }
 
-function NoticeFormModal({ initial, teachers, depts, onSubmit, onClose }: { initial?: AdminNotice; teachers: Teacher[]; depts: DeptGroup[]; onSubmit: (data: any) => void; onClose: () => void }) {
+function NoticeFormModal({ initial, closing, teachers, depts, onSubmit, onClose }: { initial?: AdminNotice; closing?: boolean; teachers: Teacher[]; depts: DeptGroup[]; onSubmit: (data: any) => void; onClose: () => void }) {
   const isEdit = !!initial;
   const [form, setForm] = useState<any>(initial || {
     title: "", body: "", level: "normal" as AdminNotice["level"], scope: "all" as AdminNotice["scope"],
@@ -221,9 +205,9 @@ function NoticeFormModal({ initial, teachers, depts, onSubmit, onClose }: { init
 
   const totalCount = calculateTotalCount();
 
-  return (
-    <div className="edu-overlay" onClick={onClose}>
-      <div className="edu-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+  return createPortal(
+    <div className={`edu-overlay${closing ? " is-closing" : ""}`} aria-hidden={closing || undefined} onClick={onClose}>
+      <div className={`edu-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto${closing ? " is-closing" : ""}`} onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-edu-line flex items-center justify-between">
           <h2 className="font-extrabold text-lg">{isEdit ? "공지 수정" : "공지 작성"}</h2>
           <button className="text-edu-muted hover:text-edu-strong text-xl" onClick={onClose}>×</button>
@@ -260,6 +244,7 @@ function NoticeFormModal({ initial, teachers, depts, onSubmit, onClose }: { init
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

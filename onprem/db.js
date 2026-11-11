@@ -80,7 +80,8 @@ CREATE TABLE IF NOT EXISTS files (
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_files_expiry ON files(expires_at);
-CREATE INDEX IF NOT EXISTS idx_files_owner ON files(owner_id, owner_role);
+/* idx_files_owner는 아래 마이그레이션(owner_id 추가) 뒤에 만든다.
+ * 예전 DB에는 owner_id가 없어서 여기서 만들면 시작이 실패한다. */
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

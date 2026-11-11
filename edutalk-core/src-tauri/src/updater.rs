@@ -310,10 +310,21 @@ pub async fn download(
 /// 설치: 앱을 끝낸 뒤 NSIS 설치본을 조용히(/S) 실행하고, 끝나면 다시 열어 준다.
 /// 앱이 살아 있으면 설치본이 exe 를 덮어쓸 수 없어서, 2초 뒤에 시작한다.
 pub fn install(app: &AppHandle, installer: &str) -> Result<(), String> {
-    let exe = installer.trim().to_string();
-    if !exe.to_lowercase().ends_with(".exe") {
+    let raw = std::path::PathBuf::from(installer.trim());
+    if !raw.to_string_lossy().to_lowercase().ends_with(".exe") {
         return Err("설치 파일이 아니에요.".into());
     }
+    // 내려받기 폴더(breeze-update) 안의 파일만 실행한다.
+    // (웹뷰가 임의 경로의 exe를 조용히 실행하지 못하게 막는다.)
+    let allowed_dir = std::env::temp_dir().join("breeze-update");
+    let name = raw.file_name().ok_or_else(|| "설치 파일 이름이 올바르지 않아요.".to_string())?;
+    let full = allowed_dir.join(name);
+    let canon = full.canonicalize().map_err(|_| "업데이트 파일을 찾지 못했어요.".to_string())?;
+    let dir_canon = allowed_dir.canonicalize().map_err(|_| "업데이트 폴더를 찾지 못했어요.".to_string())?;
+    if canon.parent() != Some(dir_canon.as_path()) {
+        return Err("업데이트 폴더의 설치 파일만 실행할 수 있어요.".into());
+    }
+    let exe = canon.to_string_lossy().to_string();
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;

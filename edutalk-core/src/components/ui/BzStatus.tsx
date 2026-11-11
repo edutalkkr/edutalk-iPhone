@@ -1,7 +1,6 @@
 // BzStatus — 브리즈 상태 표시 컴포넌트.
 // [아이콘 + 컬러 점 + 텍스트] 조합으로 단순 색 점보다 직관성을 높인다.
 
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { STATUS_LIST, STATUS_META } from "../../lib/status";
 import type { TeacherStatus } from "../../types";

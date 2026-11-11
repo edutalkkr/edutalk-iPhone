@@ -70,7 +70,6 @@ export function classStatusNow(d = new Date()): ClassStatus {
 export function nextClassToday(
   cells: TimetableCell[],
   grade: string,
-  classNo: string,
   myName: string,
   d = new Date()
 ): TimetableCell | null {

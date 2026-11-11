@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import type { Teacher, AdminUser, UserRole, DeptGroup } from "../../types";
-import { nextAvatar } from "./OrgTreePane";
 import { STATUS_META } from "../../lib/status";
 import { StatusBadge } from "../ui/BzStatus";
 import { bzConfirm } from "../ui/BzDialog";
@@ -88,17 +87,14 @@ export default function AdminUsers(p: Props) {
         {tab === "teachers" ? (
           <TeacherList 
             teachers={filteredTeachers} 
-            depts={deptOptions}
             onEdit={t => setShowForm({ type: "teacher", edit: t })}
             onDelete={async id => { const ok = await bzConfirm({ title: "정말 삭제하시겠습니까?", message: "이 교사를 조직도에서 삭제해요.", confirmText: "삭제", danger: true }); if (ok) p.onDeleteTeacher(id); }}
-            onToast={p.onToast}
           />
         ) : (
           <AdminList 
             admins={filteredAdmins} 
             onEdit={a => setShowForm({ type: "admin", edit: a })}
             onDelete={async id => { const ok = await bzConfirm({ title: "정말 삭제하시겠습니까?", message: "이 관리자 계정을 삭제해요.", confirmText: "삭제", danger: true }); if (ok) p.onDeleteAdmin(id); }}
-            onToast={p.onToast}
           />
         )}
       </div>
@@ -116,7 +112,7 @@ export default function AdminUsers(p: Props) {
   );
 }
 
-function TeacherList({ teachers, depts, onEdit, onDelete, onToast }: { teachers: Teacher[]; depts: string[]; onEdit: (t: Teacher) => void; onDelete: (id: string) => void; onToast: (t: string) => void }) {
+function TeacherList({ teachers, onEdit, onDelete }: { teachers: Teacher[]; onEdit: (t: Teacher) => void; onDelete: (id: string) => void }) {
   return (
     <div className="edu-card overflow-hidden">
       <div className="overflow-x-auto">
@@ -168,7 +164,7 @@ function TeacherList({ teachers, depts, onEdit, onDelete, onToast }: { teachers:
   );
 }
 
-function AdminList({ admins, onEdit, onDelete, onToast }: { admins: AdminUser[]; onEdit: (a: AdminUser) => void; onDelete: (id: string) => void; onToast: (t: string) => void }) {
+function AdminList({ admins, onEdit, onDelete }: { admins: AdminUser[]; onEdit: (a: AdminUser) => void; onDelete: (id: string) => void }) {
   const ROLE_LABEL: Record<UserRole, string> = {
     teacher: "교사",
     admin: "관리자",

@@ -3,6 +3,8 @@
 //  · 모든 안내 문구는 해요체를 쓴다.
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { usePresence } from "../../lib/usePresence";
 import type { Teacher } from "../../types";
 
 const POSITIONS = ["담임", "교과교사", "부장", "교감", "교장", "행정실장", "행정직", "관리자"];
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export default function ProfileEditDialog({ open, me, onClose, onSave, onToast }: Props) {
+  const { mounted, closing } = usePresence(open, 170);
   const [name, setName] = useState(me.name);
   const [dept, setDept] = useState(me.dept);
   const [subject, setSubject] = useState(me.subject);
@@ -47,7 +50,7 @@ export default function ProfileEditDialog({ open, me, onClose, onSave, onToast }
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   const isHomeroom = position === "담임";
 
@@ -72,11 +75,12 @@ export default function ProfileEditDialog({ open, me, onClose, onSave, onToast }
     onClose();
   };
 
-  return (
+  return createPortal(
     <div
-      className="bz-overlay show"
+      className={`bz-overlay show${closing ? " is-closing" : ""}`}
       role="dialog"
       aria-modal="true"
+      aria-hidden={closing || undefined}
       aria-labelledby="profile-edit-title"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -198,5 +202,6 @@ export default function ProfileEditDialog({ open, me, onClose, onSave, onToast }
         </div>
       </div>
     </div>
+  , document.body
   );
 }

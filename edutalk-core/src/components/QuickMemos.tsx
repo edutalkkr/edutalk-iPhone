@@ -13,7 +13,6 @@ import { IconChevronDown, IconPin, IconPlus, IconSearch, IconStickyNote, IconTra
 import { api } from "../services/api";
 
 interface Props {
-  onClose: () => void;
   /** 쪽지로 전달 — App이 쪽지 쓰기 초안으로 넘긴다 */
   onSendAsMemo: (text: string, sourceTitle?: string) => void;
   onToast: (t: string) => void;
@@ -25,7 +24,7 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-export default function QuickMemos({ onClose, onSendAsMemo, onToast }: Props) {
+export default function QuickMemos({ onSendAsMemo, onToast }: Props) {
   const notes = useQuick((s) => s.notes);
   const add = useQuick((s) => s.add);
   const update = useQuick((s) => s.update);

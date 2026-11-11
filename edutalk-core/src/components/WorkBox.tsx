@@ -7,7 +7,6 @@ import {
   HwptplRow,
   InboxRow,
   OrgNode,
-  ScratchRow,
   SearchHit,
 } from "../lib/tauri";
 import { useTemplates } from "../lib/templates";

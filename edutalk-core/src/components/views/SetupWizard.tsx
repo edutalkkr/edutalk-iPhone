@@ -1,26 +1,12 @@
 import { useState, useMemo } from "react";
-import type { DeptGroup, Teacher, UserRole, School, SchoolSettings, LicenseKind } from "../../types";
+import type { DeptGroup, Teacher, LicenseKind } from "../../types";
 import { AVATAR_COLORS, DEFAULT_DEPTS, ME_ID, type SchoolSetup } from "../../mock/initialData";
 import type { SchoolLicense } from "../../lib/schoolSync";
-import { nextAvatar } from "./OrgTreePane";
 
 interface Props {
   onDone: (me: Teacher, depts: DeptGroup[], school: SchoolSetup, license: SchoolLicense | null) => void;
   onToast: (t: string) => void;
 }
-
-const DEMO_TEACHERS: Omit<Teacher, "id" | "avatarColor" | "status" | "statusMessage" | "ip" | "subCount" | "phone">[] = [
-  { name: "김교장", dept: "관리부", subject: "", position: "교장", grade: "", classNo: "" },
-  { name: "이교감", dept: "관리부", subject: "", position: "교감", grade: "", classNo: "" },
-  { name: "박행정", dept: "행정실", subject: "", position: "행정실장", grade: "", classNo: "" },
-  { name: "정수학", dept: "1학년부", subject: "수학", position: "담임", grade: "1학년", classNo: "1반" },
-  { name: "최영어", dept: "1학년부", subject: "영어", position: "담임", grade: "1학년", classNo: "2반" },
-  { name: "강국어", dept: "2학년부", subject: "국어", position: "담임", grade: "2학년", classNo: "1반" },
-  { name: "윤과학", dept: "2학년부", subject: "과학", position: "담임", grade: "2학년", classNo: "2반" },
-  { name: "임사회", dept: "3학년부", subject: "사회", position: "담임", grade: "3학년", classNo: "1반" },
-  { name: "한음악", dept: "예체능부", subject: "음악", position: "교사", grade: "", classNo: "" },
-  { name: "오미술", dept: "예체능부", subject: "미술", position: "교사", grade: "", classNo: "" },
-];
 
 const DEMO_ADMINS: Omit<Teacher, "id" | "avatarColor" | "status" | "statusMessage" | "ip" | "subCount" | "phone">[] = [
   { name: "관리자", dept: "관리부", subject: "", position: "관리자", grade: "", classNo: "" },
@@ -29,7 +15,6 @@ const DEMO_ADMINS: Omit<Teacher, "id" | "avatarColor" | "status" | "statusMessag
 export default function SetupWizard(p: Props) {
   const [mode, setMode] = useState<"teacher" | "admin" | null>(null);
   const [step, setStep] = useState(0);
-  const [seedDemo, setSeedDemo] = useState(false);
   
   // 교사 모드 필드
   const [name, setName] = useState("");
@@ -52,21 +37,9 @@ export default function SetupWizard(p: Props) {
   const [newDept, setNewDept] = useState("");
 
   const isAdmin = mode === "admin";
-  const maxStep = isAdmin ? 3 : 2;
 
   const teacherDepts = useMemo(() => depts.filter(Boolean), [depts]);
   const adminDepts = useMemo(() => [...depts, "관리부", "행정실"].filter(Boolean), [depts]);
-
-  const createTeacher = (t: typeof DEMO_TEACHERS[0], idx: number): Teacher => ({
-    ...t,
-    id: `t-${idx}`,
-    avatarColor: AVATAR_COLORS[idx % AVATAR_COLORS.length],
-    status: "online" as const,
-    statusMessage: t.grade && t.classNo ? `${t.grade} ${t.classNo} 담임` : t.position,
-    ip: "이 PC",
-    subCount: 0,
-    phone: "",
-  });
 
   const createAdmin = (t: typeof DEMO_ADMINS[0], idx: number): Teacher => ({
     ...t,
@@ -119,125 +92,6 @@ export default function SetupWizard(p: Props) {
       const groups: DeptGroup[] = teacherDepts.map((n, i) => ({
         id: `d-${i}`, name: n, members: n === dept ? [ME_ID] : [],
       }));
-      p.onDone(me, groups, { schoolId: "", schoolName: "" }, null);
-    }
-  };
-
-  const seedDemoData = () => {
-    const now = new Date().toISOString();
-    const day = new Date().getDay();
-    const weekday = day === 0 ? 7 : day; // 일요일=7
-    
-    if (isAdmin) {
-      const adminTeacher = createAdmin({ ...DEMO_ADMINS[0], name: "관리자" }, 0);
-      const demoTeachers = DEMO_TEACHERS.map(createTeacher);
-      const allTeachers = [adminTeacher, ...demoTeachers];
-      
-      const groups: DeptGroup[] = adminDepts.map((n, i) => ({
-        id: `d-${i}`, name: n, members: allTeachers.filter(t => t.dept === n).map(t => t.id),
-      }));
-      
-      const schoolSetup: SchoolSetup = { schoolId: schoolCode.trim(), schoolName: schoolName.trim() };
-      const license: SchoolLicense = {
-        status: "active", expiresText: "-", expiresMs: 0,
-        type: licenseKind === "full" ? "admin_grant" : "single_chat_1y",
-        typeLabel: licenseKind === "full" ? "관리자 직접 부여" : "단일망 소통 전용 1년",
-        network: "dual", singleNet: "off", chatOnly: licenseKind === "chatOnly",
-        kind: licenseKind, fetchedAt: new Date().toLocaleString("ko-KR"),
-      };
-      
-      // 관리자 데모 데이터 생성
-      const adminUsers = allTeachers.filter(t => t.position === "교장" || t.position === "교감" || t.position === "관리자" || t.position === "행정실장")
-        .map((t, i) => ({
-          id: t.id, name: t.name, email: `${t.name}@school.kr`,
-          role: t.position === "교장" ? "superadmin" : "admin" as const,
-          schoolId: schoolCode.trim(), dept: t.dept, avatarColor: t.avatarColor,
-          createdAt: now, lastLoginAt: now,
-        }));
-      
-      // 데모 공지사항
-      const adminNotices = [
-        { id: "an-1", title: "2학기 개학 안내", body: "2024년 9월 2일(월) 정상 등교합니다.", level: "urgent" as const, scope: "all" as const, targetDept: "", targetGrade: "", targetClass: "", fromAdminId: adminTeacher.id, fromAdminName: "관리자", createdAt: now, publishedAt: now, expiresAt: undefined, readCount: 0, totalCount: allTeachers.length, attachments: [] },
-        { id: "an-2", title: "교직원 연수 일정", body: "9월 10일(화) 15:00~17:00 본관 3층 강당", level: "normal" as const, scope: "all" as const, targetDept: "", targetGrade: "", targetClass: "", fromAdminId: adminTeacher.id, fromAdminName: "관리자", createdAt: now, publishedAt: now, expiresAt: undefined, readCount: 0, totalCount: allTeachers.length, attachments: [] },
-        { id: "an-3", title: "1학년부 회의 안내", body: "이번 주 수요일 16:00 1학년부 회의실", level: "normal" as const, scope: "dept" as const, targetDept: "1학년부", targetGrade: "", targetClass: "", fromAdminId: adminTeacher.id, fromAdminName: "관리자", createdAt: now, publishedAt: now, expiresAt: undefined, readCount: 0, totalCount: allTeachers.filter(t => t.dept === "1학년부").length, attachments: [] },
-      ];
-      
-      // 데모 시간표 템플릿
-      const templates: { id: string; name: string; schoolId: string; grade: string; classNo: string; cells: { weekday: number; period: number; grade: string; classNo: string; subject: string; room: string; teacher: string }[]; createdBy: string; createdAt: string; updatedAt: string; isPublished: boolean; publishedAt: string }[] = [];
-      const grades = ["1학년", "2학년", "3학년"];
-      const subjects = ["국어", "수학", "영어", "과학", "사회", "도덕", "체육", "음악", "미술", "실과"];
-      grades.forEach((grade, gi) => {
-        for (let c = 1; c <= 2; c++) {
-          const cells = [];
-          for (let wd = 1; wd <= 5; wd++) {
-            for (let pd = 1; pd <= 7; pd++) {
-              const subj = subjects[(wd * 7 + pd + gi * 2 + c) % subjects.length];
-              const teacher = allTeachers.find(t => t.grade === grade && t.classNo === `${c}반`)?.name || allTeachers[gi * 2 + c - 1]?.name || "교사";
-              cells.push({ weekday: wd, period: pd, grade, classNo: `${c}반`, subject: subj, room: `${grade} ${c}반 교실`, teacher });
-            }
-          }
-          templates.push({ id: `tpl-${grade}-${c}`, name: `${grade} ${c}반 시간표`, schoolId: schoolCode.trim(), grade, classNo: `${c}반`, cells, createdBy: adminTeacher.id, createdAt: now, updatedAt: now, isPublished: true, publishedAt: now });
-        }
-      });
-      
-      // 데모 학급 정보
-      const gradeClasses = grades.flatMap(grade => [1, 2].map(c => ({
-        grade, classNo: `${c}반`, homeroomTeacherId: allTeachers.find(t => t.grade === grade && t.classNo === `${c}반`)?.id, homeroomTeacherName: allTeachers.find(t => t.grade === grade && t.classNo === `${c}반`)?.name, studentCount: Math.floor(Math.random() * 8) + 25,
-      })));
-      
-      // 데모 학교 정보
-      const schoolInfo = {
-        id: schoolCode.trim(), name: schoolName.trim(), code: schoolCode.trim(),
-        address: schoolAddress || "서울특별시 강남구 테헤란로 123",
-        phone: schoolPhone || "02-1234-5678", principalName: principalName || "김교장",
-        adminId: adminTeacher.id, licenseKind, licenseExpiresAt: undefined,
-        createdAt: now, settings: {
-          allowExternalNetwork: true, autoBackup: true, retentionDays: 365,
-          dlpEnabled: true, dlpRules: [], notificationDefaultScope: "all" as const,
-        },
-      };
-      
-      // 데모 감사 로그
-      const adminAudits = [
-        { id: "aud-1", createdAt: now, adminId: adminTeacher.id, adminName: "관리자", action: "user_manage" as const, targetType: "user" as const, targetId: adminTeacher.id, targetName: "관리자", detail: "초기 관리자 계정 생성", blocked: false, ip: "127.0.0.1", userAgent: "Breeze Desktop" },
-        { id: "aud-2", createdAt: now, adminId: adminTeacher.id, adminName: "관리자", action: "timetable_publish" as const, targetType: "timetable" as const, targetId: "tpl-1학년-1반", targetName: "1학년 1반 시간표", detail: "시간표 템플릿 배포", blocked: false },
-      ];
-      
-      // localStorage에 저장
-      try {
-        localStorage.setItem("edutalk-adminUsers", JSON.stringify(adminUsers));
-        localStorage.setItem("edutalk-adminNotices", JSON.stringify(adminNotices));
-        localStorage.setItem("edutalk-templates", JSON.stringify(templates));
-        localStorage.setItem("edutalk-gradeClasses", JSON.stringify(gradeClasses));
-        localStorage.setItem("edutalk-schoolInfo", JSON.stringify(schoolInfo));
-        localStorage.setItem("edutalk-schoolSettings", JSON.stringify(schoolInfo.settings));
-        localStorage.setItem("edutalk-adminAudits", JSON.stringify(adminAudits));
-      } catch {}
-      
-      p.onDone(adminTeacher, groups, schoolSetup, license);
-    } else {
-      const me = createTeacher({ ...DEMO_TEACHERS[3], name: "데모교사" }, 0);
-      const demoTeachers = DEMO_TEACHERS.slice(1, 6).map((t, i) => createTeacher(t, i + 1));
-      const allTeachers = [me, ...demoTeachers];
-      
-      const groups: DeptGroup[] = teacherDepts.map((n, i) => ({
-        id: `d-${i}`, name: n, members: allTeachers.filter(t => t.dept === n).map(t => t.id),
-      }));
-      
-      // 교사 모드용 간단 데모 데이터
-      const memos = [
-        { id: "m-1", title: "환영합니다!", body: "브리즈에 오신 것을 환영합니다. 쪽지함을 확인해 보세요.", fromUid: "system", fromName: "시스템", to: [{ uid: me.id, name: me.name, readAt: null, nudgedAt: null }], importance: "normal" as const, hwpName: "", hwpSize: 0, createdAt: now },
-      ];
-      const notices = [
-        { id: "n-1", title: "2학기 개학 안내", body: "9월 2일(월) 정상 등교합니다.", level: "urgent" as const, scope: "all" as const, dept: "", fromName: "교장", createdAt: now, popup: true },
-      ];
-      
-      try {
-        localStorage.setItem("edutalk-memos", JSON.stringify(memos));
-        localStorage.setItem("edutalk-notices", JSON.stringify(notices));
-        localStorage.setItem("edutalk-profile-done", "true");
-      } catch {}
-      
       p.onDone(me, groups, { schoolId: "", schoolName: "" }, null);
     }
   };
@@ -360,12 +214,6 @@ export default function SetupWizard(p: Props) {
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" value="chatOnly" checked={licenseKind === "chatOnly"} onChange={() => setLicenseKind("chatOnly")} className="w-4 h-4 text-edu-blue" />
                     <span className="text-sm">대화 전용 (채팅만 사용)</span>
-                  </label>
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer flex-1">
-                    <input type="checkbox" checked={seedDemo} onChange={e => setSeedDemo(e.target.checked)} className="w-4 h-4 text-edu-blue" />
-                    <span className="text-sm">데모 데이터로 채우기 (교사 10명, 시간표, 공지 예시)</span>
                   </label>
                 </div>
                 <div className="flex gap-2">

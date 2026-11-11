@@ -22,7 +22,7 @@ const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 /* ---------- 로컬 폴백 요약 (Gemini 불가 시) ---------- */
 function cleanLine(s) {
   let t = String(s || '')
-    .replace(/^[\s>*•·\-–—\d.)\]]+/, '')
+    .replace(/^\s*(?:\d{1,3}[.)\]]\s*|[*•·\-–—]\s*)/, '')
     .replace(/\*\*/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -30,32 +30,106 @@ function cleanLine(s) {
   return t;
 }
 
-function localSummary(text) {
-  const plain = String(text || '').replace(/\s+/g, ' ').trim();
-  if (!plain) return [];
-  const sentences = plain.split(/(?<=[.!?。！？])\s+|[\n\r]+/).map((s) => s.trim()).filter((s) => s.length >= 8);
-  if (!sentences.length) {
-    const out = [];
-    for (let i = 0; i < 3 && i * 90 < plain.length; i++) out.push(cleanLine(plain.slice(i * 90, (i + 1) * 90)));
-    return out.slice(0, 3);
-  }
-  if (sentences.length <= 3) return sentences.map(cleanLine).filter(Boolean).slice(0, 3);
+const KEY_HINTS = ['까지','마감','기한','일시','날짜','시간','장소','대상','신청','제출','참석','준비물','변경','취소','주의','필수'];
+const FILLER_ONLY = /^(안녕하세요|안녕하십니까|알려드립니다|안내드립니다|공지합니다|감사합니다|고맙습니다|이상입니다|수고하셨습니다)[.!]?$/;
 
+function cleanSegment(s) {
+  return String(s || '')
+    .replace(/^\s*(?:\d{1,3}[.)\]]\s*|[*•·\-–—]\s*)/, '')
+    .replace(/\*\*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function compressLine(s) {
+  let t = cleanLine(s)
+    .replace(/^(안녕하세요|안녕하십니까|알려드립니다|안내드립니다|공지합니다)[.!]?\s*/, '')
+    .replace(/\s*(감사합니다|고맙습니다|부탁드립니다|바랍니다|주시기 바랍니다|해 주시기 바랍니다|해주시기 바랍니다)[.!]?$/, '')
+    .replace(/\s*(해 주세요|해주세요|하시기 바랍니다)[.!]?$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (t.length > 78) {
+    const cut = Math.max(t.lastIndexOf(',', 78), t.lastIndexOf('·', 78), t.lastIndexOf(' ', 62));
+    t = (cut > 40 ? t.slice(0, cut) : t.slice(0, 77)).trim() + '…';
+  }
+  return t;
+}
+
+function toUnits(text) {
+  const plain = String(text || '').replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
+  if (!plain) return [];
+  let segments = plain
+    .split(/\n+/)
+    .flatMap((line) => line.split(/(?<=[.!?。！？])\s+/))
+    .map(cleanSegment)
+    .filter((s) => s.length >= 4 && !FILLER_ONLY.test(s) && !(s.length <= 26 && /(알려|안내|전달)드립니다[.!]?$/.test(s)));
+  if (segments.length <= 1 && plain.length > 120) {
+    segments = plain.split(/[,;]\s*|\s{2,}/).map(cleanSegment).filter((s) => s.length >= 8);
+  }
+  const units = [];
+  let buf = '';
+  for (const seg of segments) {
+    if (!buf) buf = seg;
+    else if (buf.length < 42 && !/[.!?。！？]$/.test(buf)) buf = buf + ' ' + seg;
+    else { units.push(buf); buf = seg; }
+  }
+  if (buf) units.push(buf);
+  return units;
+}
+
+function stemKo(w) {
+  const stripped = w.replace(/(으로|에서|에게|까지|부터|보다|처럼|이며|이고|합니다|입니다|했다|한다|하는|하여|하고|으로써|은|는|이|가|을|를|의|에|께|로|와|과|도|만)$/u, '');
+  return stripped.length > 1 ? stripped : w;
+}
+
+function tokenize(s) {
   const STOP = new Set(['그리고','그러나','하지만','또한','또는','및','등','위해','대한','통해','관련','에서','으로','에게','the','a','an','and','or','but','of','to','in','on','at','for','with','by','is','are','was','were']);
-  const tokenize = (s) => (String(s).toLowerCase().match(/[a-z가-힣0-9]+/g) || []).filter((w) => w.length > 1 && !STOP.has(w));
+  return (String(s).toLowerCase().match(/[a-z가-힣0-9]+/g) || [])
+    .filter((w) => w.length > 1 && !STOP.has(w))
+    .map(stemKo)
+    .filter((w) => w.length > 1);
+}
+
+function jaccard(a, b) {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const w of a) if (b.has(w)) inter++;
+  return inter / (a.size + b.size - inter);
+}
+
+function localSummary(text) {
+  const units = toUnits(text);
+  if (!units.length) return [];
   const freq = new Map();
-  for (const s of sentences) for (const w of tokenize(s)) freq.set(w, (freq.get(w) || 0) + 1);
+  for (const u of units) for (const w of tokenize(u)) freq.set(w, (freq.get(w) || 0) + 1);
   const maxFreq = Math.max(1, ...freq.values());
-  const scored = sentences.map((s, idx) => {
+  const scored = units.map((s, idx) => {
     const words = tokenize(s);
-    const wordScore = words.reduce((acc, w) => acc + (freq.get(w) || 0), 0) / Math.max(1, words.length);
-    const norm = 1 / (1 + Math.abs(words.length - 12) * 0.05);
-    const positionBoost = idx === 0 ? 0.35 : idx < 3 ? 0.15 : 0;
-    return { idx, s, score: (wordScore / maxFreq) * norm + positionBoost };
+    const avgFreq = words.reduce((acc, w) => acc + (freq.get(w) || 0), 0) / Math.max(1, words.length);
+    const hintHits = KEY_HINTS.reduce((acc, h) => acc + (s.includes(h) ? 1 : 0), 0);
+    const keyBoost = Math.min(0.36, hintHits * 0.12);
+    const positionBoost = idx === 0 ? 0.1 : idx === 1 ? 0.05 : 0;
+    const lengthPenalty = words.length < 4 ? -0.12 : words.length > 45 ? -0.08 : 0;
+    const looksLikeTitle = !/[.!?。！？]$/.test(s) && !/(합니다|입니다|됩니다|해요|이며|이고|있습니다|없습니다|하세요|주세요|까지|부터|에서|으로|에게)$/.test(s) && words.length <= 8;
+    const titlePenalty = looksLikeTitle ? -0.18 : 0;
+    return { idx, s, words: new Set(words), score: (avgFreq / maxFreq) * 0.6 + keyBoost + positionBoost + lengthPenalty + titlePenalty };
   });
-  const top = scored.slice().sort((a, b) => b.score - a.score).slice(0, 3).sort((a, b) => a.idx - b.idx);
-  const out = top.map((t) => cleanLine(t.s)).filter(Boolean);
-  return (out.length ? out : sentences.slice(0, 3).map(cleanLine).filter(Boolean)).slice(0, 3);
+  const picked = [];
+  for (const cand of scored.slice().sort((a, b) => b.score - a.score)) {
+    if (picked.length >= 3) break;
+    if (picked.some((p) => jaccard(p.words, cand.words) > 0.5)) continue;
+    picked.push(cand);
+  }
+  picked.sort((a, b) => a.idx - b.idx);
+  const out = picked.map((p) => compressLine(p.s)).filter(Boolean);
+  const seen = new Set();
+  const unique = out.filter((l) => {
+    const k = l.replace(/[\s.,!?~…]/g, '');
+    if (!k || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return unique.slice(0, 3);
 }
 
 /* ---------- Gemini 호출 (실패하면 null → 로컬 폴백) ---------- */

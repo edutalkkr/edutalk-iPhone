@@ -5,6 +5,7 @@ import api from "../../services/api";
 import { socket } from "../../services/socket";
 import { call } from "../../lib/tauri";
 import { isTauriDesktop } from "../../lib/edition";
+import { usePresence } from "../../lib/usePresence";
 import { scanDlp } from "./MemoPane";
 import { TemplatesBar } from "../ComposerExtras";
 import BzTooltip from "../ui/BzTooltip";
@@ -77,11 +78,13 @@ export default function ChatPane(p: Props) {
   const [myServerId, setMyServerId] = useState<number | null>(null);
   const [serverUsers, setServerUsers] = useState<ServerUser[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const { mounted: createMounted, closing: createClosing } = usePresence(showCreate, 170);
   const [newGroupName, setNewGroupName] = useState("");
   const [pickedMembers, setPickedMembers] = useState<number[]>([]);
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const { mounted: exportMounted, closing: exportClosing } = usePresence(exportOpen, 170);
   const [exportFormat, setExportFormat] = useState<"txt" | "pdf" | "enc">("txt");
   const [exportPassword, setExportPassword] = useState("");
   const [exportPassword2, setExportPassword2] = useState("");
@@ -804,15 +807,16 @@ export default function ChatPane(p: Props) {
         )}
       </div>
 
-      {exportOpen && (
+      {exportMounted && (
         <div
-          className="fixed inset-0 z-[1200] grid place-items-center bg-[rgba(15,23,42,0.46)] p-4 backdrop-blur-[3px]"
+          className={`fixed inset-0 z-[1200] grid place-items-center bg-[rgba(15,23,42,0.46)] p-4 backdrop-blur-[3px] bz-fade-backdrop${exportClosing ? " is-closing" : ""}`}
           role="dialog"
           aria-modal="true"
+          aria-hidden={exportClosing || undefined}
           aria-labelledby="chat-export-title"
           onClick={() => { if (!exporting) setExportOpen(false); }}
         >
-          <div className="w-full max-w-[440px] rounded-2xl border border-edu-line bg-edu-surface p-4 shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+          <div className={`w-full max-w-[440px] rounded-2xl border border-edu-line bg-edu-surface p-4 shadow-2xl${exportClosing ? " is-closing" : " anim-pop"}`} onClick={(e) => e.stopPropagation()}>
             <div id="chat-export-title" className="text-[16px] font-extrabold text-edu-ink">대화 내보내기</div>
             <div className="mt-1 text-[12px] leading-relaxed text-edu-sub">
               <strong className="text-edu-ink">{exportTitle}</strong> 대화를 내 PC에 저장해요.
@@ -873,15 +877,16 @@ export default function ChatPane(p: Props) {
         </div>
       )}
 
-      {showCreate && (
+      {createMounted && (
         <div
-          className="fixed inset-0 z-[1200] grid place-items-center bg-[rgba(15,23,42,0.46)] p-4 backdrop-blur-[3px]"
+          className={`fixed inset-0 z-[1200] grid place-items-center bg-[rgba(15,23,42,0.46)] p-4 backdrop-blur-[3px] bz-fade-backdrop${createClosing ? " is-closing" : ""}`}
           role="dialog"
           aria-modal="true"
+          aria-hidden={createClosing || undefined}
           aria-labelledby="group-create-title"
           onClick={() => { if (!creating) setShowCreate(false); }}
         >
-          <div className="w-full max-w-[420px] rounded-2xl border border-edu-line bg-edu-surface p-4 shadow-2xl anim-pop" onClick={(e) => e.stopPropagation()}>
+          <div className={`w-full max-w-[420px] rounded-2xl border border-edu-line bg-edu-surface p-4 shadow-2xl${createClosing ? " is-closing" : " anim-pop"}`} onClick={(e) => e.stopPropagation()}>
             <div id="group-create-title" className="text-[16px] font-extrabold text-edu-ink">그룹 대화 만들기</div>
             <div className="mt-1 text-[12px] text-edu-sub">함께할 선생님을 고르면 모두가 같은 대화방에서 이야기할 수 있어요.</div>
             <input

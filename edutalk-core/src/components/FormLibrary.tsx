@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { listForms, downloadForm, type FormItem } from "../services/forms";
+import { usePresence } from "../lib/usePresence";
 import { IconFormLibrary } from "./ui/BzIcons";
 
-export default function FormLibrary({ enabled, open: openProp, onClose: onCloseProp }: { enabled: boolean; open?: boolean; onClose?: () => void }) {
+export default function FormLibrary({ enabled, open: openProp, onClose: onCloseProp, page = false }: { enabled: boolean; open?: boolean; onClose?: () => void; page?: boolean }) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const open = openProp !== undefined ? openProp : internalOpen;
+  const open = page ? true : (openProp !== undefined ? openProp : internalOpen);
   const setOpen = (v: boolean) => {
     if (onCloseProp && !v) onCloseProp();
     else if (openProp === undefined) setInternalOpen(v);
@@ -12,6 +13,7 @@ export default function FormLibrary({ enabled, open: openProp, onClose: onCloseP
   const [forms, setForms] = useState<FormItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const { mounted, closing } = usePresence(open, 170);
 
   const load = async () => {
     setLoading(true);
@@ -40,6 +42,44 @@ export default function FormLibrary({ enabled, open: openProp, onClose: onCloseP
 
   if (!enabled) return null;
 
+  const body = (
+    <>
+      {loading && <div className="bz-forms-empty">불러오는 중…</div>}
+      {!loading && forms.length === 0 && (
+        <div className="bz-forms-empty">등록된 양식이 아직 없어요.</div>
+      )}
+      <div className="bz-forms-list">
+        {forms.map((f) => (
+          <div key={f.id} className="bz-form-row">
+            <div className="bz-form-info">
+              <b>{f.title}</b>
+              <small>
+                {f.category} · {f.file_name} · {Math.max(1, Math.round(f.size / 1024))}KB
+              </small>
+            </div>
+            <button type="button" className="bz-btn-soft" onClick={() => void download(f)}>
+              받기
+            </button>
+          </div>
+        ))}
+      </div>
+      {msg && <div className="bz-forms-msg">{msg}</div>}
+    </>
+  );
+
+  if (page) {
+    return (
+      <div className="h-full overflow-y-auto p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <IconFormLibrary size={20} className="text-edu-blue" />
+          <h1 className="text-[18px] font-extrabold text-edu-ink">학교 공식 양식함</h1>
+        </div>
+        <p className="bz-forms-lead">학기 내내 쓰는 서식을 여기서 바로 받아 쓸 수 있어요. 만료되지 않아요.</p>
+        {body}
+      </div>
+    );
+  }
+
   return (
     <>
       {openProp === undefined && (
@@ -53,8 +93,8 @@ export default function FormLibrary({ enabled, open: openProp, onClose: onCloseP
           <IconFormLibrary size={20} />
         </button>
       )}
-      {open && (
-        <div className="bz-overlay show" role="dialog" aria-modal="true">
+      {mounted && (
+        <div className={`bz-overlay show${closing ? " is-closing" : ""}`} role="dialog" aria-modal="true" aria-hidden={closing || undefined}>
           <div className="bz-modal bz-forms">
             <div className="bz-forms-head">
               <h2 className="inline-flex items-center gap-2"><IconFormLibrary size={18} className="text-edu-blue" /> 학교 공식 양식함</h2>

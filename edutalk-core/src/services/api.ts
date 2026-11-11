@@ -3,10 +3,8 @@
 
 import type {
   ApiResponse,
-  LoginRequest,
   LoginResponse,
   ServerUser,
-  ServerDeptNode,
   DeptTreeResponse,
   ServerRoom,
   MessageResponse,
@@ -14,10 +12,7 @@ import type {
   TodoResponse,
   AttendanceSession,
   NoticeResponse,
-  TimetableCellResponse,
   TimetableTemplateResponse,
-  SwapResponse,
-  AuditLogResponse,
   AdminAuditLogResponse,
   SchoolResponse,
   SchoolSettingsResponse,

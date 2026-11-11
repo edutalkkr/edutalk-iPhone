@@ -105,6 +105,13 @@
   - 공개 사이트를 `edutalk.cloud/breeze`와 `edutalk.cloud/breezecore`로 분리. 두 사이트 모두 Pretendard를 로컬에 포함하고, BreezeCore 소개 페이지는 실제 앱 화면·하늘색 팔레트·블루 틴트 흰 배경 사용
   - 검증: `node onprem/test-cool.js` 21/21, `npx tsc --noEmit`, `npm run build`, Rust `cargo check` 통과
 
+- [x] **5-12. 출시 전 보안·모션·코드 정리** (2026-11-10)
+  - **모션 통일:** 공지 발행 확인, 프로필 편집, 시간표 편집, 대화 내보내기·그룹 만들기, 학교 양식함, 출근 팝업, 업데이트 릴레이, 망 전환 안내 모달에 등장·퇴장 모션을 적용. 공통 `usePresence` 훅과 `.is-closing` 스타일로 닫힘 애니메이션이 끝난 뒤 언마운트
+  - **보안 보강:** API 토큰은 `Authorization: Bearer`만 허용, 로그인 분당 12회 제한, 초기 비밀번호 8자 이상, 학생 계정의 교사 전용 경로·채팅방·양식함·업데이트 중계 차단, 파일 다운로드 ACL(업로더·쪽지 참여자·방 참여자), 쪽지 첨부 소유권 검증, 업로드 분당 8회·소켓 이벤트별 속도 제한
+  - **정리:** 미사용 컴포넌트(`ChatWindow`, `MainWindow`, `NoteVault`)·목업·CSS 셀렉터 제거, `tsc --noUnusedLocals --noUnusedParameters` 0건, CSP에서 외부 CDN 제거
+  - 검증: `onprem/npm test` ALL PASS, `test-summaries.js` 20/20, `tsc --noEmit` 0건, `npm run build` 성공, NSIS 설치본 `Breeze-0.2.4_x64-setup.exe` 생성
+  - 상세 점검 내용은 `docs/SECURITY_AUDIT.md`의 2026-11-10 항목 참조
+
 - [ ] 관리자 감사 뷰 (서버 `audit_logs` 데이터 표시)
 - [ ] 숨김 상태 수신 알림: PC 알림(토스트) 연동 검토 (tray balloon/알림 플러그인)
 

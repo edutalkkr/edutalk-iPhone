@@ -63,44 +63,6 @@ export const DEPARTMENT_TREE: DepartmentNode[] = [
   },
 ];
 
-export const DEMO_MESSAGES: {
-  id: string;
-  senderId: string;
-  senderName: string;
-  senderDepartment: string;
-  content: string;
-  createdAt: string;
-  messageType: "text" | "file";
-}[] = [
-  {
-    id: "m-001",
-    senderId: "t-001",
-    senderName: "이준희",
-    senderDepartment: "국어과",
-    content: "2학년 1반 국어 시험 범위 안내예요. p.50~p.65까지 확인해 주세요.",
-    createdAt: "2024-02-15T10:30:00",
-    messageType: "text",
-  },
-  {
-    id: "m-002",
-    senderId: "t-002",
-    senderName: "박수진",
-    senderDepartment: "수학과",
-    content: "수학시간표 수정이 완료됐어요. 이번 주 목요일 2교시 교실로 이동해 주세요.",
-    createdAt: "2024-02-15T09:15:00",
-    messageType: "text",
-  },
-  {
-    id: "m-003",
-    senderId: "admin",
-    senderName: "행정실",
-    senderDepartment: "행정실",
-    content: "오늘 점심 공지: 방학 후 청소 차량 꼭 지켜해 주세요.",
-    createdAt: "2024-02-15T08:00:00",
-    messageType: "text",
-  },
-];
-
 export const DEMO_TIMETABLE = {
   grade: "전체",
   classNo: "전체",

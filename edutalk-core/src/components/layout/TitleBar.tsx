@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { isTauriDesktop } from "../../lib/edition";
-import { APP_VERSION } from "../../lib/version";
 import BzTooltip from "../ui/BzTooltip";
 
 interface ConnectionStatus {
@@ -17,7 +16,7 @@ interface Props {
 // 브리즈 전용 창 버튼 — 항상 그린다.
 // - 설치판(Tauri): 진짜 최소화·최대화·닫기.
 // - 브라우저 미리보기: 겉모양은 같고, 누르면 설치판 안내를 띄운다 (X 위치는 고정).
-function NetworkPill({ connectionStatus, getStatusColor, getStatusText }: { connectionStatus: ConnectionStatus; getStatusColor: () => string; getStatusText: () => string }) {
+function NetworkPill({ getStatusColor, getStatusText }: { getStatusColor: () => string; getStatusText: () => string }) {
   const [expanded, setExpanded] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setExpanded(false), 5000);
@@ -87,7 +86,7 @@ export default function TitleBar({ onPreviewAction, connectionStatus }: Props) {
       <span className="font-extrabold text-[13px]">브리즈코어</span>
       
       {connectionStatus && (
-        <NetworkPill connectionStatus={connectionStatus} getStatusColor={getStatusColor} getStatusText={getStatusText} />
+        <NetworkPill getStatusColor={getStatusColor} getStatusText={getStatusText} />
       )}
       
       <span className="flex-1" />

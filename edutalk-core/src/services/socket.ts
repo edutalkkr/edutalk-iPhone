@@ -7,7 +7,7 @@
 // - 재연결 이벤트를 매니저(socket.io) 기준으로 수신 (socket.io-client v4)
 
 import { io, Socket } from 'socket.io-client';
-import type { SocketEventName, SocketEventPayload, SocketEvents } from '../types/api';
+import type { SocketEventName, SocketEventPayload } from '../types/api';
 import type { WhiteboardBoard, WhiteboardData } from '../types';
 
 type EventHandler<K extends SocketEventName> = (payload: SocketEventPayload<K>) => void;
@@ -41,7 +41,6 @@ class BreezeSocket {
   private handlers: Map<string, HandlerEntry[]> = new Map();
   private genericHandlers: Set<GenericHandler> = new Set();
   private connectPromise: Promise<void> | null = null;
-  private manualDisconnect = false;
   private reattached = false;
 
   constructor(config: SocketConfig = {}) {
@@ -75,7 +74,6 @@ class BreezeSocket {
     if (this.socket?.connected) return Promise.resolve();
     if (this.connectPromise) return this.connectPromise;
 
-    this.manualDisconnect = false;
     this.reattached = false;
 
     const authToken =
@@ -167,7 +165,6 @@ class BreezeSocket {
   }
 
   disconnect() {
-    this.manualDisconnect = true;
     this.reattached = false;
     if (this.socket) {
       this.socket.removeAllListeners();

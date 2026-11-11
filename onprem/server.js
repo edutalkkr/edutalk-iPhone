@@ -236,11 +236,12 @@ function rateLimit({ windowMs, max, message }) {
     } catch (e) { next(); }
   };
 }
-const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: '로그인을 너무 자주 시도했어요. 1분 뒤 다시 해 주세요.' });
+const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 12, message: '로그인을 너무 자주 시도했어요. 1분 뒤 다시 해 주세요.' });
 const adminLimiter = rateLimit({ windowMs: 60 * 1000, max: 200, message: '요청이 너무 많아요. 잠시 뒤 다시 해 주세요.' });
 const relayLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 6, message: '업데이트 배포 요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.' });
 const setupLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: '너무 자주 시도했어요. 잠시 뒤 다시 해 주세요.' });
 const activityLimiter = rateLimit({ windowMs: 60 * 1000, max: 300, message: '요청이 너무 많아요. 잠시 뒤 다시 해 주세요.' });
+const uploadLimiter = rateLimit({ windowMs: 60 * 1000, max: 8, message: '파일을 너무 자주 올렸어요. 1분 뒤 다시 시도해 주세요.' });
 const aiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: 'AI 요청이 너무 많아요. 1분 뒤 다시 시도해 주세요.' });
 const collabLimiter = rateLimit({ windowMs: 60 * 1000, max: 240, message: '요청이 너무 많아요. 잠시 뒤 다시 시도해 주세요.' });
 function clientIp(req) {
@@ -275,7 +276,7 @@ app.use(licenseGate);
 
 function needAuth(req, res, next) {
   const h = String(req.headers.authorization || '');
-  const token = h.startsWith('Bearer ') ? h.slice(7) : String(req.query.token || (req.body && req.body.token) || '');
+  const token = h.startsWith('Bearer ') ? h.slice(7) : '';
   const u = auth.userByToken(token);
   if (!u) return res.status(401).json({ ok: false, error: '로그인이 필요해요.' });
   req.user = u;
@@ -523,7 +524,7 @@ app.post('/api/rooms', needAuth, needStaff, (req, res) => {
 });
 
 /* 방 1개 (참여자만) */
-app.get('/api/rooms/:id', needAuth, (req, res) => {
+app.get('/api/rooms/:id', needAuth, needStaff, (req, res) => {
   try {
     const room = row('SELECT * FROM rooms WHERE id = ?', req.params.id);
     if (!room || !memberIdsOf(room).includes(Number(req.user.id))) return res.status(403).json({ ok: false, error: '들어갈 수 있는 방이 아니에요.' });
@@ -580,7 +581,7 @@ app.post('/api/rooms/:id/todos', needAuth, needRoomMember, (req, res) => {
     res.json({ ok: true, id: Number(r.lastInsertRowid) });
   } catch (e) { res.status(500).json({ ok: false, error: '할 일을 추가하지 못했어요.' }); }
 });
-app.post('/api/todos/:tid/toggle', needAuth, (req, res) => {
+app.post('/api/todos/:tid/toggle', needAuth, needStaff, (req, res) => {
   try {
     const t = row('SELECT * FROM todos WHERE id = ?', Number(req.params.tid));
     if (!t) return res.status(404).json({ ok: false, error: '할 일을 찾지 못했어요.' });
@@ -591,7 +592,7 @@ app.post('/api/todos/:tid/toggle', needAuth, (req, res) => {
     res.json({ ok: true, done: !t.done });
   } catch (e) { res.status(500).json({ ok: false, error: '바꾸지 못했어요.' }); }
 });
-app.delete('/api/todos/:tid', needAuth, (req, res) => {
+app.delete('/api/todos/:tid', needAuth, needStaff, (req, res) => {
   try {
     const t = row('SELECT * FROM todos WHERE id = ?', Number(req.params.tid));
     if (!t) return res.status(404).json({ ok: false, error: '할 일을 찾지 못했어요.' });
@@ -652,21 +653,24 @@ app.post('/api/rooms/:id/attendance/close', needAuth, needRoomMember, (req, res)
 });
 
 /* 참여자 추가 (만든 사람·내부 관리자만) */
-app.post('/api/rooms/:id/members', needAuth, (req, res) => {
+app.post('/api/rooms/:id/members', needAuth, needStaff, (req, res) => {
   try {
     const room = row('SELECT * FROM rooms WHERE id = ?', req.params.id);
     if (!room) return res.status(404).json({ ok: false, error: '채팅방을 찾지 못했어요.' });
     if (Number(room.created_by) !== Number(req.user.id) && req.user.role !== 'ADMIN') {
       return res.status(403).json({ ok: false, error: '방을 만든 사람만 초대할 수 있어요.' });
     }
-    const ids = [...new Set([...memberIdsOf(room), ...(Array.isArray(req.body.user_ids) ? req.body.user_ids.map(Number).filter(Boolean) : [])])].slice(0, 500);
+    // 학생 계정은 채팅방 멤버로 넣지 않는다 (학생은 쪽지함만 사용).
+    const staffIds = new Set(all("SELECT id FROM users WHERE role != 'STUDENT'").map((u) => Number(u.id)));
+    const invite = Array.isArray(req.body.user_ids) ? req.body.user_ids.map(Number).filter((id) => staffIds.has(id)) : [];
+    const ids = [...new Set([...memberIdsOf(room), ...invite])].slice(0, 500);
     run('UPDATE rooms SET member_ids = ? WHERE id = ?', JSON.stringify(ids), room.id);
     res.json({ ok: true, count: ids.length });
   } catch (e) { res.status(500).json({ ok: false, error: '초대하지 못했어요.' }); }
 });
 
 /* 방 나가기 (본인만 — 멤버 목록에서 자신을 빼고, 방이 비면 방도 지운다) */
-app.delete('/api/rooms/:id/members/me', needAuth, (req, res) => {
+app.delete('/api/rooms/:id/members/me', needAuth, needStaff, (req, res) => {
   try {
     const room = row('SELECT * FROM rooms WHERE id = ?', req.params.id);
     if (!room) return res.status(404).json({ ok: false, error: '채팅방을 찾지 못했어요.' });
@@ -681,7 +685,7 @@ app.delete('/api/rooms/:id/members/me', needAuth, (req, res) => {
 });
 
 /* 방 삭제 (만든 사람·내부 관리자만) */
-app.delete('/api/rooms/:id', needAuth, (req, res) => {
+app.delete('/api/rooms/:id', needAuth, needStaff, (req, res) => {
   try {
     const room = row('SELECT * FROM rooms WHERE id = ?', req.params.id);
     if (!room) return res.status(404).json({ ok: false, error: '채팅방을 찾지 못했어요.' });
@@ -693,7 +697,7 @@ app.delete('/api/rooms/:id', needAuth, (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: '지우지 못했어요.' }); }
 });
 
-app.get('/api/rooms/:id/messages', needAuth, (req, res) => {
+app.get('/api/rooms/:id/messages', needAuth, needStaff, (req, res) => {
   try {
     const room = row('SELECT * FROM rooms WHERE id = ?', req.params.id);
     if (!room || !isMember(room, req.user.id)) return res.status(403).json({ ok: false, error: '들어갈 수 있는 방이 아니에요.' });
@@ -734,7 +738,7 @@ app.get('/api/rooms/:id/messages', needAuth, (req, res) => {
 });
 
 /* 읽음/안읽음 명단 */
-app.get('/api/messages/:id/reads', needAuth, (req, res) => {
+app.get('/api/messages/:id/reads', needAuth, needStaff, (req, res) => {
   try {
     const m = row('SELECT * FROM messages WHERE id = ?', Number(req.params.id));
     if (!m) return res.status(404).json({ ok: false, error: '메시지를 찾지 못했어요.' });
@@ -768,7 +772,7 @@ function parseMultipart(req, maxFileSize) {
     } catch (e) { reject(e); }
   });
 }
-app.post('/api/upload', needAuth, needStaff, async (req, res) => {
+app.post('/api/upload', uploadLimiter, needAuth, needStaff, async (req, res) => {
   let parsed = null;
   try {
     // 관리자 정책: 1회 업로드 최대 크기 (기본 100MB — admin.html에서 조절)
@@ -798,7 +802,7 @@ app.post('/api/upload', needAuth, needStaff, async (req, res) => {
 });
 
 /* 학생이 쪽지에 첨부할 사진·동영상·파일. 30일 뒤 물리 파일과 DB 행을 함께 지운다. */
-app.post('/api/student/media', needAuth, async (req, res) => {
+app.post('/api/student/media', uploadLimiter, needAuth, async (req, res) => {
   let parsed = null;
   try {
     if (String(req.user.role || '').toUpperCase() !== 'STUDENT') {
@@ -835,9 +839,10 @@ app.get('/api/files/:id', needAuth, (req, res) => {
   try {
     const f = row('SELECT * FROM files WHERE id = ?', Number(req.params.id));
     if (!f) return res.status(404).json({ ok: false, error: '파일을 찾지 못했어요.' });
-    const role = String(req.user.role || '').toUpperCase();
     const uid = Number(req.user.id);
-    let allowed = role !== 'STUDENT' || Number(f.owner_id) === uid;
+    // 올린 사람이거나, 이 파일이 붙은 쪽지·채팅방의 참여자만 내려받을 수 있다.
+    // (예전에는 모든 교사가 파일 번호만 알면 내려받을 수 있어 학생 사진·첨부가 노출됐다.)
+    let allowed = Number(f.owner_id) === uid;
     if (!allowed && f.note_id) {
       const note = row('SELECT id, sender_id FROM notes WHERE id = ?', Number(f.note_id));
       if (note) {
@@ -877,7 +882,7 @@ app.post('/api/admin/setup/admin', setupLimiter, needSetupLocal, (req, res) => {
     const realName=String(((req.body||{}).real_name)||'').trim()||'관리자';
     const pw=String(((req.body||{}).password)||'');
     if(!/^[A-Za-z0-9._-]{3,20}$/.test(username)) return res.status(400).json({ ok:false, error:'사번은 3~20자 영문·숫자로 적어 주세요.' });
-    if(pw.length<4) return res.status(400).json({ ok:false, error:'비밀번호는 4자 이상으로 정해 주세요.' });
+    if(pw.length<8 || pw.length>128) return res.status(400).json({ ok:false, error:'비밀번호는 8자 이상으로 정해 주세요.' });
     run('INSERT INTO users (username, real_name, password_hash, role, status) VALUES (?,?,?,?,?)', username, realName, auth.hashPassword(pw), 'ADMIN', 'OFFLINE');
     try{ maybeFinishSetup(); }catch(e){}
     res.json({ ok:true });
@@ -1196,7 +1201,7 @@ async function downloadFeedInstaller(feed) {
 
 /* 교사 PC(인터넷 O) → 학교 서버(교내망): 설치본 업로드 + 전체 방송 */
 const relayClaims = new Map(); // version → { userId, name, expires }
-app.post('/api/updates/relay', relayLimiter, needAuth, express.raw({ type: 'application/octet-stream', limit: UPDATE_MAX_BYTES }), (req, res) => {
+app.post('/api/updates/relay', relayLimiter, needAuth, needStaff, express.raw({ type: 'application/octet-stream', limit: UPDATE_MAX_BYTES }), (req, res) => {
   try {
     const raw = String(req.headers['x-breeze-manifest'] || '');
     if (!raw) return res.status(400).json({ ok: false, error: '업데이트 정보가 없어요.' });
@@ -1220,7 +1225,7 @@ function cleanRelayClaims() {
   const now = Date.now();
   for (const [k, v] of relayClaims) if (!v || v.expires <= now) relayClaims.delete(k);
 }
-app.post('/api/updates/claim', needAuth, (req, res) => {
+app.post('/api/updates/claim', needAuth, needStaff, (req, res) => {
   try {
     cleanRelayClaims();
     const version = String((req.body && req.body.version) || '').trim();
@@ -1242,7 +1247,7 @@ app.post('/api/updates/claim', needAuth, (req, res) => {
     res.status(400).json({ ok: false, error: e.message || '업데이트 준비에 실패했어요.' });
   }
 });
-app.post('/api/updates/release', needAuth, (req, res) => {
+app.post('/api/updates/release', needAuth, needStaff, (req, res) => {
   try {
     const version = String((req.body && req.body.version) || '').trim();
     const held = relayClaims.get(version);
@@ -1277,14 +1282,14 @@ app.post('/api/admin/updates/pull', relayLimiter, needAdmin, async (req, res) =>
 
 /* ---------- 학교 공식 양식함 (Feature 3) ----------
  * 만료 없이 영구 보관. 관리자(ADMIN)만 등록·삭제, 모든 교직원이 조회·다운로드한다. */
-app.get('/api/forms', needAuth, (req, res) => {
+app.get('/api/forms', needAuth, needStaff, (req, res) => {
   try {
     const rows = all(`SELECT id, title, category, file_name, size, mime_type, uploaded_by_name, created_at
       FROM forms ORDER BY category, created_at DESC`);
     res.json({ ok: true, forms: rows });
   } catch (e) { res.status(500).json({ ok: false, error: '양식 목록을 불러오지 못했어요.' }); }
 });
-app.post('/api/forms', needAuth, async (req, res) => {
+app.post('/api/forms', uploadLimiter, needAuth, async (req, res) => {
   const role = String((req.user && req.user.role) || '').toUpperCase();
   if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
     return res.status(403).json({ ok: false, error: '관리자만 양식을 등록할 수 있어요.' });
@@ -1315,7 +1320,7 @@ app.post('/api/forms', needAuth, async (req, res) => {
     finish(200, { ok: true, form: row });
   } catch (e) { finish(500, { ok: false, error: '양식을 저장하지 못했어요.' }); }
 });
-app.get('/api/forms/:id/download', needAuth, (req, res) => {
+app.get('/api/forms/:id/download', needAuth, needStaff, (req, res) => {
   try {
     const row = all('SELECT * FROM forms WHERE id = ?', Number(req.params.id))[0];
     if (!row) return res.status(404).json({ ok: false, error: '양식을 찾지 못했어요.' });
@@ -1373,18 +1378,34 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   const me = socket.user;
   socket.join('user:' + me.id);
+  // 매크로·연타로 서버를 밀어붙이지 못하게 소켓별 간단한 속도 제한을 둔다.
+  function allowSocket(key, max, windowMs) {
+    try {
+      const now = Date.now();
+      socket.data.rl = socket.data.rl || {};
+      const b = socket.data.rl[key];
+      if (!b || now - b.start > windowMs) {
+        socket.data.rl[key] = { start: now, n: 1 };
+        return true;
+      }
+      b.n++;
+      return b.n <= max;
+    } catch (e) { return true; }
+  }
   socket.on('room:join', (roomId, ack) => {
     try {
+      if (!allowSocket('join', 40, 10000)) { if (ack) ack({ ok: false, error: 'too-fast' }); return; }
       const room = row('SELECT * FROM rooms WHERE id = ?', String(roomId || ''));
       if (!room || !isMember(room, me.id)) { if (ack) ack({ ok: false }); return; }
       socket.join('room:' + room.id);
       if (ack) ack({ ok: true });
     } catch (e) { if (ack) ack({ ok: false }); }
   });
-  socket.on('room:leave', (roomId) => { try { socket.leave('room:' + String(roomId || '')); } catch (e) {} });
+  socket.on('room:leave', (roomId) => { try { if (!allowSocket('leave', 40, 10000)) return; socket.leave('room:' + String(roomId || '')); } catch (e) {} });
 
   socket.on('user:change_status', (payload, ack) => {
     try {
+      if (!allowSocket('status', 10, 10000)) { if (ack) ack({ ok: false, error: 'too-fast' }); return; }
       const p = payload || {};
       const st = String(p.status || '').toUpperCase();
       if (!VALID_STATUS.has(st)) { if (ack) ack({ ok: false }); return; }
@@ -1398,6 +1419,7 @@ io.on('connection', (socket) => {
 
   socket.on('message:send', (payload, ack) => {
     try {
+      if (!allowSocket('msg', 20, 10000)) { if (ack) ack({ ok: false, error: '메시지를 너무 빠르게 보냈어요. 잠시 후 다시 시도해 주세요.' }); return; }
       if (String(me.role || '').toUpperCase() === 'STUDENT') { if (ack) ack({ ok: false, error: 'staff-only' }); return; }
       const p = payload || {};
       const room = row('SELECT * FROM rooms WHERE id = ?', String(p.roomId || ''));
@@ -1413,13 +1435,14 @@ io.on('connection', (socket) => {
       }
       if (!content && !fileId && !poll) { if (ack) ack({ ok: false }); return; }
       if (fileId) {
-        const f = row('SELECT * FROM files WHERE id = ?', fileId);
-        if (f) run('UPDATE files SET message_id = NULL WHERE id = ?', fileId);
+        // 내가 올린 파일만, 아직 다른 곳에 붙지 않은 파일만 첨부할 수 있다.
+        const f = row('SELECT id FROM files WHERE id = ? AND owner_id = ? AND message_id IS NULL AND note_id IS NULL', fileId, me.id);
+        if (!f) { if (ack) ack({ ok: false, error: '내가 올린 파일만 첨부할 수 있어요.' }); return; }
       }
       const r = run('INSERT INTO messages (room_id, sender_id, content, is_notice) VALUES (?, ?, ?, ?)',
         room.id, me.id, content, p.isNotice ? 1 : 0);
       const mid = Number(r.lastInsertRowid);
-      if (fileId) { try { run('UPDATE files SET message_id = ? WHERE id = ?', mid, fileId); } catch (e) {} }
+      if (fileId) { try { run('UPDATE files SET message_id = ? WHERE id = ? AND owner_id = ?', mid, fileId, me.id); } catch (e) {} }
       let fileInfo = null;
       if (fileId) {
         const f = row('SELECT id, original_name, file_size FROM files WHERE id = ?', fileId);
@@ -1437,6 +1460,7 @@ io.on('connection', (socket) => {
 
   socket.on('message:read', (payload, ack) => {
     try {
+      if (!allowSocket('read', 80, 10000)) { if (ack) ack({ ok: false }); return; }
       const mid = Number((payload || {}).messageId || 0);
       const m = row('SELECT * FROM messages WHERE id = ?', mid);
       if (!m) { if (ack) ack({ ok: false }); return; }
@@ -1479,6 +1503,7 @@ io.on('connection', (socket) => {
 
   socket.on('poll:vote', (payload, ack) => {
     try {
+      if (!allowSocket('vote', 30, 10000)) { if (ack) ack({ ok: false, error: 'too-fast' }); return; }
       const mid = Number((payload || {}).messageId || 0);
       const m = row('SELECT * FROM messages WHERE id = ?', mid);
       if (!m) { if (ack) ack({ ok: false }); return; }
@@ -1534,6 +1559,7 @@ io.on('connection', (socket) => {
 
   socket.on('whiteboard:join', (payload, ack) => {
     try {
+      if (!allowSocket('wbjoin', 20, 10000)) { if (ack) ack({ ok: false, error: 'too-fast' }); return; }
       if (String(me.role || '').toUpperCase() === 'STUDENT') {
         if (ack) ack({ ok: false, error: '선생님 계정에서만 사용할 수 있어요.' });
         return;
@@ -1551,6 +1577,7 @@ io.on('connection', (socket) => {
 
   socket.on('whiteboard:leave', (payload, ack) => {
     try {
+      if (!allowSocket('wbleave', 30, 10000)) { if (ack) ack({ ok: false }); return; }
       const id = String((payload && payload.boardId) || '');
       socket.leave(boardRoom(id));
       socket.data.whiteboards.delete(id);

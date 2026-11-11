@@ -17,7 +17,6 @@ export interface LoginCredentials {
 interface Props {
   onLogin: (credentials: LoginCredentials) => Promise<void>;
   onDemo: () => Promise<void> | void;
-  onError: (message: string) => void;
   onSuccess: () => void;
 }
 
@@ -26,7 +25,7 @@ const SERVER_RE = /^([a-zA-Z0-9.\-[\]:]+|https?:\/\/[^\s]+)$/;
 /** 학교 코드: 공백 없는 2~20자 (영문·숫자·-·_ 권장) */
 const SCHOOL_CODE_RE = /^[^\s]{2,20}$/;
 
-export default function LoginWindow({ onLogin, onDemo, onError, onSuccess }: Props) {
+export default function LoginWindow({ onLogin, onDemo, onSuccess }: Props) {
   const [serverIp, setServerIp] = useState("");
   const [schoolCode, setSchoolCode] = useState("");
   const [teacherId, setTeacherId] = useState("");
@@ -129,7 +128,6 @@ export default function LoginWindow({ onLogin, onDemo, onError, onSuccess }: Pro
     } catch (err) {
       const msg = err instanceof Error ? err.message : "로그인하지 못했어요.";
       setError(msg);
-      onError(msg);
     } finally {
       setLoading(false);
     }
@@ -143,7 +141,6 @@ export default function LoginWindow({ onLogin, onDemo, onError, onSuccess }: Pro
     } catch (err) {
       const msg = err instanceof Error ? err.message : "데모 로그인에 실패했어요.";
       setError(msg);
-      onError(msg);
       setLoading(false);
     }
   };

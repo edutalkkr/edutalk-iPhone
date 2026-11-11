@@ -36,6 +36,7 @@ export default function UpdateRelay({
   const [message, setMessage] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [relayed, setRelayed] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const phaseRef = useRef<Phase>("idle");
   const busyRef = useRef(false);
@@ -113,17 +114,22 @@ export default function UpdateRelay({
   };
 
   const close = async () => {
+    if (closing) return;
+    setClosing(true);
     if (feed && !relayed) await releaseUpdateRelay(feed.version);
-    setPhase("idle");
-    setFeed(null);
-    setExpanded(false);
-    setMessage("");
+    window.setTimeout(() => {
+      setPhase("idle");
+      setFeed(null);
+      setExpanded(false);
+      setMessage("");
+      setClosing(false);
+    }, 170);
   };
 
   if (phase === "idle" || !feed) return null;
 
   return (
-    <div className="bz-overlay show" role="dialog" aria-modal="true" aria-labelledby="bzRelayTitle">
+    <div className={`bz-overlay show${closing ? " is-closing" : ""}`} role="dialog" aria-modal="true" aria-hidden={closing || undefined} aria-labelledby="bzRelayTitle">
       <div className="bz-modal bz-relay">
         {phase === "consent" && (
           <>

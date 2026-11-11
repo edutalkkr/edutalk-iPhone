@@ -372,16 +372,6 @@ export default function LeftSidebar(p: Props) {
     contextMenu(e, items, tr(tab.labelKey));
   };
 
-  const moveTab = (id: ActiveView, delta: number) => {
-    if (!p.onReorderTabs) return;
-    const ids = normalizeOrder(p.tabOrder, baseTabs.map((t) => t.id));
-    const from = ids.indexOf(id);
-    const to = from + delta;
-    if (from < 0 || to < 0 || to >= ids.length) return;
-    const [moved] = ids.splice(from, 1);
-    ids.splice(to, 0, moved);
-    p.onReorderTabs(ids);
-  };
   const commitReorder = (fromId: ActiveView, toId: ActiveView) => {
     if (fromId === toId || !p.onReorderTabs) return;
     const ids = normalizeOrder(p.tabOrder, baseTabs.map((t) => t.id));
@@ -621,6 +611,7 @@ export default function LeftSidebar(p: Props) {
               aria-label={badge > 0 ? `${tr(t.labelKey)}, unread ${badge}` : tr(t.labelKey)}
               title={reorderMode ? `${tr(t.labelKey)} — drag to reorder` : undefined}
             >
+              {reorderMode && <span className="reorder-grip" aria-hidden>⋮⋮</span>}
               <span className="edu-rail-ico" aria-hidden>{t.icon}</span>
               <span className={"rail-label edu-rail-txt truncate transition-[opacity,max-width,margin] duration-250 ease-out " + (collapsed ? "opacity-0 max-w-0 ml-0 overflow-hidden" : "opacity-100 max-w-[14rem]")}>
                 {tr(t.labelKey)}

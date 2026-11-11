@@ -7,7 +7,6 @@ import type {
   AuditLog,
   ChatMessage,
   DeptGroup,
-  DlpRule,
   GradeClass,
   Memo,
   MemoComment,
@@ -45,6 +44,7 @@ import { newOutboxItem, obAll, obDelete, obPut, type OutboxItem } from "./lib/ou
 import QuickMemos from "./components/QuickMemos";
 import BzTooltip from "./components/ui/BzTooltip";
 import { playSiren, stopSiren } from "./lib/siren";
+import { usePresence } from "./lib/usePresence";
 import { playStudentChime } from "./lib/chime";
 import { FOCUS_MESSAGE, isFocusTime } from "./lib/focus";
 import { summarize3 } from "./lib/ai";
@@ -76,8 +76,7 @@ import RightPanel from "./components/layout/RightPanel";
 import TitleBar from "./components/layout/TitleBar";
 import BootSplash from "./components/BootSplash";
 import DetachedChat from "./components/DetachedChat";
-import MorningPopup from "./components/MorningPopup";
-import OrgTreePane, { nextAvatar } from "./components/views/OrgTreePane";
+import MorningPopup from "./components/MorningPopup";import OrgTreePane, { nextAvatar } from "./components/views/OrgTreePane";
 import MemoPane, { type MemoSendExtras } from "./components/views/MemoPane";
 import ChatPane from "./components/views/ChatPane";
 import TimetablePane from "./components/views/TimetablePane";
@@ -213,7 +212,6 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   const [serverBase, setServerBase] = useState<string | null>(null);
   const [formLibOpen, setFormLibOpen] = useState(false);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
-  const [loginError, setLoginError] = useState("");
   // 관리자 모드 상태
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [adminNotices, setAdminNotices] = useState<AdminNotice[]>([]);
@@ -604,6 +602,8 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
   const intranetOn = intranetVisible(net, license);
   const externalOnly = isExternalOnlySchool(license);
   const dualNetwork = isDualNetworkSchool(license);
+  const netLocked = dualNetwork && net === "external" && view === "cloud" && !popupMode;
+  const { mounted: netLockMounted, closing: netLockClosing } = usePresence(netLocked, 170);
   const visibleTeachers = useMemo(
     () => (intranetOn ? teachers : teachers.filter((t) => !isIntranetScoped(t))),
     [teachers, intranetOn]
@@ -1060,7 +1060,7 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
     if (typeof document !== "undefined" && document.hidden) {
       void call("show_alert_window", { title: emergency.title, body: emergency.body }).catch(() => undefined);
     }
-    const emgText = `${emergency.title}\n${emergency.body}`;
+    const emgText = emergency.body;
     if (emgText.trim().length >= 150) {
       void summarize3(emgText).then((r) => {
         if (alive) setEmgSummary(r.lines);
@@ -1920,13 +1920,6 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
     if (t) addAdminAudit({ adminId: "admin_001", adminName: "관리자", action: "timetable_publish", targetType: "timetable", targetId: t.id, targetName: t.name, detail: `시간표 배포: ${t.name}`, blocked: false });
   };
 
-  const addGradeClass = (gc: GradeClass) => {
-    setGradeClasses(gcs => [...gcs, gc]);
-  };
-  const updateGradeClass = (grade: string, classNo: string, patch: Partial<GradeClass>) => {
-    setGradeClasses(gcs => gcs.map(c => c.grade === grade && c.classNo === classNo ? { ...c, ...patch } : c));
-  };
-
   const updateSchoolInfo = (patch: Partial<School>) => {
     setSchoolInfo(s => s ? { ...s, ...patch } : null);
   };
@@ -2034,7 +2027,6 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
 
   // 실제 학교 서버 로그인: Rust(srv_login)가 토큰을 들고, 조직도를 합쳐 온다.
   const handleLogin = useCallback(async (credentials: LoginCredentials) => {
-    setLoginError("");
     try {
       const base = normalizeServerUrl(credentials.serverIp);
       const result = await call<{ ok?: boolean; user?: { id?: number | string; real_name?: string; username?: string; role?: string } }>("srv_login", {
@@ -2062,8 +2054,6 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       setIsLoggedIn(true);
       storeSet("logged-in", true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "로그인하지 못했어요.";
-      setLoginError(msg);
       throw err;
     }
   }, []);
@@ -2284,7 +2274,6 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
           <LoginWindow
             onLogin={handleLogin}
             onDemo={handleDemoLogin}
-            onError={setLoginError}
             onSuccess={() => {}}
           />
         </div>
@@ -2329,15 +2318,14 @@ const [changedKeys, setChangedKeys] = useState<Set<string>>(new Set());
       {/* 퀵 메모(포스트잇) 레이어 — 좌측 레일의 [퀵 메모] 버튼으로 여닫는다 */}
       {quickLayerOpen && !popupMode && (
         <QuickMemos
-          onClose={() => useQuick.getState().setBarOpen(false)}
           onSendAsMemo={sendQuickToMemo}
           onToast={toast}
         />
       )}
       {/* 외부망에서 클라우드(무거운 기능)를 열어 둔 채 전환하면 화면 중앙에 안내한다. 토스트가 아니다. */}
-      {dualNetwork && net === "external" && view === "cloud" && !popupMode && (
-        <div className="fixed inset-0 z-[1500] bg-[rgba(15,23,42,0.46)] backdrop-blur-[3px] grid place-items-center p-5" role="dialog" aria-modal="true" aria-labelledby="net-lock-title">
-          <div className="w-full max-w-[420px] rounded-2xl bg-edu-surface border border-edu-line shadow-2xl p-6 text-center anim-pop">
+      {netLockMounted && (
+        <div className={`fixed inset-0 z-[1500] bg-[rgba(15,23,42,0.46)] backdrop-blur-[3px] grid place-items-center p-5 bz-fade-backdrop${netLockClosing ? " is-closing" : ""}`} role="dialog" aria-modal="true" aria-hidden={netLockClosing || undefined} aria-labelledby="net-lock-title">
+          <div className={`w-full max-w-[420px] rounded-2xl bg-edu-surface border border-edu-line shadow-2xl p-6 text-center${netLockClosing ? " is-closing" : " anim-pop"}`}>
             <div className="mx-auto w-14 h-14 rounded-2xl grid place-items-center text-2xl bg-edu-soft border border-edu-blueline" aria-hidden>☁️</div>
             <div id="net-lock-title" className="mt-4 text-[18px] font-extrabold text-edu-ink">내부망 전용 기능이에요</div>
             <p className="mt-2.5 text-[14px] leading-relaxed text-edu-sub font-semibold">
